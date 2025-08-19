@@ -1,32 +1,37 @@
-import { ReactNode, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { ReactNode, useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
   requireConsultant?: boolean;
   requireSubscription?: boolean;
-  minimumTier?: 'Basic' | 'Pro' | 'Premium';
-  allowRoles?: Array<'business_owner' | 'consultant' | 'admin'>;
+  minimumTier?: "Basic" | "Pro" | "Premium";
+  allowRoles?: Array<"business_owner" | "consultant" | "admin">;
 }
 
-export const ProtectedRoute = ({ 
-  children, 
+export const ProtectedRoute = ({
+  children,
   requireAdmin = false,
   requireConsultant = false,
   requireSubscription = false,
-  minimumTier = 'Basic',
-  allowRoles 
+  minimumTier = "Basic",
+  allowRoles,
 }: ProtectedRouteProps) => {
   const { user, userRole, loading, subscriptionInfo } = useAuth();
   const location = useLocation();
 
   // Redirect consultants to consultant dashboard on login
   useEffect(() => {
-    if (!loading && user && userRole === 'consultant' && location.pathname === '/dashboard') {
+    if (
+      !loading &&
+      user &&
+      userRole === "consultant" &&
+      location.pathname === "/dashboard"
+    ) {
       // Auto-redirect consultants to their dedicated dashboard
-      window.location.href = '/consultant-dashboard';
+      window.location.href = "/consultant-dashboard";
     }
   }, [user, userRole, loading, location.pathname]);
 
@@ -45,11 +50,11 @@ export const ProtectedRoute = ({
   }
 
   // Check role-based access
-  if (requireAdmin && userRole !== 'admin') {
+  if (requireAdmin && userRole !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (requireConsultant && userRole !== 'consultant' && userRole !== 'admin') {
+  if (requireConsultant && userRole !== "consultant" && userRole !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -64,10 +69,10 @@ export const ProtectedRoute = ({
   }
 
   // Check tier requirements
-  if (minimumTier !== 'Basic') {
-    const tierHierarchy = { 'Basic': 0, 'Pro': 1, 'Premium': 2 };
-    const currentTier = subscriptionInfo?.subscription_tier || 'Basic';
-    
+  if (minimumTier !== "Basic") {
+    const tierHierarchy = { Basic: 0, Pro: 1, Premium: 2 };
+    const currentTier = subscriptionInfo?.subscription_tier || "Basic";
+
     if (tierHierarchy[currentTier] < tierHierarchy[minimumTier]) {
       return <Navigate to="/pricing" replace />;
     }

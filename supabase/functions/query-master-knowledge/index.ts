@@ -1,22 +1,23 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
 );
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -24,32 +25,35 @@ serve(async (req) => {
     const { query, frameworkCategory, contentType, userId } = await req.json();
 
     if (!query) {
-      throw new Error('Query is required');
+      throw new Error("Query is required");
     }
 
-    console.log('Querying master knowledge base:', {
+    console.log("Querying master knowledge base:", {
       query,
       frameworkCategory,
       contentType,
-      userId
+      userId,
     });
 
     // Generate embedding for the query
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error("OpenAI API key not configured");
     }
 
-    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+    const embeddingResponse = await fetch(
+      "https://api.openai.com/v1/embeddings",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openAIApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "text-embedding-ada-002",
+          input: query,
+        }),
       },
-      body: JSON.stringify({
-        model: 'text-embedding-ada-002',
-        input: query,
-      }),
-    });
+    );
 
     if (!embeddingResponse.ok) {
       throw new Error(`OpenAI API error: ${embeddingResponse.statusText}`);
@@ -60,8 +64,9 @@ serve(async (req) => {
 
     // Search master knowledge base embeddings
     let masterKnowledgeQuery = supabase
-      .from('master_knowledge_embeddings')
-      .select(`
+      .from("master_knowledge_embeddings")
+      .select(
+        `
         *,
         master_knowledge_base!inner(
           id,
@@ -73,23 +78,31 @@ serve(async (req) => {
           tags,
           version
         )
-      `)
-      .order('embedding <-> $1', { ascending: true })
+      `,
+      )
+      .order("embedding <-> $1", { ascending: true })
       .limit(10);
 
     // Apply filters if provided
     if (frameworkCategory) {
-      masterKnowledgeQuery = masterKnowledgeQuery.eq('master_knowledge_base.framework_category', frameworkCategory);
+      masterKnowledgeQuery = masterKnowledgeQuery.eq(
+        "master_knowledge_base.framework_category",
+        frameworkCategory,
+      );
     }
     if (contentType) {
-      masterKnowledgeQuery = masterKnowledgeQuery.eq('master_knowledge_base.content_type', contentType);
+      masterKnowledgeQuery = masterKnowledgeQuery.eq(
+        "master_knowledge_base.content_type",
+        contentType,
+      );
     }
 
-    const { data: masterResults, error: masterError } = await masterKnowledgeQuery;
+    const { data: masterResults, error: masterError } =
+      await masterKnowledgeQuery;
 
     if (masterError) {
-      console.error('Master knowledge query error:', masterError);
-      throw new Error('Failed to query master knowledge base');
+      console.error("Master knowledge query error:", masterError);
+      throw new Error("Failed to query master knowledge base");
     }
 
     console.log(`Found ${masterResults?.length || 0} master knowledge results`);
@@ -98,27 +111,30 @@ serve(async (req) => {
     let userResults = [];
     if (userId) {
       try {
-        const { data: userDocs, error: userError } = await supabase.functions
-          .invoke('query-vectors', {
-            body: { 
+        const { data: userDocs, error: userError } =
+          await supabase.functions.invoke("query-vectors", {
+            body: {
               query,
               userId,
-              limit: 5
-            }
+              limit: 5,
+            },
           });
 
         if (!userError && userDocs?.success) {
           userResults = userDocs.results || [];
         }
       } catch (error) {
-        console.log('User document query failed, continuing with master knowledge only:', error);
+        console.log(
+          "User document query failed, continuing with master knowledge only:",
+          error,
+        );
       }
     }
 
     // Format and rank results
     const masterKnowledgeResults = (masterResults || []).map((result: any) => ({
       id: result.id,
-      source: 'master_knowledge',
+      source: "master_knowledge",
       title: result.master_knowledge_base.title,
       description: result.master_knowledge_base.description,
       content: result.chunk_text,
@@ -128,74 +144,82 @@ serve(async (req) => {
       tags: result.master_knowledge_base.tags,
       version: result.master_knowledge_base.version,
       chunk_index: result.chunk_index,
-      relevance_score: calculateRelevanceScore(result, queryEmbedding)
+      relevance_score: calculateRelevanceScore(result, queryEmbedding),
     }));
 
     // Format user results for comparison
     const userDocumentResults = userResults.map((result: any) => ({
       ...result,
-      source: 'user_document'
+      source: "user_document",
     }));
 
     // Generate analysis and recommendations
     const analysis = await generateKnowledgeAnalysis(
       query,
       masterKnowledgeResults.slice(0, 5), // Top 5 master knowledge results
-      userDocumentResults.slice(0, 3)     // Top 3 user document results
+      userDocumentResults.slice(0, 3), // Top 3 user document results
     );
 
-    return new Response(JSON.stringify({
-      success: true,
-      query,
-      masterKnowledgeResults,
-      userDocumentResults,
-      analysis,
-      totalMasterResults: masterKnowledgeResults.length,
-      totalUserResults: userDocumentResults.length
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        query,
+        masterKnowledgeResults,
+        userDocumentResults,
+        analysis,
+        totalMasterResults: masterKnowledgeResults.length,
+        totalUserResults: userDocumentResults.length,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
-    console.error('Error in query-master-knowledge function:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Error in query-master-knowledge function:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });
 
-function calculateRelevanceScore(result: any, queryEmbedding: number[]): number {
+function calculateRelevanceScore(
+  result: any,
+  queryEmbedding: number[],
+): number {
   // Simple cosine similarity calculation
   const embedding = result.embedding;
   if (!embedding || !Array.isArray(embedding)) return 0;
-  
+
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
-  
+
   for (let i = 0; i < Math.min(embedding.length, queryEmbedding.length); i++) {
     dotProduct += embedding[i] * queryEmbedding[i];
     normA += embedding[i] * embedding[i];
     normB += queryEmbedding[i] * queryEmbedding[i];
   }
-  
+
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 async function generateKnowledgeAnalysis(
-  query: string, 
-  masterResults: any[], 
-  userResults: any[]
+  query: string,
+  masterResults: any[],
+  userResults: any[],
 ): Promise<any> {
   if (!openAIApiKey) {
     return {
       summary: "Knowledge base search completed",
       recommendations: ["Review the found documents for relevant information"],
-      comparisons: []
+      comparisons: [],
     };
   }
 
@@ -205,10 +229,10 @@ async function generateKnowledgeAnalysis(
 Query: "${query}"
 
 Master Knowledge Base Results (Official Framework Content):
-${masterResults.map((r, i) => `${i + 1}. [${r.framework_category}] ${r.title} - ${r.content.substring(0, 200)}...`).join('\n')}
+${masterResults.map((r, i) => `${i + 1}. [${r.framework_category}] ${r.title} - ${r.content.substring(0, 200)}...`).join("\n")}
 
 User Document Results (User-Specific Content):
-${userResults.map((r, i) => `${i + 1}. ${r.title || r.file_name} - ${r.content.substring(0, 200)}...`).join('\n')}
+${userResults.map((r, i) => `${i + 1}. ${r.title || r.file_name} - ${r.content.substring(0, 200)}...`).join("\n")}
 
 Please provide:
 1. A summary of what the official frameworks say about this topic
@@ -218,26 +242,27 @@ Please provide:
 
 Format as JSON with keys: summary, recommendations (array), comparisons (array), actionItems (array)`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: "gpt-4o-mini",
         messages: [
           {
-            role: 'system',
-            content: 'You are a cybersecurity compliance expert. Analyze knowledge base results and provide actionable insights in JSON format.'
+            role: "system",
+            content:
+              "You are a cybersecurity compliance expert. Analyze knowledge base results and provide actionable insights in JSON format.",
           },
           {
-            role: 'user',
-            content: prompt
-          }
+            role: "user",
+            content: prompt,
+          },
         ],
         temperature: 0.3,
-        max_tokens: 1000
+        max_tokens: 1000,
       }),
     });
 
@@ -247,7 +272,7 @@ Format as JSON with keys: summary, recommendations (array), comparisons (array),
 
     const analysisData = await response.json();
     const analysisText = analysisData.choices[0].message.content;
-    
+
     try {
       return JSON.parse(analysisText);
     } catch {
@@ -256,17 +281,17 @@ Format as JSON with keys: summary, recommendations (array), comparisons (array),
         summary: analysisText,
         recommendations: ["Review the provided analysis"],
         comparisons: [],
-        actionItems: []
+        actionItems: [],
       };
     }
-
   } catch (error) {
-    console.error('Error generating analysis:', error);
+    console.error("Error generating analysis:", error);
     return {
-      summary: "Analysis generation failed, but knowledge base results are available",
+      summary:
+        "Analysis generation failed, but knowledge base results are available",
       recommendations: ["Review the found documents manually"],
       comparisons: [],
-      actionItems: []
+      actionItems: [],
     };
   }
 }

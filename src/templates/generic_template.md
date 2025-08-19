@@ -15,6 +15,7 @@ This policy establishes guidelines and requirements for {{policy_title}} to ensu
 ## Purpose
 
 The purpose of this policy is to:
+
 - Define clear guidelines and expectations
 - Ensure consistent implementation across the organization
 - Meet regulatory and compliance requirements
@@ -59,6 +60,7 @@ All personnel **shall** comply with the following fundamental requirements:
 ## Procedures
 
 ### Implementation
+
 1. **Awareness and Training**
    - All personnel must receive training on this policy upon hiring
    - Annual refresher training is required for all staff
@@ -75,7 +77,9 @@ All personnel **shall** comply with the following fundamental requirements:
    - Documentation must be available for audit purposes
 
 ### Reporting
+
 Personnel must report any concerns, violations, or incidents related to this policy to:
+
 - Direct supervisor
 - {{hr_department}}
 - {{security_officer}}
@@ -84,18 +88,21 @@ Personnel must report any concerns, violations, or incidents related to this pol
 ## Responsibilities
 
 ### Management
+
 - Ensure policy implementation and compliance
 - Provide necessary resources and support
 - Lead by example in following policy requirements
 - Address violations promptly and fairly
 
 ### {{it_department}}
+
 - Implement technical controls as required
 - Monitor systems for compliance
 - Provide technical guidance and support
 - Maintain security and operational standards
 
 ### All Personnel
+
 - Understand and comply with policy requirements
 - Report violations or concerns promptly
 - Participate in required training programs
@@ -106,6 +113,7 @@ Personnel must report any concerns, violations, or incidents related to this pol
 {{consequences}}
 
 Disciplinary actions may include:
+
 - Verbal or written warnings
 - Additional training requirements
 - Suspension of access privileges
@@ -126,8 +134,9 @@ Disciplinary actions may include:
 ---
 
 **Document Control**
+
 - **Owner**: {{management_approval}}
 - **Approved by**: {{management_approval}}
 - **Contact**: {{company_email}}
 
-*This document contains confidential and proprietary information. Distribution is restricted to authorized personnel only.*
+_This document contains confidential and proprietary information. Distribution is restricted to authorized personnel only._

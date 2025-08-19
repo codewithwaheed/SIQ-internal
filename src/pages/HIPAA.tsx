@@ -1,14 +1,20 @@
-import { UnifiedHeader } from '@/components/ui/unified-header';
-import { Footer } from '@/components/ui/footer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Shield, Heart, Users } from 'lucide-react';
+import { UnifiedHeader } from "@/components/ui/unified-header";
+import { Footer } from "@/components/ui/footer";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Shield, Heart, Users } from "lucide-react";
 
 const HIPAA = () => {
   return (
     <div className="min-h-screen bg-background">
       <UnifiedHeader context="public" showAuth />
-      
+
       <main className="pt-24 pb-12">
         <div className="max-w-4xl mx-auto px-6">
           {/* Hero Section */}
@@ -21,7 +27,8 @@ const HIPAA = () => {
               HIPAA Compliance
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Health Insurance Portability and Accountability Act - Protecting patient health information
+              Health Insurance Portability and Accountability Act - Protecting
+              patient health information
             </p>
           </div>
 
@@ -35,10 +42,12 @@ const HIPAA = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                HIPAA is a federal law that protects the privacy and security of protected health information (PHI). 
-                It applies to covered entities and business associates who handle PHI in the healthcare industry.
+                HIPAA is a federal law that protects the privacy and security of
+                protected health information (PHI). It applies to covered
+                entities and business associates who handle PHI in the
+                healthcare industry.
               </p>
-              
+
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
@@ -97,7 +106,8 @@ const HIPAA = () => {
                 <div className="border-l-4 border-blue-500 pl-4">
                   <h4 className="font-semibold mb-2">Privacy Rule</h4>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Establishes national standards for protecting PHI and gives patients rights over their health information.
+                    Establishes national standards for protecting PHI and gives
+                    patients rights over their health information.
                   </p>
                   <ul className="space-y-1 text-sm">
                     <li className="flex items-start gap-2">
@@ -118,7 +128,8 @@ const HIPAA = () => {
                 <div className="border-l-4 border-green-500 pl-4">
                   <h4 className="font-semibold mb-2">Security Rule</h4>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Sets standards for protecting electronic PHI (ePHI) through administrative, physical, and technical safeguards.
+                    Sets standards for protecting electronic PHI (ePHI) through
+                    administrative, physical, and technical safeguards.
                   </p>
                   <ul className="space-y-1 text-sm">
                     <li className="flex items-start gap-2">
@@ -137,9 +148,12 @@ const HIPAA = () => {
                 </div>
 
                 <div className="border-l-4 border-purple-500 pl-4">
-                  <h4 className="font-semibold mb-2">Breach Notification Rule</h4>
+                  <h4 className="font-semibold mb-2">
+                    Breach Notification Rule
+                  </h4>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Requires notification of breaches of unsecured PHI to patients, HHS, and sometimes the media.
+                    Requires notification of breaches of unsecured PHI to
+                    patients, HHS, and sometimes the media.
                   </p>
                   <ul className="space-y-1 text-sm">
                     <li className="flex items-start gap-2">
@@ -160,7 +174,8 @@ const HIPAA = () => {
                 <div className="border-l-4 border-orange-500 pl-4">
                   <h4 className="font-semibold mb-2">Omnibus Rule</h4>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Implements provisions of the HITECH Act and strengthens privacy and security protections.
+                    Implements provisions of the HITECH Act and strengthens
+                    privacy and security protections.
                   </p>
                   <ul className="space-y-1 text-sm">
                     <li className="flex items-start gap-2">
@@ -234,9 +249,12 @@ const HIPAA = () => {
           {/* CTA */}
           <Card>
             <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">Ensure HIPAA Compliance</h3>
+              <h3 className="text-2xl font-bold mb-4">
+                Ensure HIPAA Compliance
+              </h3>
               <p className="text-muted-foreground mb-6">
-                Get comprehensive guidance on HIPAA requirements, risk assessments, and compliance strategies.
+                Get comprehensive guidance on HIPAA requirements, risk
+                assessments, and compliance strategies.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a

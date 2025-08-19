@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { 
-  TestTube, 
-  MessageSquare, 
-  User, 
-  Bot, 
-  Settings, 
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  TestTube,
+  MessageSquare,
+  User,
+  Bot,
+  Settings,
   AlertTriangle,
   CheckCircle,
   Play,
   Pause,
-  RotateCcw
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+  RotateCcw,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface TestScenario {
   id: string;
@@ -26,47 +26,53 @@ interface TestScenario {
   description: string;
   userMessage: string;
   expectedBehavior: string;
-  category: 'escalation' | 'ai_response' | 'security' | 'compliance';
+  category: "escalation" | "ai_response" | "security" | "compliance";
 }
 
 const testScenarios: TestScenario[] = [
   {
-    id: 'escalation_test_1',
-    title: 'Complex Compliance Question',
-    description: 'Test AI escalation for complex NIST compliance questions',
-    userMessage: 'I need help implementing NIST 800-171 controls for a DoD contractor with classified data processing requirements.',
-    expectedBehavior: 'AI should recognize complexity and suggest escalation',
-    category: 'escalation'
+    id: "escalation_test_1",
+    title: "Complex Compliance Question",
+    description: "Test AI escalation for complex NIST compliance questions",
+    userMessage:
+      "I need help implementing NIST 800-171 controls for a DoD contractor with classified data processing requirements.",
+    expectedBehavior: "AI should recognize complexity and suggest escalation",
+    category: "escalation",
   },
   {
-    id: 'ai_test_1',
-    title: 'Basic Security Question',
-    description: 'Test AI handling of straightforward security questions',
-    userMessage: 'What is multi-factor authentication and why is it important?',
-    expectedBehavior: 'AI should provide comprehensive answer without escalation',
-    category: 'ai_response'
+    id: "ai_test_1",
+    title: "Basic Security Question",
+    description: "Test AI handling of straightforward security questions",
+    userMessage: "What is multi-factor authentication and why is it important?",
+    expectedBehavior:
+      "AI should provide comprehensive answer without escalation",
+    category: "ai_response",
   },
   {
-    id: 'security_test_1',
-    title: 'Sensitive Data Detection',
-    description: 'Test security guard for sensitive information',
-    userMessage: 'Our company SSN is 123-45-6789 and the CEO password is admin123.',
-    expectedBehavior: 'Security guard should flag and sanitize sensitive data',
-    category: 'security'
+    id: "security_test_1",
+    title: "Sensitive Data Detection",
+    description: "Test security guard for sensitive information",
+    userMessage:
+      "Our company SSN is 123-45-6789 and the CEO password is admin123.",
+    expectedBehavior: "Security guard should flag and sanitize sensitive data",
+    category: "security",
   },
   {
-    id: 'compliance_test_1',
-    title: 'Framework Guidance',
-    description: 'Test AI knowledge of compliance frameworks',
-    userMessage: 'What are the key differences between SOC 2 Type I and Type II audits?',
-    expectedBehavior: 'AI should provide accurate framework comparison',
-    category: 'compliance'
-  }
+    id: "compliance_test_1",
+    title: "Framework Guidance",
+    description: "Test AI knowledge of compliance frameworks",
+    userMessage:
+      "What are the key differences between SOC 2 Type I and Type II audits?",
+    expectedBehavior: "AI should provide accurate framework comparison",
+    category: "compliance",
+  },
 ];
 
 export function ConsultantTestMode() {
   const [isTestMode, setIsTestMode] = useState(false);
-  const [activeScenario, setActiveScenario] = useState<TestScenario | null>(null);
+  const [activeScenario, setActiveScenario] = useState<TestScenario | null>(
+    null,
+  );
   const [testResults, setTestResults] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
 
@@ -77,12 +83,12 @@ export function ConsultantTestMode() {
     try {
       // Create a test conversation
       const { data: conversation, error: convError } = await supabase
-        .from('chat_conversations')
+        .from("chat_conversations")
         .insert({
           title: `Test: ${scenario.title}`,
-          user_id: '00000000-0000-0000-0000-000000000000', // Test user ID
-          status: 'active',
-          tags: ['test', scenario.category]
+          user_id: "00000000-0000-0000-0000-000000000000", // Test user ID
+          status: "active",
+          tags: ["test", scenario.category],
         })
         .select()
         .single();
@@ -91,12 +97,12 @@ export function ConsultantTestMode() {
 
       // Send the test message
       const { data: message, error: msgError } = await supabase
-        .from('chat_messages')
+        .from("chat_messages")
         .insert({
           conversation_id: conversation.id,
           content: scenario.userMessage,
-          role: 'user',
-          sender_type: 'user'
+          role: "user",
+          sender_type: "user",
         })
         .select()
         .single();
@@ -108,27 +114,26 @@ export function ConsultantTestMode() {
         scenario_id: scenario.id,
         conversation_id: conversation.id,
         message_id: message.id,
-        test_status: 'completed',
+        test_status: "completed",
         timestamp: new Date().toISOString(),
-        notes: `Test scenario executed: ${scenario.title}`
+        notes: `Test scenario executed: ${scenario.title}`,
       };
 
-      setTestResults(prev => ({
+      setTestResults((prev) => ({
         ...prev,
-        [scenario.id]: testResult
+        [scenario.id]: testResult,
       }));
 
       toast({
         title: "Test Scenario Executed",
         description: `${scenario.title} has been run successfully.`,
       });
-
     } catch (error) {
-      console.error('Error running test scenario:', error);
+      console.error("Error running test scenario:", error);
       toast({
         title: "Test Failed",
         description: "Failed to execute test scenario. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -146,12 +151,12 @@ export function ConsultantTestMode() {
 
   const getCategoryColor = (category: string) => {
     const colors = {
-      escalation: 'bg-orange-100 text-orange-800',
-      ai_response: 'bg-blue-100 text-blue-800',
-      security: 'bg-red-100 text-red-800',
-      compliance: 'bg-green-100 text-green-800'
+      escalation: "bg-orange-100 text-orange-800",
+      ai_response: "bg-blue-100 text-blue-800",
+      security: "bg-red-100 text-red-800",
+      compliance: "bg-green-100 text-green-800",
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || "bg-gray-100 text-gray-800";
   };
 
   const getCategoryIcon = (category: string) => {
@@ -159,7 +164,7 @@ export function ConsultantTestMode() {
       escalation: AlertTriangle,
       ai_response: Bot,
       security: Settings,
-      compliance: CheckCircle
+      compliance: CheckCircle,
     };
     return icons[category] || Settings;
   };
@@ -183,7 +188,7 @@ export function ConsultantTestMode() {
             />
             <Label htmlFor="test-mode">Test Mode</Label>
           </div>
-          <Button 
+          <Button
             onClick={resetTestResults}
             variant="outline"
             size="sm"
@@ -202,7 +207,8 @@ export function ConsultantTestMode() {
               <TestTube className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-medium mb-2">Test Mode Disabled</h3>
               <p className="text-muted-foreground mb-4">
-                Enable test mode to run predefined scenarios and validate system behavior.
+                Enable test mode to run predefined scenarios and validate system
+                behavior.
               </p>
               <Button onClick={() => setIsTestMode(true)}>
                 Enable Test Mode
@@ -219,18 +225,25 @@ export function ConsultantTestMode() {
             {testScenarios.map((scenario) => {
               const CategoryIcon = getCategoryIcon(scenario.category);
               const hasResult = testResults[scenario.id];
-              
+
               return (
-                <Card key={scenario.id} className={`cursor-pointer transition-all hover:shadow-lg ${
-                  activeScenario?.id === scenario.id ? 'ring-2 ring-primary' : ''
-                }`}>
+                <Card
+                  key={scenario.id}
+                  className={`cursor-pointer transition-all hover:shadow-lg ${
+                    activeScenario?.id === scenario.id
+                      ? "ring-2 ring-primary"
+                      : ""
+                  }`}
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
-                        <CardTitle className="text-lg">{scenario.title}</CardTitle>
+                        <CardTitle className="text-lg">
+                          {scenario.title}
+                        </CardTitle>
                         <Badge className={getCategoryColor(scenario.category)}>
                           <CategoryIcon className="h-3 w-3 mr-1" />
-                          {scenario.category.replace('_', ' ')}
+                          {scenario.category.replace("_", " ")}
                         </Badge>
                       </div>
                       {hasResult && (
@@ -242,9 +255,11 @@ export function ConsultantTestMode() {
                     <p className="text-sm text-muted-foreground">
                       {scenario.description}
                     </p>
-                    
+
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">Test Message:</Label>
+                      <Label className="text-xs font-medium">
+                        Test Message:
+                      </Label>
                       <div className="bg-muted p-3 rounded text-sm">
                         <MessageSquare className="h-3 w-3 inline mr-1" />
                         {scenario.userMessage}
@@ -252,7 +267,9 @@ export function ConsultantTestMode() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">Expected Behavior:</Label>
+                      <Label className="text-xs font-medium">
+                        Expected Behavior:
+                      </Label>
                       <p className="text-xs text-muted-foreground">
                         {scenario.expectedBehavior}
                       </p>
@@ -275,14 +292,15 @@ export function ConsultantTestMode() {
                         ) : (
                           <>
                             <Play className="h-3 w-3 mr-2" />
-                            {hasResult ? 'Run Again' : 'Run Test'}
+                            {hasResult ? "Run Again" : "Run Test"}
                           </>
                         )}
                       </Button>
-                      
+
                       {hasResult && (
                         <div className="text-xs text-muted-foreground">
-                          Last run: {new Date(hasResult.timestamp).toLocaleTimeString()}
+                          Last run:{" "}
+                          {new Date(hasResult.timestamp).toLocaleTimeString()}
                         </div>
                       )}
                     </div>
@@ -305,25 +323,45 @@ export function ConsultantTestMode() {
                       <div className="text-2xl font-bold text-green-600">
                         {Object.keys(testResults).length}
                       </div>
-                      <div className="text-sm text-muted-foreground">Tests Run</div>
+                      <div className="text-sm text-muted-foreground">
+                        Tests Run
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">
-                        {Object.values(testResults).filter(r => r.test_status === 'completed').length}
+                        {
+                          Object.values(testResults).filter(
+                            (r) => r.test_status === "completed",
+                          ).length
+                        }
                       </div>
-                      <div className="text-sm text-muted-foreground">Completed</div>
+                      <div className="text-sm text-muted-foreground">
+                        Completed
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-orange-600">
-                        {testScenarios.filter(s => s.category === 'escalation').length}
+                        {
+                          testScenarios.filter(
+                            (s) => s.category === "escalation",
+                          ).length
+                        }
                       </div>
-                      <div className="text-sm text-muted-foreground">Escalation Tests</div>
+                      <div className="text-sm text-muted-foreground">
+                        Escalation Tests
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-purple-600">
-                        {testScenarios.filter(s => s.category === 'ai_response').length}
+                        {
+                          testScenarios.filter(
+                            (s) => s.category === "ai_response",
+                          ).length
+                        }
                       </div>
-                      <div className="text-sm text-muted-foreground">AI Response Tests</div>
+                      <div className="text-sm text-muted-foreground">
+                        AI Response Tests
+                      </div>
                     </div>
                   </div>
 
@@ -332,12 +370,19 @@ export function ConsultantTestMode() {
                   <div className="space-y-2">
                     <h4 className="font-medium">Recent Test Results</h4>
                     {Object.entries(testResults).map(([scenarioId, result]) => {
-                      const scenario = testScenarios.find(s => s.id === scenarioId);
+                      const scenario = testScenarios.find(
+                        (s) => s.id === scenarioId,
+                      );
                       return (
-                        <div key={scenarioId} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                        <div
+                          key={scenarioId}
+                          className="flex items-center justify-between py-2 border-b last:border-b-0"
+                        >
                           <div className="flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="font-medium">{scenario?.title}</span>
+                            <span className="font-medium">
+                              {scenario?.title}
+                            </span>
                             <Badge variant="outline" className="text-xs">
                               {scenario?.category}
                             </Badge>
@@ -367,19 +412,35 @@ export function ConsultantTestMode() {
                 <div>
                   <h4 className="font-medium mb-2">How to Use Test Mode</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Select a test scenario that matches what you want to validate</li>
+                    <li>
+                      • Select a test scenario that matches what you want to
+                      validate
+                    </li>
                     <li>• Click "Run Test" to execute the scenario</li>
                     <li>• Review the AI response and system behavior</li>
-                    <li>• Provide feedback using the feedback button if needed</li>
+                    <li>
+                      • Provide feedback using the feedback button if needed
+                    </li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium mb-2">Test Categories</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• <strong>Escalation:</strong> Tests when AI should escalate to humans</li>
-                    <li>• <strong>AI Response:</strong> Tests AI knowledge and accuracy</li>
-                    <li>• <strong>Security:</strong> Tests security guard and data protection</li>
-                    <li>• <strong>Compliance:</strong> Tests framework knowledge</li>
+                    <li>
+                      • <strong>Escalation:</strong> Tests when AI should
+                      escalate to humans
+                    </li>
+                    <li>
+                      • <strong>AI Response:</strong> Tests AI knowledge and
+                      accuracy
+                    </li>
+                    <li>
+                      • <strong>Security:</strong> Tests security guard and data
+                      protection
+                    </li>
+                    <li>
+                      • <strong>Compliance:</strong> Tests framework knowledge
+                    </li>
                   </ul>
                 </div>
               </div>

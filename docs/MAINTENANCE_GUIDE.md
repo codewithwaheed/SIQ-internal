@@ -1,9 +1,11 @@
 # SentrIQ Maintenance & Operations Guide
 
 ## Overview
+
 This guide covers ongoing maintenance, operational procedures, and scaling strategies for the SentrIQ cybersecurity compliance platform.
 
 ## Table of Contents
+
 1. [Operational Procedures](#operational-procedures)
 2. [Monitoring & Alerting](#monitoring--alerting)
 3. [Performance Management](#performance-management)
@@ -16,7 +18,9 @@ This guide covers ongoing maintenance, operational procedures, and scaling strat
 ## Operational Procedures
 
 ### Daily Operations Checklist
+
 **Morning (9:00 AM UTC)**
+
 - [ ] Review system health dashboard
 - [ ] Check overnight error logs and alerts
 - [ ] Verify backup completion status
@@ -25,6 +29,7 @@ This guide covers ongoing maintenance, operational procedures, and scaling strat
 - [ ] Check CVE feed synchronization status
 
 **Evening (6:00 PM UTC)**
+
 - [ ] Review daily usage metrics
 - [ ] Monitor subscription usage patterns
 - [ ] Check consultant workload distribution
@@ -32,25 +37,30 @@ This guide covers ongoing maintenance, operational procedures, and scaling strat
 - [ ] Prepare daily operations report
 
 ### Weekly Operations Tasks
+
 **Mondays**
+
 - [ ] Generate weekly performance report
 - [ ] Review user feedback and support tickets
 - [ ] Analyze cost trends and optimization opportunities
 - [ ] Plan upcoming maintenance windows
 
 **Wednesdays**
+
 - [ ] Conduct security log review
 - [ ] Update knowledge base content
 - [ ] Review and rotate API keys
 - [ ] Test disaster recovery procedures
 
 **Fridays**
+
 - [ ] Prepare weekly stakeholder report
 - [ ] Review capacity utilization trends
 - [ ] Plan weekend maintenance activities
 - [ ] Update operational documentation
 
 ### Monthly Operations Tasks
+
 - [ ] Comprehensive security audit
 - [ ] Performance optimization review
 - [ ] Capacity planning assessment
@@ -65,6 +75,7 @@ This guide covers ongoing maintenance, operational procedures, and scaling strat
 ### Critical Alerts (Immediate Response Required)
 
 #### System Availability
+
 ```yaml
 # Service outage detection
 alert: service_down
@@ -75,6 +86,7 @@ response_time: 5 minutes
 ```
 
 #### Security Incidents
+
 ```yaml
 # Multiple failed login attempts
 alert: brute_force_attack
@@ -92,6 +104,7 @@ response_time: immediate
 ```
 
 #### Data Loss Risk
+
 ```yaml
 # Backup failure
 alert: backup_failed
@@ -104,6 +117,7 @@ response_time: 1 hour
 ### Warning Alerts (Response within 4 hours)
 
 #### Performance Degradation
+
 ```yaml
 # Slow API responses
 alert: api_latency_high
@@ -119,6 +133,7 @@ notification: dev_team
 ```
 
 #### Resource Utilization
+
 ```yaml
 # Database connection pool
 alert: db_connections_high
@@ -136,6 +151,7 @@ notification: ops_team
 ### Monitoring Dashboard Configuration
 
 #### System Health Dashboard
+
 ```javascript
 {
   "widgets": [
@@ -166,6 +182,7 @@ notification: ops_team
 ```
 
 #### Business Metrics Dashboard
+
 ```javascript
 {
   "widgets": [
@@ -188,6 +205,7 @@ notification: ops_team
 ## Performance Management
 
 ### Performance Baseline
+
 Establish and maintain performance baselines:
 
 ```javascript
@@ -196,29 +214,30 @@ const performanceTargets = {
   api_response_time: {
     avg: "< 2 seconds",
     p95: "< 5 seconds",
-    p99: "< 10 seconds"
+    p99: "< 10 seconds",
   },
   page_load_time: {
     avg: "< 3 seconds",
-    p95: "< 6 seconds"
+    p95: "< 6 seconds",
   },
   ai_response_time: {
     avg: "< 15 seconds",
-    p95: "< 30 seconds"
+    p95: "< 30 seconds",
   },
   cve_lookup_time: {
     avg: "< 3 seconds",
-    p95: "< 8 seconds"
-  }
+    p95: "< 8 seconds",
+  },
 };
 ```
 
 ### Performance Optimization Procedures
 
 #### Database Optimization
+
 ```sql
 -- Monthly query performance review
-SELECT 
+SELECT
     query,
     calls,
     total_time,
@@ -231,7 +250,7 @@ ORDER BY mean_time DESC
 LIMIT 20;
 
 -- Index usage analysis
-SELECT 
+SELECT
     schemaname,
     tablename,
     indexname,
@@ -244,6 +263,7 @@ ORDER BY idx_scan;
 ```
 
 #### Application Performance
+
 ```bash
 # Performance profiling script
 #!/bin/bash
@@ -266,29 +286,31 @@ curl -w "@curl-format.txt" -o /dev/null -s "https://api.sentriq.com/health"
 ### Cache Management
 
 #### Cache Strategy
+
 ```javascript
 // Caching configuration
 const cacheConfig = {
   cve_data: {
     ttl: 86400, // 24 hours
-    strategy: "write_through"
+    strategy: "write_through",
   },
   user_sessions: {
     ttl: 28800, // 8 hours
-    strategy: "write_behind"
+    strategy: "write_behind",
   },
   knowledge_base: {
     ttl: 3600, // 1 hour
-    strategy: "refresh_ahead"
+    strategy: "refresh_ahead",
   },
   static_content: {
     ttl: 604800, // 7 days
-    strategy: "cache_first"
-  }
+    strategy: "cache_first",
+  },
 };
 ```
 
 #### Cache Maintenance
+
 ```bash
 # Daily cache cleanup
 redis-cli --scan --pattern "expired:*" | xargs redis-cli del
@@ -305,6 +327,7 @@ redis-cli memory usage [key]
 ### Horizontal Scaling
 
 #### Auto-scaling Configuration
+
 ```yaml
 # Supabase Edge Functions auto-scaling
 functions:
@@ -323,30 +346,32 @@ database:
 ```
 
 #### Load Distribution
+
 ```javascript
 // Request routing configuration
 const routingRules = {
   chat_api: {
     weight_distribution: {
       primary: 70,
-      secondary: 30
+      secondary: 30,
     },
-    failover_threshold: 500 // ms
+    failover_threshold: 500, // ms
   },
   cve_lookup: {
     cache_first: true,
-    fallback_timeout: 10000 // ms
+    fallback_timeout: 10000, // ms
   },
   file_upload: {
     region_affinity: true,
-    max_file_size: 52428800 // 50MB
-  }
+    max_file_size: 52428800, // 50MB
+  },
 };
 ```
 
 ### Vertical Scaling
 
 #### Resource Allocation
+
 ```yaml
 # Production resource allocation
 services:
@@ -354,19 +379,20 @@ services:
     cpu: "2 vCPU"
     memory: "4 GB"
     storage: "20 GB SSD"
-  
+
   database:
     cpu: "4 vCPU"
     memory: "16 GB"
     storage: "500 GB SSD"
     iops: 3000
-  
+
   cache:
     memory: "8 GB"
     network: "10 Gbps"
 ```
 
 #### Scaling Triggers
+
 ```javascript
 // Automatic scaling triggers
 const scalingTriggers = {
@@ -374,13 +400,13 @@ const scalingTriggers = {
     cpu_usage: "> 75% for 5 minutes",
     memory_usage: "> 80% for 5 minutes",
     response_time: "> 5 seconds for 10 minutes",
-    error_rate: "> 5% for 5 minutes"
+    error_rate: "> 5% for 5 minutes",
   },
   scale_down: {
     cpu_usage: "< 30% for 30 minutes",
     memory_usage: "< 40% for 30 minutes",
-    response_time: "< 2 seconds for 30 minutes"
-  }
+    response_time: "< 2 seconds for 30 minutes",
+  },
 };
 ```
 
@@ -389,43 +415,45 @@ const scalingTriggers = {
 ### Release Pipeline
 
 #### Staging Environment
+
 ```yaml
 # Staging deployment pipeline
 staging:
   triggers:
     - branch: "develop"
     - manual: true
-  
+
   steps:
     - code_quality_checks
     - security_scanning
     - automated_testing
     - performance_testing
     - manual_approval
-  
+
   environment:
     size: "25% of production"
     data: "anonymized_production_subset"
 ```
 
 #### Production Deployment
+
 ```yaml
 # Production deployment strategy
 production:
   strategy: "blue_green"
   rollback_threshold: "5% error rate"
-  
+
   pre_deployment:
     - database_backup
     - configuration_backup
     - smoke_test_preparation
-  
+
   deployment:
     - database_migrations
     - application_deployment
     - cache_warming
     - health_checks
-  
+
   post_deployment:
     - smoke_tests
     - performance_validation
@@ -436,6 +464,7 @@ production:
 ### Maintenance Windows
 
 #### Scheduled Maintenance
+
 ```javascript
 // Maintenance window schedule
 const maintenanceSchedule = {
@@ -444,19 +473,20 @@ const maintenanceSchedule = {
     duration: "2 hours",
     day: "first Sunday",
     time: "02:00-04:00 UTC",
-    notification_lead_time: "72 hours"
+    notification_lead_time: "72 hours",
   },
-  
+
   emergency: {
     max_duration: "4 hours",
     approval_required: "CTO",
     notification: "immediate",
-    rollback_plan: "required"
-  }
+    rollback_plan: "required",
+  },
 };
 ```
 
 #### Maintenance Procedures
+
 1. **Pre-maintenance (T-24h)**
    - [ ] Notify all stakeholders
    - [ ] Prepare rollback procedures
@@ -480,6 +510,7 @@ const maintenanceSchedule = {
 ### Incident Classification
 
 #### Severity Levels
+
 ```javascript
 const severityLevels = {
   P1: {
@@ -487,38 +518,39 @@ const severityLevels = {
     description: "Complete service outage",
     response_time: "15 minutes",
     escalation: "immediate",
-    communication: "every 30 minutes"
+    communication: "every 30 minutes",
   },
-  
+
   P2: {
     name: "High",
     description: "Major feature unavailable",
     response_time: "1 hour",
     escalation: "4 hours",
-    communication: "every 2 hours"
+    communication: "every 2 hours",
   },
-  
+
   P3: {
     name: "Medium",
     description: "Performance degradation",
     response_time: "4 hours",
     escalation: "24 hours",
-    communication: "daily"
+    communication: "daily",
   },
-  
+
   P4: {
     name: "Low",
     description: "Minor issues",
     response_time: "24 hours",
     escalation: "72 hours",
-    communication: "as needed"
-  }
+    communication: "as needed",
+  },
 };
 ```
 
 ### Incident Response Procedures
 
 #### Immediate Response (0-15 minutes)
+
 1. **Detection**: Automated alert or user report
 2. **Triage**: Assess severity and impact
 3. **Escalation**: Notify appropriate team members
@@ -526,33 +558,35 @@ const severityLevels = {
 5. **Investigation**: Begin root cause analysis
 
 #### Response Team Structure
+
 ```javascript
 const responseTeam = {
   incident_commander: {
     role: "Overall coordination",
-    contact: "on-call-manager@sentriq.com"
+    contact: "on-call-manager@sentriq.com",
   },
-  
+
   technical_lead: {
     role: "Technical investigation",
-    contact: "tech-lead@sentriq.com"
+    contact: "tech-lead@sentriq.com",
   },
-  
+
   communications: {
     role: "Stakeholder updates",
-    contact: "comms@sentriq.com"
+    contact: "comms@sentriq.com",
   },
-  
+
   customer_success: {
     role: "Customer communication",
-    contact: "support@sentriq.com"
-  }
+    contact: "support@sentriq.com",
+  },
 };
 ```
 
 ### Post-Incident Review
 
 #### Review Process
+
 1. **Timeline Documentation**: Complete incident timeline
 2. **Root Cause Analysis**: Technical investigation
 3. **Impact Assessment**: User and business impact
@@ -561,35 +595,43 @@ const responseTeam = {
 6. **Knowledge Sharing**: Team learning session
 
 #### Review Template
+
 ```markdown
 # Post-Incident Review: [Incident ID]
 
 ## Summary
+
 - **Date**: [Date and time]
 - **Duration**: [Total outage time]
 - **Severity**: [P1/P2/P3/P4]
 - **Impact**: [Users affected, revenue impact]
 
 ## Timeline
+
 - **[Time]**: [Event description]
 - **[Time]**: [Response action]
 - **[Time]**: [Resolution action]
 
 ## Root Cause
+
 [Detailed technical explanation]
 
 ## Contributing Factors
+
 - [Factor 1]
 - [Factor 2]
 
 ## Resolution
+
 [Steps taken to resolve]
 
 ## Action Items
+
 - [ ] [Preventive action] - [Owner] - [Due date]
 - [ ] [Process improvement] - [Owner] - [Due date]
 
 ## Lessons Learned
+
 [Key takeaways and improvements]
 ```
 
@@ -598,9 +640,10 @@ const responseTeam = {
 ### Growth Metrics Tracking
 
 #### User Growth
+
 ```sql
 -- Monthly user growth analysis
-SELECT 
+SELECT
     DATE_TRUNC('month', created_at) as month,
     COUNT(*) as new_users,
     COUNT(*) OVER (ORDER BY DATE_TRUNC('month', created_at) ROWS UNBOUNDED PRECEDING) as cumulative_users
@@ -611,9 +654,10 @@ ORDER BY month;
 ```
 
 #### Usage Growth
+
 ```sql
 -- API usage growth
-SELECT 
+SELECT
     DATE_TRUNC('week', created_at) as week,
     COUNT(*) as messages,
     AVG(COUNT(*)) OVER (ORDER BY DATE_TRUNC('week', created_at) ROWS 3 PRECEDING) as moving_avg
@@ -626,27 +670,29 @@ ORDER BY week;
 ### Resource Projection
 
 #### Capacity Model
+
 ```javascript
 // Capacity planning model
 const capacityModel = {
   users_per_instance: 1000,
   messages_per_user_daily: 25,
   storage_per_user_mb: 100,
-  
+
   growth_rates: {
     user_growth: 0.15, // 15% monthly
-    usage_growth: 0.10, // 10% monthly
-    storage_growth: 0.05 // 5% monthly
+    usage_growth: 0.1, // 10% monthly
+    storage_growth: 0.05, // 5% monthly
   },
-  
+
   thresholds: {
-    scale_trigger: 0.80, // 80% capacity
-    purchase_trigger: 0.90 // 90% capacity
-  }
+    scale_trigger: 0.8, // 80% capacity
+    purchase_trigger: 0.9, // 90% capacity
+  },
 };
 ```
 
 #### Forecasting Script
+
 ```bash
 #!/bin/bash
 # Capacity forecasting script
@@ -672,6 +718,7 @@ echo "Forecast complete. Check reports/capacity-forecast.html"
 ### Cost Monitoring
 
 #### Cost Allocation
+
 ```yaml
 # Cost tracking by service
 services:
@@ -680,12 +727,12 @@ services:
     database: 35%
     cache: 10%
     monitoring: 5%
-  
+
   storage:
     user_data: 60%
     backups: 25%
     logs: 15%
-  
+
   external:
     openai_api: 70%
     nvd_api: 20%
@@ -693,32 +740,34 @@ services:
 ```
 
 #### Optimization Opportunities
+
 ```javascript
 // Cost optimization strategies
 const optimizations = {
   compute: {
     rightsize_instances: "potential 20% savings",
     reserved_capacity: "potential 30% savings",
-    auto_scaling: "potential 15% savings"
+    auto_scaling: "potential 15% savings",
   },
-  
+
   storage: {
     lifecycle_policies: "potential 40% savings",
     compression: "potential 25% savings",
-    archival: "potential 60% savings"
+    archival: "potential 60% savings",
   },
-  
+
   apis: {
     caching: "potential 50% reduction in calls",
     batch_processing: "potential 30% savings",
-    smart_routing: "potential 20% savings"
-  }
+    smart_routing: "potential 20% savings",
+  },
 };
 ```
 
 ### Cost Control Measures
 
 #### Budget Alerts
+
 ```yaml
 # Budget monitoring
 budgets:
@@ -726,44 +775,46 @@ budgets:
     limit: 50000
     alerts: [50%, 80%, 90%, 100%]
     actions: ["notify", "notify", "notify", "throttle"]
-  
+
   per_service:
     openai_api:
       limit: 20000
       alert_threshold: 80%
-    
+
     compute:
       limit: 15000
       alert_threshold: 85%
 ```
 
 #### Usage Optimization
+
 ```javascript
 // Automated cost optimization
 const optimizationRules = {
   api_usage: {
     cache_common_queries: true,
     batch_requests: true,
-    optimize_prompts: true
+    optimize_prompts: true,
   },
-  
+
   storage: {
     compress_backups: true,
     archive_old_data: true,
-    delete_temp_files: true
+    delete_temp_files: true,
   },
-  
+
   compute: {
     scale_down_idle: true,
     use_spot_instances: false, // for production
-    optimize_queries: true
-  }
+    optimize_queries: true,
+  },
 };
 ```
 
 ---
 
 **Operational Excellence:**
+
 - Regular review and update of all procedures
 - Continuous improvement based on metrics and feedback
 - Team training and knowledge sharing

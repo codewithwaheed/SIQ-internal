@@ -12,26 +12,27 @@ const plans = [
     features: [
       "Ask the AI cybersecurity questions",
       "Access compliance frameworks (NIST, CMMC, etc.) via AI",
-      "Free forever"
+      "Free forever",
     ],
     buttonText: "Start Free",
-    popular: false
+    popular: false,
   },
   {
     name: "Pro",
     price: "$49",
     period: "/month",
-    description: "For generating cybersecurity policies and receiving occasional expert guidance",
+    description:
+      "For generating cybersecurity policies and receiving occasional expert guidance",
     features: [
       "Everything in Basic",
       "Upload up to 5 documents/month",
       "Get AI-generated policies, templates, and framework mappings",
       "1 escalation per month to a human consultant",
       "Priority AI support with enhanced memory",
-      "Cancel anytime"
+      "Cancel anytime",
     ],
     buttonText: "Start Pro Plan",
-    popular: true
+    popular: true,
   },
   {
     name: "Executive",
@@ -45,11 +46,11 @@ const plans = [
       "Escalations reviewed within 1 business day",
       "Monthly compliance posture review",
       "Consultant-reviewed documents with actionable comments",
-      "Cancel anytime"
+      "Cancel anytime",
     ],
     buttonText: "Start Executive Plan",
-    popular: false
-  }
+    popular: false,
+  },
 ];
 
 export const PricingSection = () => {
@@ -61,14 +62,15 @@ export const PricingSection = () => {
             Choose your AI plan
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Start with AI-powered assistance and scale up to full expert support as your needs grow.
+            Start with AI-powered assistance and scale up to full expert support
+            as your needs grow.
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-8">
           {plans.map((plan, index) => (
-            <Card 
-              key={index} 
-              className={`relative ${plan.popular ? 'ring-2 ring-accent shadow-elevated' : ''} hover:shadow-elevated transition-all duration-300`}
+            <Card
+              key={index}
+              className={`relative ${plan.popular ? "ring-2 ring-accent shadow-elevated" : ""} hover:shadow-elevated transition-all duration-300`}
             >
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-accent text-accent-foreground">
@@ -79,26 +81,35 @@ export const PricingSection = () => {
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">{plan.name}</CardTitle>
                 <div className="flex items-baseline justify-center space-x-1">
-                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
+                  <span className="text-4xl font-bold text-foreground">
+                    {plan.price}
+                  </span>
                   <span className="text-muted-foreground">{plan.period}</span>
                 </div>
-                <p className="text-muted-foreground text-sm">{plan.description}</p>
+                <p className="text-muted-foreground text-sm">
+                  {plan.description}
+                </p>
               </CardHeader>
               <CardContent className="space-y-6">
                 <ul className="space-y-3">
                   {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center space-x-3">
+                    <li
+                      key={featureIndex}
+                      className="flex items-center space-x-3"
+                    >
                       <Check className="h-4 w-4 text-success" />
                       <span className="text-foreground text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Button 
-                  className={`w-full ${plan.popular ? 'bg-gradient-primary hover:bg-primary-glow' : ''}`}
-                  variant={plan.popular ? 'default' : 'outline'}
+                <Button
+                  className={`w-full ${plan.popular ? "bg-gradient-primary hover:bg-primary-glow" : ""}`}
+                  variant={plan.popular ? "default" : "outline"}
                 >
                   {plan.buttonText}
-                  {plan.buttonText === "Contact Sales" ? null : <ArrowRight className="ml-2 h-4 w-4" />}
+                  {plan.buttonText === "Contact Sales" ? null : (
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  )}
                 </Button>
               </CardContent>
             </Card>

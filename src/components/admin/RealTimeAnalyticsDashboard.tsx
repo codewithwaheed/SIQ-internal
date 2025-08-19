@@ -1,39 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import React, { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
   PieChart,
   Pie,
-  Cell
-} from 'recharts';
-import { 
-  TrendingUp, 
-  Users, 
-  FileText, 
-  MessageSquare, 
+  Cell,
+} from "recharts";
+import {
+  TrendingUp,
+  Users,
+  FileText,
+  MessageSquare,
   ExternalLink,
   Activity,
   Clock,
   Target,
   Download,
   RefreshCw,
-  Loader2
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+  Loader2,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface AnalyticsData {
   summary: {
@@ -68,13 +74,13 @@ export const RealTimeAnalyticsDashboard = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [timeframe, setTimeframe] = useState('30d');
+  const [timeframe, setTimeframe] = useState("30d");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchAnalyticsData();
-    
+
     if (autoRefresh) {
       const interval = setInterval(fetchAnalyticsData, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
@@ -83,31 +89,32 @@ export const RealTimeAnalyticsDashboard = () => {
 
   const fetchAnalyticsData = async () => {
     if (!loading) setRefreshing(true);
-    
+
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
+        throw new Error("Not authenticated");
       }
 
       const headers = {
-        'Authorization': `Bearer ${session.session.access_token}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${session.session.access_token}`,
+        "Content-Type": "application/json",
       };
 
       // Fetch all analytics data in parallel
-      const [summaryRes, trendsRes, frameworksRes, usageRes] = await Promise.all([
-        supabase.functions.invoke('admin-analytics/summary', { headers }),
-        supabase.functions.invoke('admin-analytics/trends', { 
-          headers,
-          body: { timeframe }
-        }),
-        supabase.functions.invoke('admin-analytics/frameworks', { headers }),
-        supabase.functions.invoke('admin-analytics/usage', { 
-          headers,
-          body: { timeframe }
-        })
-      ]);
+      const [summaryRes, trendsRes, frameworksRes, usageRes] =
+        await Promise.all([
+          supabase.functions.invoke("admin-analytics/summary", { headers }),
+          supabase.functions.invoke("admin-analytics/trends", {
+            headers,
+            body: { timeframe },
+          }),
+          supabase.functions.invoke("admin-analytics/frameworks", { headers }),
+          supabase.functions.invoke("admin-analytics/usage", {
+            headers,
+            body: { timeframe },
+          }),
+        ]);
 
       if (summaryRes.error) throw summaryRes.error;
       if (trendsRes.error) throw trendsRes.error;
@@ -119,7 +126,7 @@ export const RealTimeAnalyticsDashboard = () => {
           totalConversations: 0,
           activeUsers: 0,
           escalationRate: 0,
-          avgResponseTime: 0
+          avgResponseTime: 0,
         },
         trends: trendsRes.data || [],
         frameworks: frameworksRes.data || [],
@@ -131,11 +138,11 @@ export const RealTimeAnalyticsDashboard = () => {
           totalResponseUses: 0,
           totalLinkAccesses: 0,
           topResponses: [],
-          topLinks: []
-        }
+          topLinks: [],
+        },
       });
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      console.error("Error fetching analytics:", error);
       toast({
         title: "Error",
         description: "Failed to load analytics data",
@@ -151,25 +158,25 @@ export const RealTimeAnalyticsDashboard = () => {
     if (!data) return;
 
     const csvData = [
-      ['Metric', 'Value'],
-      ['Total Conversations', data.summary.totalConversations],
-      ['Active Users', data.summary.activeUsers],
-      ['Escalation Rate', `${data.summary.escalationRate}%`],
-      ['Avg Response Time', `${data.summary.avgResponseTime}h`],
-      ['Templates Created', data.usage.templatesCreated],
-      ['Responses Created', data.usage.responsesCreated],
-      ['Links Created', data.usage.linksCreated],
-      ['Policies Generated', data.usage.policiesGenerated],
-      ['Total Response Uses', data.usage.totalResponseUses],
-      ['Total Link Accesses', data.usage.totalLinkAccesses],
+      ["Metric", "Value"],
+      ["Total Conversations", data.summary.totalConversations],
+      ["Active Users", data.summary.activeUsers],
+      ["Escalation Rate", `${data.summary.escalationRate}%`],
+      ["Avg Response Time", `${data.summary.avgResponseTime}h`],
+      ["Templates Created", data.usage.templatesCreated],
+      ["Responses Created", data.usage.responsesCreated],
+      ["Links Created", data.usage.linksCreated],
+      ["Policies Generated", data.usage.policiesGenerated],
+      ["Total Response Uses", data.usage.totalResponseUses],
+      ["Total Link Accesses", data.usage.totalLinkAccesses],
     ];
 
-    const csv = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csv = csvData.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `analytics-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `analytics-${format(new Date(), "yyyy-MM-dd")}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -192,7 +199,9 @@ export const RealTimeAnalyticsDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Real-Time Analytics</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Real-Time Analytics
+          </h2>
           <p className="text-muted-foreground">
             Live system metrics and usage patterns
             {refreshing && (
@@ -203,7 +212,7 @@ export const RealTimeAnalyticsDashboard = () => {
             )}
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Select value={timeframe} onValueChange={setTimeframe}>
             <SelectTrigger className="w-32">
@@ -215,22 +224,29 @@ export const RealTimeAnalyticsDashboard = () => {
               <SelectItem value="90d">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Button
             variant="outline"
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={autoRefresh ? 'bg-green-50 border-green-200' : ''}
+            className={autoRefresh ? "bg-green-50 border-green-200" : ""}
           >
             <Activity className="h-4 w-4 mr-2" />
-            Auto Refresh {autoRefresh ? 'ON' : 'OFF'}
+            Auto Refresh {autoRefresh ? "ON" : "OFF"}
           </Button>
-          
-          <Button variant="outline" size="sm" onClick={fetchAnalyticsData} disabled={refreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchAnalyticsData}
+            disabled={refreshing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
-          
+
           <Button variant="outline" size="sm" onClick={exportData}>
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -247,8 +263,12 @@ export const RealTimeAnalyticsDashboard = () => {
                 <MessageSquare className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Conversations</p>
-                <p className="text-2xl font-bold">{data?.summary.totalConversations || 0}</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Conversations
+                </p>
+                <p className="text-2xl font-bold">
+                  {data?.summary.totalConversations || 0}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -262,7 +282,9 @@ export const RealTimeAnalyticsDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Active Users</p>
-                <p className="text-2xl font-bold">{data?.summary.activeUsers || 0}</p>
+                <p className="text-2xl font-bold">
+                  {data?.summary.activeUsers || 0}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -276,7 +298,9 @@ export const RealTimeAnalyticsDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Escalation Rate</p>
-                <p className="text-2xl font-bold">{data?.summary.escalationRate.toFixed(1) || 0}%</p>
+                <p className="text-2xl font-bold">
+                  {data?.summary.escalationRate.toFixed(1) || 0}%
+                </p>
               </div>
             </div>
           </CardContent>
@@ -289,8 +313,12 @@ export const RealTimeAnalyticsDashboard = () => {
                 <Clock className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Avg Response Time</p>
-                <p className="text-2xl font-bold">{data?.summary.avgResponseTime.toFixed(1) || 0}h</p>
+                <p className="text-sm text-muted-foreground">
+                  Avg Response Time
+                </p>
+                <p className="text-2xl font-bold">
+                  {data?.summary.avgResponseTime.toFixed(1) || 0}h
+                </p>
               </div>
             </div>
           </CardContent>
@@ -318,17 +346,17 @@ export const RealTimeAnalyticsDashboard = () => {
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="chats" 
-                      stroke="#0088FE" 
+                    <Line
+                      type="monotone"
+                      dataKey="chats"
+                      stroke="#0088FE"
                       strokeWidth={2}
                       name="Conversations"
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="escalations" 
-                      stroke="#FF8042" 
+                    <Line
+                      type="monotone"
+                      dataKey="escalations"
+                      stroke="#FF8042"
                       strokeWidth={2}
                       name="Escalations"
                     />
@@ -376,17 +404,22 @@ export const RealTimeAnalyticsDashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   {data?.frameworks?.map((framework, index) => (
-                    <div key={framework.name} className="flex items-center justify-between">
+                    <div
+                      key={framework.name}
+                      className="flex items-center justify-between"
+                    >
                       <div className="flex items-center gap-3">
                         <Badge variant="outline">#{index + 1}</Badge>
                         <span className="font-medium">{framework.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div 
+                        <div
                           className="w-4 h-4 rounded"
                           style={{ backgroundColor: framework.color }}
                         />
-                        <span className="text-sm font-medium">{framework.value}%</span>
+                        <span className="text-sm font-medium">
+                          {framework.value}%
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -405,8 +438,12 @@ export const RealTimeAnalyticsDashboard = () => {
                     <FileText className="h-6 w-6 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Templates Created</p>
-                    <p className="text-2xl font-bold">{data?.usage.templatesCreated || 0}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Templates Created
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {data?.usage.templatesCreated || 0}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -419,8 +456,12 @@ export const RealTimeAnalyticsDashboard = () => {
                     <MessageSquare className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Responses Created</p>
-                    <p className="text-2xl font-bold">{data?.usage.responsesCreated || 0}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Responses Created
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {data?.usage.responsesCreated || 0}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -433,8 +474,12 @@ export const RealTimeAnalyticsDashboard = () => {
                     <ExternalLink className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Links Created</p>
-                    <p className="text-2xl font-bold">{data?.usage.linksCreated || 0}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Links Created
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {data?.usage.linksCreated || 0}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -447,8 +492,12 @@ export const RealTimeAnalyticsDashboard = () => {
                     <Target className="h-6 w-6 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Policies Generated</p>
-                    <p className="text-2xl font-bold">{data?.usage.policiesGenerated || 0}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Policies Generated
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {data?.usage.policiesGenerated || 0}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -463,15 +512,24 @@ export const RealTimeAnalyticsDashboard = () => {
               <CardContent>
                 <div className="space-y-3">
                   {data?.usage.topResponses?.map((response, index) => (
-                    <div key={response.title} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div
+                      key={response.title}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <Badge variant="outline">#{index + 1}</Badge>
-                        <span className="font-medium truncate">{response.title}</span>
+                        <span className="font-medium truncate">
+                          {response.title}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium">{response.use_count} uses</span>
+                      <span className="text-sm font-medium">
+                        {response.use_count} uses
+                      </span>
                     </div>
                   )) || (
-                    <p className="text-center text-muted-foreground py-4">No data available</p>
+                    <p className="text-center text-muted-foreground py-4">
+                      No data available
+                    </p>
                   )}
                 </div>
               </CardContent>
@@ -484,15 +542,24 @@ export const RealTimeAnalyticsDashboard = () => {
               <CardContent>
                 <div className="space-y-3">
                   {data?.usage.topLinks?.map((link, index) => (
-                    <div key={link.title} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div
+                      key={link.title}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <Badge variant="outline">#{index + 1}</Badge>
-                        <span className="font-medium truncate">{link.title}</span>
+                        <span className="font-medium truncate">
+                          {link.title}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium">{link.access_count} views</span>
+                      <span className="text-sm font-medium">
+                        {link.access_count} views
+                      </span>
                     </div>
                   )) || (
-                    <p className="text-center text-muted-foreground py-4">No data available</p>
+                    <p className="text-center text-muted-foreground py-4">
+                      No data available
+                    </p>
                   )}
                 </div>
               </CardContent>
@@ -510,15 +577,21 @@ export const RealTimeAnalyticsDashboard = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                     <span>Total Response Uses</span>
-                    <Badge variant="secondary">{data?.usage.totalResponseUses || 0}</Badge>
+                    <Badge variant="secondary">
+                      {data?.usage.totalResponseUses || 0}
+                    </Badge>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                     <span>Total Link Accesses</span>
-                    <Badge variant="secondary">{data?.usage.totalLinkAccesses || 0}</Badge>
+                    <Badge variant="secondary">
+                      {data?.usage.totalLinkAccesses || 0}
+                    </Badge>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                     <span>System Health</span>
-                    <Badge variant="default" className="bg-green-500">Healthy</Badge>
+                    <Badge variant="default" className="bg-green-500">
+                      Healthy
+                    </Badge>
                   </div>
                 </div>
               </CardContent>
@@ -532,16 +605,20 @@ export const RealTimeAnalyticsDashboard = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span>Database Status</span>
-                    <Badge variant="default" className="bg-green-500">Online</Badge>
+                    <Badge variant="default" className="bg-green-500">
+                      Online
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Analytics Status</span>
-                    <Badge variant="default" className="bg-green-500">Active</Badge>
+                    <Badge variant="default" className="bg-green-500">
+                      Active
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Last Updated</span>
                     <span className="text-sm text-muted-foreground">
-                      {format(new Date(), 'MMM d, HH:mm')}
+                      {format(new Date(), "MMM d, HH:mm")}
                     </span>
                   </div>
                 </div>

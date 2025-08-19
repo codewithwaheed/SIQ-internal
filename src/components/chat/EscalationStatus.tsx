@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, CheckCircle, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { EscalationStatusChip } from './EscalationStatusChip';
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  MessageSquare,
+  CheckCircle,
+  RefreshCw,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { EscalationStatusChip } from "./EscalationStatusChip";
 
 interface EscalationStatusProps {
   conversationId: string;
@@ -21,18 +27,26 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
     try {
       // Check if there's an active escalation for this conversation
       const { data, error } = await supabase
-        .from('escalations')
-        .select(`
+        .from("escalations")
+        .select(
+          `
           *,
           profiles!escalations_assigned_consultant_fkey(first_name, last_name, expertise_areas)
-        `)
-        .eq('session_id', conversationId)
-        .in('escalation_state', ['submitted', 'routing', 'assigned', 'in_progress', 'awaiting_user'])
-        .order('created_at', { ascending: false })
+        `,
+        )
+        .eq("session_id", conversationId)
+        .in("escalation_state", [
+          "submitted",
+          "routing",
+          "assigned",
+          "in_progress",
+          "awaiting_user",
+        ])
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (error) {
-        console.error('Error fetching escalation status:', error);
+        console.error("Error fetching escalation status:", error);
         return;
       }
 
@@ -42,7 +56,7 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
         setEscalation(null);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
     }
@@ -50,22 +64,22 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
 
   useEffect(() => {
     fetchEscalationStatus();
-    
+
     // Set up real-time subscription for escalation updates
     const channel = supabase
-      .channel('escalation-updates')
+      .channel("escalation-updates")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'escalations',
-          filter: `session_id=eq.${conversationId}`
+          event: "*",
+          schema: "public",
+          table: "escalations",
+          filter: `session_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('Escalation update:', payload);
+          console.log("Escalation update:", payload);
           fetchEscalationStatus();
-        }
+        },
       )
       .subscribe();
 
@@ -78,23 +92,28 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
     if (!escalation) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('resolve-escalation', {
-        body: {
-          escalationId: escalation.id,
-          resolvedBy: 'user',
-          resolutionNotes: 'Resolved by user'
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "resolve-escalation",
+        {
+          body: {
+            escalationId: escalation.id,
+            resolvedBy: "user",
+            resolutionNotes: "Resolved by user",
+          },
+        },
+      );
 
       if (error || !data.success) {
-        throw new Error(data?.error || error?.message || 'Failed to resolve escalation');
+        throw new Error(
+          data?.error || error?.message || "Failed to resolve escalation",
+        );
       }
 
       toast({
         title: "Thank you!",
         description: "Your escalation has been marked as resolved.",
       });
-      
+
       setEscalation(null);
     } catch (error: any) {
       toast({
@@ -123,56 +142,69 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
 
   const getStatusInfo = (state: string) => {
     switch (state) {
-      case 'submitted':
-      case 'routing':
+      case "submitted":
+      case "routing":
         return {
-          text: 'Finding expert...',
-          color: 'bg-yellow-100 border-yellow-300 text-yellow-800',
-          icon: <RefreshCw className="h-4 w-4 animate-spin" />
+          text: "Finding expert...",
+          color: "bg-yellow-100 border-yellow-300 text-yellow-800",
+          icon: <RefreshCw className="h-4 w-4 animate-spin" />,
         };
-      case 'assigned':
+      case "assigned":
         return {
-          text: 'Expert assigned',
-          color: 'bg-blue-100 border-blue-300 text-blue-800',
-          icon: <MessageSquare className="h-4 w-4" />
+          text: "Expert assigned",
+          color: "bg-blue-100 border-blue-300 text-blue-800",
+          icon: <MessageSquare className="h-4 w-4" />,
         };
-      case 'in_progress':
+      case "in_progress":
         return {
-          text: 'Expert responding',
-          color: 'bg-green-100 border-green-300 text-green-800',
-          icon: <MessageSquare className="h-4 w-4" />
+          text: "Expert responding",
+          color: "bg-green-100 border-green-300 text-green-800",
+          icon: <MessageSquare className="h-4 w-4" />,
         };
-      case 'awaiting_user':
+      case "awaiting_user":
         return {
-          text: 'Awaiting your response',
-          color: 'bg-orange-100 border-orange-300 text-orange-800',
-          icon: <AlertTriangle className="h-4 w-4" />
+          text: "Awaiting your response",
+          color: "bg-orange-100 border-orange-300 text-orange-800",
+          icon: <AlertTriangle className="h-4 w-4" />,
         };
       default:
         return {
-          text: 'Active escalation',
-          color: 'bg-gray-100 border-gray-300 text-gray-800',
-          icon: <MessageSquare className="h-4 w-4" />
+          text: "Active escalation",
+          color: "bg-gray-100 border-gray-300 text-gray-800",
+          icon: <MessageSquare className="h-4 w-4" />,
         };
     }
   };
 
-  const statusInfo = getStatusInfo(escalation.escalation_state || escalation.status);
+  const statusInfo = getStatusInfo(
+    escalation.escalation_state || escalation.status,
+  );
   const consultant = escalation.profiles;
 
   // For mobile, show compact status chip
   const isMobile = window.innerWidth < 768;
-  
+
   if (isMobile) {
-    return <EscalationStatusChip escalation={escalation} className="fixed top-20 right-4 z-50" />;
+    return (
+      <EscalationStatusChip
+        escalation={escalation}
+        className="fixed top-20 right-4 z-50"
+      />
+    );
   }
 
   // Calculate SLA information
-  const slaDeadline = escalation.sla_deadline ? new Date(escalation.sla_deadline) : null;
+  const slaDeadline = escalation.sla_deadline
+    ? new Date(escalation.sla_deadline)
+    : null;
   const now = new Date();
   const isOverdue = slaDeadline && now > slaDeadline;
-  const timeUntilSLA = slaDeadline ? Math.max(0, slaDeadline.getTime() - now.getTime()) : null;
-  const hoursUntilSLA = timeUntilSLA ? Math.floor(timeUntilSLA / (1000 * 60 * 60)) : null;
+  const timeUntilSLA = slaDeadline
+    ? Math.max(0, slaDeadline.getTime() - now.getTime())
+    : null;
+  const hoursUntilSLA = timeUntilSLA
+    ? Math.floor(timeUntilSLA / (1000 * 60 * 60))
+    : null;
 
   return (
     <Card className={`border-2 ${statusInfo.color} mb-4`}>
@@ -197,28 +229,33 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
               {slaDeadline && (
                 <div className="flex items-center space-x-2 text-sm mb-2">
                   <Clock className="h-4 w-4" />
-                  <span className={isOverdue ? "text-red-600 font-medium" : "text-muted-foreground"}>
-                    {isOverdue ? (
-                      "Response overdue"
-                    ) : (
-                      `Expected response by ${slaDeadline.toLocaleTimeString()} ${hoursUntilSLA ? `(${hoursUntilSLA}h)` : ''}`
-                    )}
+                  <span
+                    className={
+                      isOverdue
+                        ? "text-red-600 font-medium"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {isOverdue
+                      ? "Response overdue"
+                      : `Expected response by ${slaDeadline.toLocaleTimeString()} ${hoursUntilSLA ? `(${hoursUntilSLA}h)` : ""}`}
                   </span>
                 </div>
               )}
-              
+
               {consultant && (
                 <div className="flex items-center space-x-2 text-sm mb-2">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="text-xs">
-                      {consultant.first_name?.[0]}{consultant.last_name?.[0]}
+                      {consultant.first_name?.[0]}
+                      {consultant.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <span>
                     {consultant.first_name} {consultant.last_name}
                     {consultant.expertise_areas && (
                       <span className="text-muted-foreground ml-1">
-                        ({consultant.expertise_areas.join(', ')})
+                        ({consultant.expertise_areas.join(", ")})
                       </span>
                     )}
                   </span>
@@ -231,9 +268,11 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
                   <span className="text-muted-foreground">Match:</span>
                   <div className="flex items-center space-x-1">
                     <div className="w-16 bg-muted rounded-full h-1.5">
-                      <div 
-                        className="h-1.5 bg-primary rounded-full" 
-                        style={{ width: `${Math.min(escalation.routing_decision.final_score, 100)}%` }}
+                      <div
+                        className="h-1.5 bg-primary rounded-full"
+                        style={{
+                          width: `${Math.min(escalation.routing_decision.final_score, 100)}%`,
+                        }}
                       />
                     </div>
                     <span className="text-xs font-medium">
@@ -242,14 +281,15 @@ export const EscalationStatus = ({ conversationId }: EscalationStatusProps) => {
                   </div>
                 </div>
               )}
-              
+
               <p className="text-xs text-muted-foreground">
                 Escalated {new Date(escalation.created_at).toLocaleString()}
               </p>
             </div>
           </div>
-          
-          {(escalation.escalation_state === 'in_progress' || escalation.status === 'in_progress') && (
+
+          {(escalation.escalation_state === "in_progress" ||
+            escalation.status === "in_progress") && (
             <Button
               size="sm"
               variant="outline"

@@ -9,7 +9,8 @@ To establish guidelines for appropriate use of company IT resources, protect org
 **Scope**  
 This policy applies to all employees, contractors, consultants, and third parties using {{business_name}} IT resources, whether on-site or remote.
 
-**Definitions**  
+**Definitions**
+
 - **IT Resources**: All technology assets including computers, mobile devices, networks, software, and cloud services
 - **Authorized Use**: Activities explicitly permitted by this policy and job responsibilities
 - **Personal Use**: Limited use of company resources for non-business purposes as defined herein
@@ -31,7 +32,8 @@ All users **shall** utilize company IT resources primarily for business purposes
 
 Users **shall not** engage in activities that compromise organizational security, violate laws, or interfere with normal business operations. Specifically prohibited activities include accessing, storing, or transmitting illegal content; installing unauthorized software or hardware; using company resources for commercial ventures or political campaigns; or engaging in harassment, discrimination, or other inappropriate behavior through technology platforms.
 
-**Procedures**  
+**Procedures**
+
 1. **Access Management**
    - Use only assigned user accounts
    - Maintain account security and confidentiality
@@ -50,7 +52,8 @@ Users **shall not** engage in activities that compromise organizational security
    - Avoid bandwidth-intensive non-business activities
    - Report network performance issues promptly
 
-**Responsibilities**  
+**Responsibilities**
+
 - **IT Department**: Maintain secure infrastructure, monitor usage, enforce technical controls
 - **Human Resources**: Communicate policy, handle violations, provide training
 - **Managers**: Monitor team compliance, report violations, ensure awareness
@@ -58,13 +61,15 @@ Users **shall not** engage in activities that compromise organizational security
 
 **Consequences of Non-Compliance**  
 Policy violations may result in:
+
 - Warning and mandatory training
 - Temporary or permanent loss of IT privileges
 - Disciplinary action including termination
 - Criminal prosecution for illegal activities
 - Personal liability for damages or losses
 
-**References**  
+**References**
+
 - {{business_name}} Employee Handbook
 - {{business_name}} Information Security Policy
 - {{business_name}} Data Classification Standard

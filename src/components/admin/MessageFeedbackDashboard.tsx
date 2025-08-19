@@ -1,22 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
-import { 
-  MessageSquare, 
-  Star, 
-  TrendingUp, 
-  TrendingDown, 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import {
+  MessageSquare,
+  Star,
+  TrendingUp,
+  TrendingDown,
   AlertTriangle,
   CheckCircle,
   BarChart3,
-  Filter
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+  Filter,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface FeedbackItem {
   id: string;
@@ -60,9 +66,9 @@ export function MessageFeedbackDashboard() {
     quality: string;
     timeRange: string;
   }>({
-    type: 'all',
-    quality: 'all',
-    timeRange: '7d'
+    type: "all",
+    quality: "all",
+    timeRange: "7d",
   });
 
   useEffect(() => {
@@ -76,16 +82,16 @@ export function MessageFeedbackDashboard() {
       const now = new Date();
       let startDate = new Date();
       switch (filter.timeRange) {
-        case '1d':
+        case "1d":
           startDate.setDate(now.getDate() - 1);
           break;
-        case '7d':
+        case "7d":
           startDate.setDate(now.getDate() - 7);
           break;
-        case '30d':
+        case "30d":
           startDate.setDate(now.getDate() - 30);
           break;
-        case '90d':
+        case "90d":
           startDate.setDate(now.getDate() - 90);
           break;
         default:
@@ -94,8 +100,9 @@ export function MessageFeedbackDashboard() {
 
       // Build query
       let query = supabase
-        .from('ai_feedback')
-        .select(`
+        .from("ai_feedback")
+        .select(
+          `
           *,
           consultant_profiles!ai_feedback_consultant_id_fkey (
             user_id,
@@ -104,16 +111,17 @@ export function MessageFeedbackDashboard() {
               last_name
             )
           )
-        `)
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .gte("created_at", startDate.toISOString())
+        .order("created_at", { ascending: false });
 
-      if (filter.type !== 'all') {
-        query = query.eq('feedback_type', filter.type);
+      if (filter.type !== "all") {
+        query = query.eq("feedback_type", filter.type);
       }
 
-      if (filter.quality !== 'all') {
-        query = query.eq('ai_response_quality', filter.quality);
+      if (filter.quality !== "all") {
+        query = query.eq("ai_response_quality", filter.quality);
       }
 
       const { data: feedbackData, error } = await query.limit(100);
@@ -125,39 +133,56 @@ export function MessageFeedbackDashboard() {
       // Calculate statistics
       if (feedbackData && feedbackData.length > 0) {
         const totalFeedback = feedbackData.length;
-        const averageRating = feedbackData
-          .filter(f => f.rating)
-          .reduce((sum, f) => sum + f.rating, 0) / feedbackData.filter(f => f.rating).length;
+        const averageRating =
+          feedbackData
+            .filter((f) => f.rating)
+            .reduce((sum, f) => sum + f.rating, 0) /
+          feedbackData.filter((f) => f.rating).length;
 
-        const feedbackByType = feedbackData.reduce((acc, f) => {
-          acc[f.feedback_type] = (acc[f.feedback_type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
+        const feedbackByType = feedbackData.reduce(
+          (acc, f) => {
+            acc[f.feedback_type] = (acc[f.feedback_type] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
 
         const qualityDistribution = feedbackData
-          .filter(f => f.ai_response_quality)
-          .reduce((acc, f) => {
-            acc[f.ai_response_quality] = (acc[f.ai_response_quality] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          .filter((f) => f.ai_response_quality)
+          .reduce(
+            (acc, f) => {
+              acc[f.ai_response_quality] =
+                (acc[f.ai_response_quality] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          );
 
         // Calculate trend (comparing with previous period)
         const prevStartDate = new Date(startDate);
-        prevStartDate.setDate(prevStartDate.getDate() - (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        prevStartDate.setDate(
+          prevStartDate.getDate() -
+            (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
 
         const { data: prevData } = await supabase
-          .from('ai_feedback')
-          .select('rating')
-          .gte('created_at', prevStartDate.toISOString())
-          .lt('created_at', startDate.toISOString());
+          .from("ai_feedback")
+          .select("rating")
+          .gte("created_at", prevStartDate.toISOString())
+          .lt("created_at", startDate.toISOString());
 
-        const prevAvgRating = prevData && prevData.length > 0
-          ? prevData.filter(f => f.rating).reduce((sum, f) => sum + f.rating, 0) / prevData.filter(f => f.rating).length
-          : 0;
+        const prevAvgRating =
+          prevData && prevData.length > 0
+            ? prevData
+                .filter((f) => f.rating)
+                .reduce((sum, f) => sum + f.rating, 0) /
+              prevData.filter((f) => f.rating).length
+            : 0;
 
-        const changePercentage = prevAvgRating > 0 
-          ? ((averageRating - prevAvgRating) / prevAvgRating) * 100 
-          : 0;
+        const changePercentage =
+          prevAvgRating > 0
+            ? ((averageRating - prevAvgRating) / prevAvgRating) * 100
+            : 0;
 
         setStats({
           total_feedback: totalFeedback,
@@ -166,8 +191,8 @@ export function MessageFeedbackDashboard() {
           quality_distribution: qualityDistribution,
           recent_trends: {
             positive_trend: changePercentage >= 0,
-            change_percentage: Math.abs(changePercentage)
-          }
+            change_percentage: Math.abs(changePercentage),
+          },
         });
       } else {
         setStats({
@@ -175,79 +200,82 @@ export function MessageFeedbackDashboard() {
           average_rating: 0,
           feedback_by_type: {},
           quality_distribution: {},
-          recent_trends: { positive_trend: true, change_percentage: 0 }
+          recent_trends: { positive_trend: true, change_percentage: 0 },
         });
       }
     } catch (error) {
-      console.error('Error fetching feedback data:', error);
+      console.error("Error fetching feedback data:", error);
       toast({
         title: "Error",
         description: "Failed to load feedback data",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleTrainingData = async (feedbackId: string, currentStatus: boolean) => {
+  const toggleTrainingData = async (
+    feedbackId: string,
+    currentStatus: boolean,
+  ) => {
     try {
       const { error } = await supabase
-        .from('ai_feedback')
+        .from("ai_feedback")
         .update({ is_training_data: !currentStatus })
-        .eq('id', feedbackId);
+        .eq("id", feedbackId);
 
       if (error) throw error;
 
-      setFeedback(prev => prev.map(f => 
-        f.id === feedbackId 
-          ? { ...f, is_training_data: !currentStatus }
-          : f
-      ));
+      setFeedback((prev) =>
+        prev.map((f) =>
+          f.id === feedbackId ? { ...f, is_training_data: !currentStatus } : f,
+        ),
+      );
 
       toast({
         title: "Success",
-        description: `Feedback ${!currentStatus ? 'marked' : 'unmarked'} as training data`,
+        description: `Feedback ${!currentStatus ? "marked" : "unmarked"} as training data`,
       });
     } catch (error) {
-      console.error('Error updating training data status:', error);
+      console.error("Error updating training data status:", error);
       toast({
         title: "Error",
         description: "Failed to update training data status",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const getFeedbackTypeColor = (type: string) => {
     const colors = {
-      ai_correct: 'bg-green-100 text-green-800',
-      ai_incorrect: 'bg-red-100 text-red-800',
-      ai_incomplete: 'bg-yellow-100 text-yellow-800',
-      ai_unhelpful: 'bg-orange-100 text-orange-800',
-      escalation_unnecessary: 'bg-blue-100 text-blue-800',
-      escalation_justified: 'bg-green-100 text-green-800',
-      other: 'bg-gray-100 text-gray-800'
+      ai_correct: "bg-green-100 text-green-800",
+      ai_incorrect: "bg-red-100 text-red-800",
+      ai_incomplete: "bg-yellow-100 text-yellow-800",
+      ai_unhelpful: "bg-orange-100 text-orange-800",
+      escalation_unnecessary: "bg-blue-100 text-blue-800",
+      escalation_justified: "bg-green-100 text-green-800",
+      other: "bg-gray-100 text-gray-800",
     };
     return colors[type] || colors.other;
   };
 
   const getQualityColor = (quality: string) => {
     const colors = {
-      excellent: 'text-green-600',
-      good: 'text-green-500',
-      average: 'text-yellow-500',
-      poor: 'text-orange-500',
-      very_poor: 'text-red-500'
+      excellent: "text-green-600",
+      good: "text-green-500",
+      average: "text-yellow-500",
+      poor: "text-orange-500",
+      very_poor: "text-red-500",
     };
-    return colors[quality] || 'text-gray-500';
+    return colors[quality] || "text-gray-500";
   };
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardContent className="p-6">
                 <div className="animate-pulse">
@@ -268,7 +296,9 @@ export function MessageFeedbackDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">AI Feedback Dashboard</h2>
-          <p className="text-muted-foreground">Monitor and analyze consultant feedback on AI performance</p>
+          <p className="text-muted-foreground">
+            Monitor and analyze consultant feedback on AI performance
+          </p>
         </div>
       </div>
 
@@ -284,7 +314,12 @@ export function MessageFeedbackDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Feedback Type</label>
-              <Select value={filter.type} onValueChange={(value) => setFilter(prev => ({ ...prev, type: value }))}>
+              <Select
+                value={filter.type}
+                onValueChange={(value) =>
+                  setFilter((prev) => ({ ...prev, type: value }))
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -294,15 +329,24 @@ export function MessageFeedbackDashboard() {
                   <SelectItem value="ai_incorrect">AI Incorrect</SelectItem>
                   <SelectItem value="ai_incomplete">AI Incomplete</SelectItem>
                   <SelectItem value="ai_unhelpful">AI Unhelpful</SelectItem>
-                  <SelectItem value="escalation_unnecessary">Escalation Unnecessary</SelectItem>
-                  <SelectItem value="escalation_justified">Escalation Justified</SelectItem>
+                  <SelectItem value="escalation_unnecessary">
+                    Escalation Unnecessary
+                  </SelectItem>
+                  <SelectItem value="escalation_justified">
+                    Escalation Justified
+                  </SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Quality Level</label>
-              <Select value={filter.quality} onValueChange={(value) => setFilter(prev => ({ ...prev, quality: value }))}>
+              <Select
+                value={filter.quality}
+                onValueChange={(value) =>
+                  setFilter((prev) => ({ ...prev, quality: value }))
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -318,7 +362,12 @@ export function MessageFeedbackDashboard() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Time Range</label>
-              <Select value={filter.timeRange} onValueChange={(value) => setFilter(prev => ({ ...prev, timeRange: value }))}>
+              <Select
+                value={filter.timeRange}
+                onValueChange={(value) =>
+                  setFilter((prev) => ({ ...prev, timeRange: value }))
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -341,7 +390,9 @@ export function MessageFeedbackDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Feedback</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Feedback
+                  </p>
                   <p className="text-2xl font-bold">{stats.total_feedback}</p>
                 </div>
                 <MessageSquare className="h-8 w-8 text-muted-foreground" />
@@ -353,18 +404,22 @@ export function MessageFeedbackDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Average Rating
+                  </p>
                   <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold">{stats.average_rating.toFixed(1)}</p>
+                    <p className="text-2xl font-bold">
+                      {stats.average_rating.toFixed(1)}
+                    </p>
                     <div className="flex">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <Star 
+                        <Star
                           key={star}
                           className={`h-4 w-4 ${
-                            star <= Math.round(stats.average_rating) 
-                              ? 'fill-yellow-400 text-yellow-400' 
-                              : 'text-gray-300'
-                          }`} 
+                            star <= Math.round(stats.average_rating)
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-300"
+                          }`}
                         />
                       ))}
                     </div>
@@ -379,7 +434,9 @@ export function MessageFeedbackDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Trend</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Trend
+                  </p>
                   <div className="flex items-center gap-2">
                     <p className="text-2xl font-bold">
                       {stats.recent_trends.change_percentage.toFixed(1)}%
@@ -400,7 +457,9 @@ export function MessageFeedbackDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Correct Responses</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Correct Responses
+                  </p>
                   <p className="text-2xl font-bold">
                     {stats.feedback_by_type.ai_correct || 0}
                   </p>
@@ -429,53 +488,75 @@ export function MessageFeedbackDashboard() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Badge className={getFeedbackTypeColor(item.feedback_type)}>
-                          {item.feedback_type.replace('_', ' ')}
+                        <Badge
+                          className={getFeedbackTypeColor(item.feedback_type)}
+                        >
+                          {item.feedback_type.replace("_", " ")}
                         </Badge>
                         {item.rating && (
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">{item.rating}</span>
+                            <span className="text-sm font-medium">
+                              {item.rating}
+                            </span>
                           </div>
                         )}
                         {item.ai_response_quality && (
-                          <span className={`text-sm font-medium ${getQualityColor(item.ai_response_quality)}`}>
+                          <span
+                            className={`text-sm font-medium ${getQualityColor(item.ai_response_quality)}`}
+                          >
                             {item.ai_response_quality}
                           </span>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Submitted by {item.consultant_profile?.profiles?.first_name} {item.consultant_profile?.profiles?.last_name} 
+                        Submitted by{" "}
+                        {item.consultant_profile?.profiles?.first_name}{" "}
+                        {item.consultant_profile?.profiles?.last_name}
                         on {new Date(item.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <Button
                       variant={item.is_training_data ? "default" : "outline"}
                       size="sm"
-                      onClick={() => toggleTrainingData(item.id, item.is_training_data)}
+                      onClick={() =>
+                        toggleTrainingData(item.id, item.is_training_data)
+                      }
                     >
-                      {item.is_training_data ? "Training Data" : "Mark for Training"}
+                      {item.is_training_data
+                        ? "Training Data"
+                        : "Mark for Training"}
                     </Button>
                   </div>
 
                   {item.comments && (
                     <div>
                       <p className="text-sm font-medium mb-1">Comments:</p>
-                      <p className="text-sm text-muted-foreground">{item.comments}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.comments}
+                      </p>
                     </div>
                   )}
 
                   {item.suggested_improvement && (
                     <div>
-                      <p className="text-sm font-medium mb-1">Suggested Improvement:</p>
-                      <p className="text-sm text-muted-foreground">{item.suggested_improvement}</p>
+                      <p className="text-sm font-medium mb-1">
+                        Suggested Improvement:
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.suggested_improvement}
+                      </p>
                     </div>
                   )}
 
                   {item.category_tags && item.category_tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {item.category_tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs"
+                        >
                           {tag}
                         </Badge>
                       ))}

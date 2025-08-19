@@ -3,24 +3,25 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 // Generate embedding for query
 async function generateQueryEmbedding(query: string): Promise<number[]> {
-  const openaiKey = Deno.env.get('OPENAI_API_KEY');
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
   if (!openaiKey) {
-    throw new Error('OpenAI API key not configured');
+    throw new Error("OpenAI API key not configured");
   }
 
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
+  const response = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${openaiKey}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${openaiKey}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: 'text-embedding-3-small', // Use the newer available model
+      model: "text-embedding-3-small", // Use the newer available model
       input: query,
     }),
   });
@@ -35,12 +36,12 @@ async function generateQueryEmbedding(query: string): Promise<number[]> {
 
 // Query Pinecone for similar vectors
 async function queryPinecone(embedding: number[], userId: string, topK = 3) {
-  const pineconeKey = Deno.env.get('PINECONE_API_KEY');
-  const pineconeEnv = Deno.env.get('PINECONE_ENVIRONMENT') || 'us-east-1-aws';
-  const pineconeIndex = Deno.env.get('PINECONE_INDEX') || 'sentrIQ-doc-index';
-  
+  const pineconeKey = Deno.env.get("PINECONE_API_KEY");
+  const pineconeEnv = Deno.env.get("PINECONE_ENVIRONMENT") || "us-east-1-aws";
+  const pineconeIndex = Deno.env.get("PINECONE_INDEX") || "sentrIQ-doc-index";
+
   if (!pineconeKey) {
-    throw new Error('Pinecone API key not configured');
+    throw new Error("Pinecone API key not configured");
   }
 
   const queryData = {
@@ -48,18 +49,21 @@ async function queryPinecone(embedding: number[], userId: string, topK = 3) {
     topK: topK,
     includeMetadata: true,
     filter: {
-      user_id: userId
-    }
+      user_id: userId,
+    },
   };
 
-  const response = await fetch(`https://${pineconeIndex}-${pineconeEnv}.svc.${pineconeEnv}.pinecone.io/query`, {
-    method: 'POST',
-    headers: {
-      'Api-Key': pineconeKey,
-      'Content-Type': 'application/json',
+  const response = await fetch(
+    `https://${pineconeIndex}-${pineconeEnv}.svc.${pineconeEnv}.pinecone.io/query`,
+    {
+      method: "POST",
+      headers: {
+        "Api-Key": pineconeKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(queryData),
     },
-    body: JSON.stringify(queryData),
-  });
+  );
 
   if (!response.ok) {
     throw new Error(`Pinecone query error: ${await response.text()}`);
@@ -85,53 +89,63 @@ serve(async (req) => {
     try {
       // Generate embedding for the query
       const queryEmbedding = await generateQueryEmbedding(query);
-      
+
       // Query Pinecone for similar vectors
       const results = await queryPinecone(queryEmbedding, userId, topK);
-      
+
       // Extract relevant text chunks
-      const relevantChunks = results.matches?.map((match: any) => ({
-        text: match.metadata?.text || '',
-        score: match.score || 0,
-        document_id: match.metadata?.document_id || '',
-        chunk_index: match.metadata?.chunk_index || 0
-      })) || [];
+      const relevantChunks =
+        results.matches?.map((match: any) => ({
+          text: match.metadata?.text || "",
+          score: match.score || 0,
+          document_id: match.metadata?.document_id || "",
+          chunk_index: match.metadata?.chunk_index || 0,
+        })) || [];
 
-      console.log(`[QUERY-VECTORS] Found ${relevantChunks.length} relevant chunks`);
+      console.log(
+        `[QUERY-VECTORS] Found ${relevantChunks.length} relevant chunks`,
+      );
 
-      return new Response(JSON.stringify({
-        success: true,
-        relevant_chunks: relevantChunks,
-        query: query
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-
+      return new Response(
+        JSON.stringify({
+          success: true,
+          relevant_chunks: relevantChunks,
+          query: query,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        },
+      );
     } catch (vectorError) {
-      console.error('Vector search error:', vectorError);
-      
-      // Fallback: return empty results instead of failing
-      return new Response(JSON.stringify({
-        success: true,
-        relevant_chunks: [],
-        query: query,
-        fallback: true,
-        warning: "Vector search unavailable, using fallback mode"
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
+      console.error("Vector search error:", vectorError);
 
+      // Fallback: return empty results instead of failing
+      return new Response(
+        JSON.stringify({
+          success: true,
+          relevant_chunks: [],
+          query: query,
+          fallback: true,
+          warning: "Vector search unavailable, using fallback mode",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        },
+      );
+    }
   } catch (error) {
     console.error("Error in query-vectors function:", error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      success: false 
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        success: false,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
+    );
   }
 });

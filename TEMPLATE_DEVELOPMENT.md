@@ -7,10 +7,11 @@ SentrIQ's policy template system allows for easy extension and customization of 
 ## 📁 Template Structure
 
 ### File Organization
+
 ```
 src/templates/
 ├── password_management.md      # Password security policies
-├── acceptable_use.md          # IT resource usage policies  
+├── acceptable_use.md          # IT resource usage policies
 ├── incident_response.md       # Security incident procedures
 ├── mobile_device.md           # Mobile device management
 ├── generic_template.md        # Universal policy template
@@ -18,6 +19,7 @@ src/templates/
 ```
 
 ### Template Format
+
 All policy templates follow a standardized markdown format with placeholder tokens:
 
 ```markdown
@@ -41,11 +43,14 @@ This policy establishes [specific purpose here].
 ## 🔧 Adding New Templates
 
 ### Step 1: Create Template File
+
 Create a new `.md` file in `src/templates/` following naming conventions:
+
 - Use lowercase with underscores: `data_retention.md`
 - Be descriptive but concise: `remote_work_security.md`
 
 ### Step 2: Define Placeholder Tokens
+
 Use the format `{{token_name}}` for dynamic content:
 
 ```markdown
@@ -55,47 +60,50 @@ Use the format `{{token_name}}` for dynamic content:
 ```
 
 ### Step 3: Update Policy Generator
+
 Add your template to the policy generator configuration:
 
 ```typescript
 // src/lib/policyGenerator.ts
 export const POLICY_TEMPLATES = {
   // ... existing templates
-  'data_retention': {
-    file: 'data_retention.md',
-    title: 'Data Retention Policy',
-    description: 'Defines data lifecycle and retention requirements'
-  }
+  data_retention: {
+    file: "data_retention.md",
+    title: "Data Retention Policy",
+    description: "Defines data lifecycle and retention requirements",
+  },
 };
 ```
 
 ### Step 4: Add Default Values
+
 Define defaults for your template tokens:
 
 ```typescript
 // src/config/defaults.ts
 export const POLICY_DEFAULTS = {
   // ... existing defaults
-  retention_period_years: '7',
-  backup_frequency: 'daily',
-  compliance_framework: 'SOX, GDPR, CCPA'
+  retention_period_years: "7",
+  backup_frequency: "daily",
+  compliance_framework: "SOX, GDPR, CCPA",
 };
 ```
 
 ### Step 5: Add Policy Slug Mapping
+
 Map keywords to your policy type:
 
 ```typescript
 // src/config/policySlugMap.ts
 export const POLICY_SLUG_MAP: Record<PolicySlug, string[]> = {
   // ... existing mappings
-  'data_retention': [
-    'data retention',
-    'retention policy', 
-    'data lifecycle',
-    'backup policy',
-    'archive'
-  ]
+  data_retention: [
+    "data retention",
+    "retention policy",
+    "data lifecycle",
+    "backup policy",
+    "archive",
+  ],
 };
 ```
 
@@ -104,38 +112,43 @@ export const POLICY_SLUG_MAP: Record<PolicySlug, string[]> = {
 ### Placeholder Token Types
 
 #### Organization Information
+
 ```markdown
-{{business_name}}        # Company name
-{{website_url}}          # Company website
-{{contact_email}}        # Contact email
-{{physical_address}}     # Business address
+{{business_name}} # Company name
+{{website_url}} # Company website
+{{contact_email}} # Contact email
+{{physical_address}} # Business address
 ```
 
 #### Policy Metadata
+
 ```markdown
-{{policy_title}}         # Dynamic policy title
-{{effective_date}}       # Policy effective date
-{{review_date}}          # Next review date
-{{version}}              # Policy version number
+{{policy_title}} # Dynamic policy title
+{{effective_date}} # Policy effective date
+{{review_date}} # Next review date
+{{version}} # Policy version number
 ```
 
 #### Compliance Settings
+
 ```markdown
 {{compliance_frameworks}} # Applicable frameworks
-{{audit_frequency}}       # How often audits occur
-{{training_frequency}}    # Training schedule
+{{audit_frequency}} # How often audits occur
+{{training_frequency}} # Training schedule
 ```
 
 #### Technical Parameters
+
 ```markdown
-{{min_password_length}}   # Minimum password length
-{{session_timeout}}       # Session timeout duration
-{{encryption_standard}}   # Encryption requirements
+{{min_password_length}} # Minimum password length
+{{session_timeout}} # Session timeout duration
+{{encryption_standard}} # Encryption requirements
 ```
 
 ### Advanced Token Features
 
 #### Conditional Content
+
 ```markdown
 {{#if_premium_tier}}
 **Advanced Feature**: Premium subscribers get additional protections.
@@ -143,14 +156,17 @@ export const POLICY_SLUG_MAP: Record<PolicySlug, string[]> = {
 ```
 
 #### Lists and Arrays
+
 ```markdown
-**Approved Frameworks**: 
+**Approved Frameworks**:
 {{#each compliance_frameworks}}
+
 - {{this}}
-{{/each}}
+  {{/each}}
 ```
 
 #### Formatted Values
+
 ```markdown
 **Password Length**: {{min_password_length}} characters minimum
 **Rotation Period**: {{password_rotation_days}} days
@@ -159,6 +175,7 @@ export const POLICY_SLUG_MAP: Record<PolicySlug, string[]> = {
 ## 🧱 Template Building Blocks
 
 ### Standard Policy Sections
+
 All policies should include these sections:
 
 1. **Introduction**: Brief overview and context
@@ -173,6 +190,7 @@ All policies should include these sections:
 10. **Revision History**: Change tracking
 
 ### Example Complete Template
+
 ```markdown
 # {{policy_title}}
 
@@ -185,7 +203,8 @@ This {{policy_type}} policy establishes {{primary_objective}} to ensure {{busine
 **Scope**  
 {{scope}}
 
-**Definitions**  
+**Definitions**
+
 - **{{key_term_1}}**: {{definition_1}}
 - **{{key_term_2}}**: {{definition_2}}
 
@@ -199,7 +218,8 @@ This {{policy_type}} policy establishes {{primary_objective}} to ensure {{busine
 **Procedures**  
 {{procedures_content}}
 
-**Responsibilities**  
+**Responsibilities**
+
 - **{{role_1}}**: {{responsibility_1}}
 - **{{role_2}}**: {{responsibility_2}}
 - **{{role_3}}**: {{responsibility_3}}
@@ -207,7 +227,8 @@ This {{policy_type}} policy establishes {{primary_objective}} to ensure {{busine
 **Consequences of Non-Compliance**  
 {{consequences}}
 
-**References**  
+**References**
+
 - {{reference_1}}
 - {{reference_2}}
 
@@ -220,6 +241,7 @@ This {{policy_type}} policy establishes {{primary_objective}} to ensure {{busine
 ## ⚙️ Advanced Features
 
 ### Framework-Specific Templates
+
 Create variants for different compliance frameworks:
 
 ```
@@ -232,29 +254,31 @@ src/templates/
 ```
 
 ### Industry-Specific Customizations
+
 ```typescript
 // Industry-specific template selection
 const getIndustryTemplate = (industry: string, policyType: string) => {
   const industryTemplates = {
-    'healthcare': `${policyType}_hipaa.md`,
-    'finance': `${policyType}_sox.md`,
-    'defense': `${policyType}_cmmc.md`
+    healthcare: `${policyType}_hipaa.md`,
+    finance: `${policyType}_sox.md`,
+    defense: `${policyType}_cmmc.md`,
   };
-  
+
   return industryTemplates[industry] || `${policyType}.md`;
 };
 ```
 
 ### Dynamic Content Generation
+
 ```typescript
 // Generate content based on organization size
 const generateRequirements = (orgSize: string) => {
-  if (orgSize === 'enterprise') {
-    return 'Formal change management process required';
-  } else if (orgSize === 'medium') {
-    return 'Document all changes in change log';
+  if (orgSize === "enterprise") {
+    return "Formal change management process required";
+  } else if (orgSize === "medium") {
+    return "Document all changes in change log";
   } else {
-    return 'Maintain basic change records';
+    return "Maintain basic change records";
   }
 };
 ```
@@ -262,15 +286,19 @@ const generateRequirements = (orgSize: string) => {
 ## 🧪 Testing Templates
 
 ### Template Validation
+
 ```typescript
 // Test template structure
 const validateTemplate = (template: string) => {
   const requiredSections = [
-    'Introduction', 'Purpose', 'Scope', 
-    'Policy Statement', 'Procedures'
+    "Introduction",
+    "Purpose",
+    "Scope",
+    "Policy Statement",
+    "Procedures",
   ];
-  
-  requiredSections.forEach(section => {
+
+  requiredSections.forEach((section) => {
     if (!template.includes(`**${section}**`)) {
       throw new Error(`Missing required section: ${section}`);
     }
@@ -279,12 +307,13 @@ const validateTemplate = (template: string) => {
 ```
 
 ### Placeholder Testing
+
 ```typescript
 // Ensure all placeholders have defaults
 const validatePlaceholders = (template: string) => {
   const placeholders = template.match(/\{\{([a-z0-9_]+)\}\}/gi);
-  placeholders?.forEach(placeholder => {
-    const fieldName = placeholder.replace(/[{}]/g, '');
+  placeholders?.forEach((placeholder) => {
+    const fieldName = placeholder.replace(/[{}]/g, "");
     if (!POLICY_DEFAULTS[fieldName]) {
       console.warn(`No default value for: ${fieldName}`);
     }
@@ -295,6 +324,7 @@ const validatePlaceholders = (template: string) => {
 ## 📋 Best Practices
 
 ### Template Design
+
 1. **Use Clear Placeholders**: `{{retention_period}}` not `{{rp}}`
 2. **Provide Context**: Include comments for complex sections
 3. **Be Specific**: Avoid vague requirements
@@ -302,6 +332,7 @@ const validatePlaceholders = (template: string) => {
 5. **Consider Variations**: Account for different org sizes/types
 
 ### Content Guidelines
+
 1. **Legal Language**: Use clear, actionable language
 2. **Measurable Requirements**: Define specific, testable criteria
 3. **Implementation Guidance**: Provide practical steps
@@ -309,6 +340,7 @@ const validatePlaceholders = (template: string) => {
 5. **User-Friendly**: Avoid unnecessary complexity
 
 ### Technical Implementation
+
 1. **Consistent Naming**: Follow established token patterns
 2. **Default Values**: Provide sensible defaults for all tokens
 3. **Validation**: Check template integrity on load
@@ -318,9 +350,11 @@ const validatePlaceholders = (template: string) => {
 ## 🚀 Deployment
 
 ### Auto-Discovery
+
 The system automatically discovers new templates when they're added to the `src/templates/` directory and registered in `POLICY_TEMPLATES`.
 
 ### Version Control
+
 ```bash
 # Add new template
 git add src/templates/new_policy.md
@@ -330,6 +364,7 @@ git commit -m "feat: add new policy template for [purpose]"
 ```
 
 ### Testing Checklist
+
 - [ ] Template renders without errors
 - [ ] All placeholders have defaults
 - [ ] Policy flows logically
@@ -340,6 +375,7 @@ git commit -m "feat: add new policy template for [purpose]"
 ## 📞 Getting Help
 
 For template development questions:
+
 - **Documentation**: This guide and inline code comments
 - **Examples**: Study existing templates in `src/templates/`
 - **Team**: Reach out to the development team

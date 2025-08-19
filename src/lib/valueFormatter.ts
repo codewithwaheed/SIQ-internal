@@ -2,20 +2,20 @@
  * Auto-appends units to values based on field name patterns
  */
 const UNIT_MAP: Record<string, string> = {
-  "_minutes": " minutes",
-  "_hours": " hours", 
-  "_days": " days",
-  "_mb": " MB",
-  "_gb": " GB",
-  "_per_day": " per day",
-  "_time_limit": " minutes",
-  "_timeout": " minutes",
-  "_duration": " minutes",
-  "_period": " days",
-  "_frequency": " days",
-  "_count": "",
-  "_threshold": "",
-  "_length": " characters"
+  _minutes: " minutes",
+  _hours: " hours",
+  _days: " days",
+  _mb: " MB",
+  _gb: " GB",
+  _per_day: " per day",
+  _time_limit: " minutes",
+  _timeout: " minutes",
+  _duration: " minutes",
+  _period: " days",
+  _frequency: " days",
+  _count: "",
+  _threshold: "",
+  _length: " characters",
 };
 
 /**
@@ -24,7 +24,7 @@ const UNIT_MAP: Record<string, string> = {
 export function formatValue(key: string, value: string | number): string {
   const val = String(value).trim();
   if (!val || val === "undefined" || val === "null") return "";
-  
+
   // Check for exact matches first
   for (const suffix in UNIT_MAP) {
     if (key.endsWith(suffix)) {
@@ -36,20 +36,20 @@ export function formatValue(key: string, value: string | number): string {
       return val;
     }
   }
-  
+
   // Special cases for common field patterns
   if (key.includes("password") && key.includes("length")) {
     return val.includes("character") ? val : `${val} characters`;
   }
-  
+
   if (key.includes("lockout") && key.includes("duration")) {
     return val.includes("minute") ? val : `${val} minutes`;
   }
-  
+
   if (key.includes("expiry") || key.includes("rotation")) {
     return val.includes("day") ? val : `${val} days`;
   }
-  
+
   return val;
 }
 

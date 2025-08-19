@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { HelpCircle } from 'lucide-react';
-import { getFieldHelp } from '@/config/fieldHelp';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { HelpCircle } from "lucide-react";
+import { getFieldHelp } from "@/config/fieldHelp";
 
-type MissingField = { 
-  key: string; 
-  label: string; 
-  placeholder?: string; 
+type MissingField = {
+  key: string;
+  label: string;
+  placeholder?: string;
 };
 
 interface MissingFieldCardProps {
@@ -20,11 +24,11 @@ interface MissingFieldCardProps {
   isLoading?: boolean;
 }
 
-export function MissingFieldCard({ 
-  fields, 
-  onSubmit, 
-  onDefaults, 
-  isLoading = false 
+export function MissingFieldCard({
+  fields,
+  onSubmit,
+  onDefaults,
+  isLoading = false,
 }: MissingFieldCardProps) {
   const [draft, setDraft] = useState<Record<string, string>>({});
 
@@ -39,11 +43,12 @@ export function MissingFieldCard({
     <Card className="missing-card max-w-lg mx-auto">
       <CardContent className="p-4 space-y-4">
         <p className="text-sm text-muted-foreground">
-          Please provide {fields.length} {fields.length > 1 ? "details" : "detail"}:
+          Please provide {fields.length}{" "}
+          {fields.length > 1 ? "details" : "detail"}:
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {fields.map(field => (
+          {fields.map((field) => (
             <div key={field.key} className="field-row space-y-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor={field.key} className="text-sm font-medium">
@@ -61,8 +66,8 @@ export function MissingFieldCard({
                       <HelpCircle className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-80 text-sm p-3" 
+                  <PopoverContent
+                    className="w-80 text-sm p-3"
                     side="top"
                     align="start"
                     sideOffset={5}
@@ -76,7 +81,9 @@ export function MissingFieldCard({
                 type="text"
                 placeholder={field.placeholder || "Enter value…"}
                 value={draft[field.key] || ""}
-                onChange={e => setDraft({ ...draft, [field.key]: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, [field.key]: e.target.value })
+                }
                 className="w-full"
               />
             </div>
@@ -117,8 +124,8 @@ export function getFieldPlaceholder(fieldKey: string): string {
     incident_contact_email: "security@yourcompany.com",
     escalation_timeframe: "e.g., 2 hours",
     device_encryption_required: "Yes/No",
-    monitoring_enabled: "Yes/No"
+    monitoring_enabled: "Yes/No",
   };
-  
+
   return placeholders[fieldKey] || "Enter value…";
 }

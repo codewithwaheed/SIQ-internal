@@ -9,7 +9,8 @@ To ensure rapid, coordinated, and effective response to security incidents, mini
 **Scope**  
 This policy applies to all security incidents affecting {{business_name}} information systems, networks, applications, and data, regardless of location or ownership.
 
-**Definitions**  
+**Definitions**
+
 - **Security Incident**: Any event that threatens the confidentiality, integrity, or availability of information assets
 - **Incident Response Team (IRT)**: Designated personnel responsible for incident response activities
 - **Business Continuity**: Maintaining essential business operations during and after an incident
@@ -35,7 +36,8 @@ This policy applies to all security incidents affecting {{business_name}} inform
    - Post-incident review and documentation
    - Process improvement recommendations
 
-**Procedures**  
+**Procedures**
+
 1. **Incident Detection**
    - Monitor security alerts and logs continuously
    - Investigate suspicious activities promptly
@@ -54,7 +56,8 @@ This policy applies to all security incidents affecting {{business_name}} inform
    - Recovery planning: {{recovery_planning_time}} hours
    - Full recovery: {{full_recovery_time}} days
 
-**Responsibilities**  
+**Responsibilities**
+
 - **CISO/Security Manager**: Overall incident response program oversight
 - **Incident Response Team**: Execute response procedures, coordinate activities
 - **IT Operations**: System monitoring, technical response, recovery operations
@@ -64,12 +67,14 @@ This policy applies to all security incidents affecting {{business_name}} inform
 
 **Consequences of Non-Compliance**  
 Failure to follow incident response procedures may result in:
+
 - Extended incident duration and increased damage
 - Regulatory penalties and legal liability
 - Loss of customer trust and business reputation
 - Disciplinary action for willful non-compliance
 
-**References**  
+**References**
+
 - NIST Cybersecurity Framework
 - ISO 27035 Incident Management Standard
 - {{business_name}} Business Continuity Plan

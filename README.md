@@ -7,6 +7,7 @@ SentrIQ helps SMBs in regulated spaces navigate cybersecurity compliance with AI
 ## ⚡ Quick Start (< 30 min)
 
 ### Prerequisites
+
 - [Node.js 18+](https://nodejs.org) (use `nvm` for version management)
 - [pnpm](https://pnpm.io) - Fast, disk space efficient package manager
 - [Supabase CLI](https://supabase.com/docs/guides/cli) - For local database development
@@ -22,6 +23,7 @@ npm install -g supabase
 ### 🚀 Setup Steps
 
 #### 1. Clone & Install Dependencies (2 min)
+
 ```bash
 git clone <YOUR_GIT_URL>
 cd sentriq
@@ -29,6 +31,7 @@ pnpm install
 ```
 
 #### 2. Environment Setup (5 min)
+
 ```bash
 # Copy environment template
 cp .env.example .env.local
@@ -39,6 +42,7 @@ cp .env.example .env.local
 ```
 
 #### 3. Start Local Development (2 min)
+
 ```bash
 # Start frontend (Vite dev server)
 pnpm dev
@@ -51,6 +55,7 @@ supabase db reset
 ```
 
 #### 4. Verify Everything Works (1 min)
+
 - ✅ Frontend: http://localhost:5173
 - ✅ Supabase Studio: http://localhost:54323
 - ✅ Edge Functions: http://localhost:54321/functions/v1
@@ -58,6 +63,7 @@ supabase db reset
 ## 🏗️ Project Architecture
 
 ### Frontend Stack
+
 - **React 18** - UI framework
 - **TypeScript** - Type safety
 - **Vite** - Build tool & dev server
@@ -67,6 +73,7 @@ supabase db reset
 - **TanStack Query** - Server state management
 
 ### Backend Stack
+
 - **Supabase** - Backend-as-a-Service
 - **PostgreSQL** - Database with Row Level Security (RLS)
 - **Edge Functions** - Serverless compute (Deno runtime)
@@ -74,6 +81,7 @@ supabase db reset
 - **Storage** - File uploads and management
 
 ### Key Directories
+
 ```
 src/
 ├── components/         # Reusable UI components
@@ -97,29 +105,31 @@ supabase/
 ## 🔐 Authentication & Authorization
 
 ### AuthContext Usage
+
 The `AuthContext` provides comprehensive auth state management:
 
 ```tsx
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/AuthContext";
 
 function MyComponent() {
-  const { 
-    user,              // Current user object
-    userRole,          // 'business_owner' | 'consultant' | 'admin'
-    subscriptionInfo,  // Subscription tier & status
-    loading,           // Auth loading state
-    signIn,            // Sign in function
-    signOut,           // Sign out function
+  const {
+    user, // Current user object
+    userRole, // 'business_owner' | 'consultant' | 'admin'
+    subscriptionInfo, // Subscription tier & status
+    loading, // Auth loading state
+    signIn, // Sign in function
+    signOut, // Sign out function
   } = useAuth();
-  
+
   if (loading) return <div>Loading...</div>;
   if (!user) return <div>Please sign in</div>;
-  
+
   return <div>Welcome {user.email}!</div>;
 }
 ```
 
 ### ProtectedRoute Usage
+
 Wrap components to enforce authentication and authorization:
 
 ```tsx
@@ -147,7 +157,9 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 ```
 
 ### Role-Based Access Control
+
 Three user roles with different permissions:
+
 - **business_owner**: Standard user, can use basic features
 - **consultant**: Can access escalation queue and consultant tools
 - **admin**: Full system access, user management, analytics
@@ -155,6 +167,7 @@ Three user roles with different permissions:
 ## 🧪 Development Workflow
 
 ### Running Tests
+
 ```bash
 # Run type checking
 pnpm type-check
@@ -167,6 +180,7 @@ pnpm lint:fix
 ```
 
 ### Database Development
+
 ```bash
 # Create new migration
 supabase migration new your_migration_name
@@ -179,6 +193,7 @@ supabase studio
 ```
 
 ### Edge Functions Development
+
 ```bash
 # Create new function
 supabase functions new function-name
@@ -193,18 +208,21 @@ supabase functions logs function-name
 ## 🛠️ Common Development Tasks
 
 ### Adding a New Page
+
 1. Create component in `src/pages/`
 2. Add route in `src/App.tsx`
 3. Add navigation in sidebar if needed
 4. Apply appropriate `ProtectedRoute` wrapper
 
 ### Adding a New API Endpoint
+
 1. Create edge function in `supabase/functions/`
 2. Add CORS headers and error handling
 3. Use standardized error responses
 4. Add authentication checks
 
 ### Adding a New Component
+
 1. Create in appropriate `src/components/` subdirectory
 2. Use TypeScript interfaces for props
 3. Follow design system patterns
@@ -215,6 +233,7 @@ supabase functions logs function-name
 ### Common Issues & Solutions
 
 #### Build Errors
+
 ```bash
 # Clear node_modules and reinstall
 rm -rf node_modules pnpm-lock.yaml
@@ -226,6 +245,7 @@ pnpm dev
 ```
 
 #### Database Connection Issues
+
 ```bash
 # Restart Supabase
 supabase stop
@@ -237,6 +257,7 @@ echo $VITE_SUPABASE_ANON_KEY
 ```
 
 #### Edge Function Errors
+
 ```bash
 # Check function logs
 supabase functions logs function-name --follow
@@ -248,6 +269,7 @@ curl -X POST http://localhost:54321/functions/v1/function-name \
 ```
 
 #### Authentication Issues
+
 - Check that Site URL and Redirect URLs are configured in Supabase Auth settings
 - Verify email confirmation is disabled for local development
 - Ensure proper error handling in auth flows
@@ -257,29 +279,34 @@ curl -X POST http://localhost:54321/functions/v1/function-name \
 Before submitting your first pull request:
 
 ### Code Quality
+
 - [ ] **Type Safety**: No TypeScript errors (`pnpm type-check`)
 - [ ] **Linting**: Code passes linting (`pnpm lint`)
 - [ ] **Formatting**: Code is properly formatted
 - [ ] **Imports**: Clean imports, no unused imports
 
 ### Testing
+
 - [ ] **Manual Testing**: Feature works in browser
 - [ ] **Edge Cases**: Test error states and edge cases
 - [ ] **Mobile**: Responsive design on mobile devices
 - [ ] **Auth States**: Test both authenticated and unauthenticated states
 
 ### Security
+
 - [ ] **ProtectedRoute**: Proper route protection implemented
 - [ ] **Input Validation**: User input is validated and sanitized
 - [ ] **Error Handling**: Errors don't expose sensitive information
 - [ ] **RLS Policies**: Database access follows RLS policies
 
 ### Documentation
+
 - [ ] **Code Comments**: Complex logic is commented
 - [ ] **README Updates**: Update docs if adding new features
 - [ ] **Type Definitions**: Proper TypeScript interfaces
 
 ### Commit Message Convention
+
 ```
 feat: add user profile management
 fix: resolve authentication redirect loop
@@ -290,6 +317,7 @@ test: add unit tests for policy generator
 ```
 
 ### Git Workflow
+
 ```bash
 # Create feature branch
 git checkout -b feature/your-feature-name
@@ -314,6 +342,7 @@ git push origin feature/your-feature-name
 ## 🎯 Success Metrics
 
 You're ready to contribute when you can:
+
 - ✅ Run the project locally without errors
 - ✅ Understand the authentication flow
 - ✅ Create a simple protected page

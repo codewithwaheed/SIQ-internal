@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -15,7 +16,7 @@ serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false } },
     );
 
     // Get the authenticated user
@@ -34,17 +35,19 @@ serve(async (req) => {
       throw new Error("Reply ID and escalation ID are required");
     }
 
-    console.log(`[MARK-REPLY-HELPFUL] User ${user.id} marking reply ${replyId} as helpful`);
+    console.log(
+      `[MARK-REPLY-HELPFUL] User ${user.id} marking reply ${replyId} as helpful`,
+    );
 
     // Record the helpful feedback
     const { error: feedbackError } = await supabaseClient
-      .from('reply_feedback')
+      .from("reply_feedback")
       .insert({
         reply_id: replyId,
         escalation_id: escalationId,
         user_id: user.id,
-        feedback_type: 'helpful',
-        created_at: new Date().toISOString()
+        feedback_type: "helpful",
+        created_at: new Date().toISOString(),
       });
 
     if (feedbackError) {
@@ -53,36 +56,41 @@ serve(async (req) => {
 
     // Update the reply's helpful count
     const { error: updateError } = await supabaseClient
-      .from('consultant_replies')
+      .from("consultant_replies")
       .update({
         helpful_count: supabaseClient.sql`helpful_count + 1`,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', replyId);
+      .eq("id", replyId);
 
     if (updateError) {
-      console.error('Failed to update helpful count:', updateError);
+      console.error("Failed to update helpful count:", updateError);
       // Don't fail the request if count update fails
     }
 
     console.log(`[MARK-REPLY-HELPFUL] Feedback recorded successfully`);
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: "Feedback recorded successfully"
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Feedback recorded successfully",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      },
+    );
   } catch (error) {
     console.error("Error in mark-reply-helpful function:", error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      success: false 
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        success: false,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
+    );
   }
 });

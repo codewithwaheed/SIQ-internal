@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Brain, FileText, Database } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Search, Brain, FileText, Database } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RAGResponse {
   success: boolean;
@@ -41,7 +47,7 @@ interface RAGResponse {
 }
 
 export const RAGTestInterface = () => {
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<RAGResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +57,7 @@ export const RAGTestInterface = () => {
     "How should we handle a data breach incident?",
     "What are the SOC 2 Type II audit requirements?",
     "Best practices for multi-factor authentication deployment?",
-    "What are the CMMC Level 3 security controls?"
+    "What are the CMMC Level 3 security controls?",
   ];
 
   const handleSubmit = async () => {
@@ -63,22 +69,27 @@ export const RAGTestInterface = () => {
 
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase.functions.invoke('cybersec-ai-query', {
-        body: {
-          question: question.trim(),
-          userId: userData.user?.id,
-          conversationId: `test-${Date.now()}`,
-          useFineTuned: false,
-          model: 'gpt-4o-mini'
-        }
-      });
+
+      const { data, error } = await supabase.functions.invoke(
+        "cybersec-ai-query",
+        {
+          body: {
+            question: question.trim(),
+            userId: userData.user?.id,
+            conversationId: `test-${Date.now()}`,
+            useFineTuned: false,
+            model: "gpt-4o-mini",
+          },
+        },
+      );
 
       if (error) throw error;
 
       setResponse(data);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while processing your question');
+      setError(
+        err.message || "An error occurred while processing your question",
+      );
     } finally {
       setLoading(false);
     }
@@ -97,8 +108,9 @@ export const RAGTestInterface = () => {
             RAG Pipeline Test Interface
           </CardTitle>
           <CardDescription>
-            Test the Retrieval-Augmented Generation (RAG) pipeline for cybersecurity AI queries.
-            This demonstrates how the system retrieves relevant knowledge and generates contextual responses.
+            Test the Retrieval-Augmented Generation (RAG) pipeline for
+            cybersecurity AI queries. This demonstrates how the system retrieves
+            relevant knowledge and generates contextual responses.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -171,19 +183,26 @@ export const RAGTestInterface = () => {
                 <div className="flex items-center gap-2">
                   <Database className="h-4 w-4" />
                   <span className="text-sm">
-                    <strong>{response.knowledgeContext.totalSources}</strong> Total Sources
+                    <strong>{response.knowledgeContext.totalSources}</strong>{" "}
+                    Total Sources
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   <span className="text-sm">
-                    <strong>{response.knowledgeContext.masterKnowledgeSources}</strong> Master KB
+                    <strong>
+                      {response.knowledgeContext.masterKnowledgeSources}
+                    </strong>{" "}
+                    Master KB
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   <span className="text-sm">
-                    <strong>{response.knowledgeContext.userDocumentSources}</strong> User Docs
+                    <strong>
+                      {response.knowledgeContext.userDocumentSources}
+                    </strong>{" "}
+                    User Docs
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -197,32 +216,91 @@ export const RAGTestInterface = () => {
               <div className="mt-4 space-y-2">
                 <div className="text-sm font-medium">Pipeline Status:</div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant={response.ragMetrics.embeddingGenerated ? "default" : "secondary"}>
-                    Embedding: {response.ragMetrics.embeddingGenerated ? "✓" : "✗"}
+                  <Badge
+                    variant={
+                      response.ragMetrics.embeddingGenerated
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    Embedding:{" "}
+                    {response.ragMetrics.embeddingGenerated ? "✓" : "✗"}
                   </Badge>
-                  <Badge variant={response.ragMetrics.vectorSearchPerformed ? "default" : "secondary"}>
-                    Vector Search: {response.ragMetrics.vectorSearchPerformed ? "✓" : "✗"}
+                  <Badge
+                    variant={
+                      response.ragMetrics.vectorSearchPerformed
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    Vector Search:{" "}
+                    {response.ragMetrics.vectorSearchPerformed ? "✓" : "✗"}
                   </Badge>
-                  <Badge variant={response.ragMetrics.contextInjected ? "default" : "secondary"}>
-                    Context Injected: {response.ragMetrics.contextInjected ? "✓" : "✗"}
+                  <Badge
+                    variant={
+                      response.ragMetrics.contextInjected
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    Context Injected:{" "}
+                    {response.ragMetrics.contextInjected ? "✓" : "✗"}
                   </Badge>
-                  <Badge variant={response.ragMetrics.fallbackUsed ? "destructive" : "default"}>
-                    Fallback: {response.ragMetrics.fallbackUsed ? "Used" : "Not Used"}
+                  <Badge
+                    variant={
+                      response.ragMetrics.fallbackUsed
+                        ? "destructive"
+                        : "default"
+                    }
+                  >
+                    Fallback:{" "}
+                    {response.ragMetrics.fallbackUsed ? "Used" : "Not Used"}
                   </Badge>
                 </div>
 
-                <div className="text-sm font-medium mt-3">Security & Performance:</div>
+                <div className="text-sm font-medium mt-3">
+                  Security & Performance:
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant={response.ragMetrics.securityFiltersApplied ? "default" : "secondary"}>
-                    Security Filters: {response.ragMetrics.securityFiltersApplied ? "Applied" : "N/A"}
+                  <Badge
+                    variant={
+                      response.ragMetrics.securityFiltersApplied
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    Security Filters:{" "}
+                    {response.ragMetrics.securityFiltersApplied
+                      ? "Applied"
+                      : "N/A"}
                   </Badge>
-                  <Badge variant={response.ragMetrics.contentSanitized ? "default" : "secondary"}>
-                    Content Sanitized: {response.ragMetrics.contentSanitized ? "✓" : "N/A"}
+                  <Badge
+                    variant={
+                      response.ragMetrics.contentSanitized
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    Content Sanitized:{" "}
+                    {response.ragMetrics.contentSanitized ? "✓" : "N/A"}
                   </Badge>
-                  <Badge variant={response.ragMetrics.similarityThresholdMet ? "default" : "outline"}>
-                    Similarity Threshold: {response.ragMetrics.similarityThresholdMet ? "Met" : "Below"}
+                  <Badge
+                    variant={
+                      response.ragMetrics.similarityThresholdMet
+                        ? "default"
+                        : "outline"
+                    }
+                  >
+                    Similarity Threshold:{" "}
+                    {response.ragMetrics.similarityThresholdMet
+                      ? "Met"
+                      : "Below"}
                   </Badge>
-                  <Badge variant={response.ragMetrics.cacheHit ? "outline" : "default"}>
+                  <Badge
+                    variant={
+                      response.ragMetrics.cacheHit ? "outline" : "default"
+                    }
+                  >
                     Cache: {response.ragMetrics.cacheHit ? "Hit" : "Miss"}
                   </Badge>
                 </div>
@@ -234,29 +312,44 @@ export const RAGTestInterface = () => {
           {response.knowledgeContext.citations.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Knowledge Sources & Citations</CardTitle>
+                <CardTitle className="text-lg">
+                  Knowledge Sources & Citations
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {response.knowledgeContext.citations.map((citation, index) => (
-                    <div key={index} className="flex items-center gap-3 p-2 bg-muted rounded">
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {citation.key}
-                      </Badge>
-                      <span className="text-sm font-medium">{citation.title}</span>
-                      <div className="ml-auto flex gap-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {citation.framework_category || citation.type}
+                  {response.knowledgeContext.citations.map(
+                    (citation, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-2 bg-muted rounded"
+                      >
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {citation.key}
                         </Badge>
-                        <Badge 
-                          variant={citation.source === 'master_knowledge' ? 'default' : 'outline'}
-                          className="text-xs"
-                        >
-                          {citation.source === 'master_knowledge' ? 'Master KB' : 'User Doc'}
-                        </Badge>
+                        <span className="text-sm font-medium">
+                          {citation.title}
+                        </span>
+                        <div className="ml-auto flex gap-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {citation.framework_category || citation.type}
+                          </Badge>
+                          <Badge
+                            variant={
+                              citation.source === "master_knowledge"
+                                ? "default"
+                                : "outline"
+                            }
+                            className="text-xs"
+                          >
+                            {citation.source === "master_knowledge"
+                              ? "Master KB"
+                              : "User Doc"}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -267,8 +360,8 @@ export const RAGTestInterface = () => {
             <CardHeader>
               <CardTitle className="text-lg">AI Response</CardTitle>
               <CardDescription>
-                Model: {response.model} | 
-                Context Sources: {response.knowledgeContext.totalSources}
+                Model: {response.model} | Context Sources:{" "}
+                {response.knowledgeContext.totalSources}
               </CardDescription>
             </CardHeader>
             <CardContent>

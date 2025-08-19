@@ -1,11 +1,17 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { QrCode, Copy, CheckCircle, Shield } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { QrCode, Copy, CheckCircle, Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MFASetupProps {
   onComplete: () => void;
@@ -14,11 +20,11 @@ interface MFASetupProps {
 
 export const MFASetup = ({ onComplete, onCancel }: MFASetupProps) => {
   const { enrollMFA, verifyMFA } = useAuth();
-  const [step, setStep] = useState<'enroll' | 'verify'>('enroll');
-  const [qrCode, setQrCode] = useState<string>('');
-  const [secret, setSecret] = useState<string>('');
-  const [factorId, setFactorId] = useState<string>('');
-  const [code, setCode] = useState('');
+  const [step, setStep] = useState<"enroll" | "verify">("enroll");
+  const [qrCode, setQrCode] = useState<string>("");
+  const [secret, setSecret] = useState<string>("");
+  const [factorId, setFactorId] = useState<string>("");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -26,49 +32,55 @@ export const MFASetup = ({ onComplete, onCancel }: MFASetupProps) => {
     setLoading(true);
     try {
       const { error, qr, secret, factorId } = await enrollMFA();
-      
+
       if (error) {
-        console.error('MFA enrollment error:', error);
+        console.error("MFA enrollment error:", error);
         // Show user-friendly error message
-        alert('Failed to set up MFA. Please try again or contact support.');
+        alert("Failed to set up MFA. Please try again or contact support.");
         return;
       }
 
       // Enhanced validation - no fallbacks for security
       if (!qr || !secret || !factorId) {
-        console.error('Invalid MFA enrollment response - missing required data');
-        alert('MFA setup failed: incomplete response from server. Please try again.');
+        console.error(
+          "Invalid MFA enrollment response - missing required data",
+        );
+        alert(
+          "MFA setup failed: incomplete response from server. Please try again.",
+        );
         return;
       }
 
       // Validate factor ID format (should be UUID or similar)
-      if (typeof factorId !== 'string' || factorId.length < 10) {
-        console.error('Invalid MFA factor ID format');
-        alert('MFA setup failed: invalid factor ID received. Please try again.');
+      if (typeof factorId !== "string" || factorId.length < 10) {
+        console.error("Invalid MFA factor ID format");
+        alert(
+          "MFA setup failed: invalid factor ID received. Please try again.",
+        );
         return;
       }
 
       // Validate secret key format (should be base32 for TOTP)
       if (!/^[A-Z2-7]{16,}$/.test(secret)) {
-        console.error('Invalid MFA secret format');
-        alert('MFA setup failed: invalid secret format. Please try again.');
+        console.error("Invalid MFA secret format");
+        alert("MFA setup failed: invalid secret format. Please try again.");
         return;
       }
 
       // Validate QR code format
-      if (!qr.startsWith('data:image/') && !qr.startsWith('otpauth://')) {
-        console.error('Invalid QR code format');
-        alert('MFA setup failed: invalid QR code format. Please try again.');
+      if (!qr.startsWith("data:image/") && !qr.startsWith("otpauth://")) {
+        console.error("Invalid QR code format");
+        alert("MFA setup failed: invalid QR code format. Please try again.");
         return;
       }
 
       setQrCode(qr);
       setSecret(secret);
       setFactorId(factorId);
-      setStep('verify');
+      setStep("verify");
     } catch (error) {
-      console.error('MFA enrollment failed:', error);
-      alert('MFA setup failed due to an unexpected error. Please try again.');
+      console.error("MFA enrollment failed:", error);
+      alert("MFA setup failed due to an unexpected error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -77,15 +89,15 @@ export const MFASetup = ({ onComplete, onCancel }: MFASetupProps) => {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const { error } = await verifyMFA(factorId, code);
-      
+
       if (!error) {
         onComplete();
       }
     } catch (error) {
-      console.error('MFA verification failed:', error);
+      console.error("MFA verification failed:", error);
     } finally {
       setLoading(false);
     }
@@ -97,7 +109,7 @@ export const MFASetup = ({ onComplete, onCancel }: MFASetupProps) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (step === 'enroll') {
+  if (step === "enroll") {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
@@ -113,12 +125,17 @@ export const MFASetup = ({ onComplete, onCancel }: MFASetupProps) => {
           <Alert>
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              You'll need an authenticator app like Google Authenticator, Authy, or 1Password to generate codes.
+              You'll need an authenticator app like Google Authenticator, Authy,
+              or 1Password to generate codes.
             </AlertDescription>
           </Alert>
-          
+
           <div className="flex space-x-2">
-            <Button onClick={handleEnroll} disabled={loading} className="flex-1">
+            <Button
+              onClick={handleEnroll}
+              disabled={loading}
+              className="flex-1"
+            >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               ) : (
@@ -147,19 +164,19 @@ export const MFASetup = ({ onComplete, onCancel }: MFASetupProps) => {
         {qrCode && (
           <div className="text-center">
             <div className="inline-block p-4 bg-white rounded-lg border">
-              <img 
-                src={qrCode} 
-                alt="MFA Setup QR Code" 
+              <img
+                src={qrCode}
+                alt="MFA Setup QR Code"
                 className="w-48 h-48 mx-auto"
                 onError={(e) => {
-                  console.error('QR code failed to load');
-                  e.currentTarget.style.display = 'none';
+                  console.error("QR code failed to load");
+                  e.currentTarget.style.display = "none";
                 }}
               />
             </div>
           </div>
         )}
-        
+
         <div className="space-y-2">
           <Label>Manual Setup Key</Label>
           <div className="flex items-center space-x-2">
@@ -195,9 +212,13 @@ export const MFASetup = ({ onComplete, onCancel }: MFASetupProps) => {
               required
             />
           </div>
-          
+
           <div className="flex space-x-2">
-            <Button type="submit" disabled={loading || code.length !== 6} className="flex-1">
+            <Button
+              type="submit"
+              disabled={loading || code.length !== 6}
+              className="flex-1"
+            >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               ) : null}

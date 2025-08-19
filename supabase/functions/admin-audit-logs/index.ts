@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -15,32 +16,27 @@ serve(async (req) => {
     // Initialize Supabase client with anon key for user authentication
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
     );
 
     // Authenticate the request
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Authorization required" }), 
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401 
-        }
-      );
+      return new Response(JSON.stringify({ error: "Authorization required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    
+    const { data: userData, error: userError } =
+      await supabaseClient.auth.getUser(token);
+
     if (userError || !userData.user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid authentication" }), 
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401 
-        }
-      );
+      return new Response(JSON.stringify({ error: "Invalid authentication" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
     // Check if user has admin role
@@ -49,21 +45,21 @@ serve(async (req) => {
       .select("role")
       .eq("user_id", userData.user.id);
 
-    const isAdmin = userRoles?.some(role => role.role === 'admin');
+    const isAdmin = userRoles?.some((role) => role.role === "admin");
     if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: "Admin access required" }), 
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403 
-        }
-      );
+      return new Response(JSON.stringify({ error: "Admin access required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
     }
 
     // Parse query parameters
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "1");
-    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
+    const limit = Math.min(
+      parseInt(url.searchParams.get("limit") || "50"),
+      100,
+    );
     const offset = (page - 1) * limit;
     const tenant_id = url.searchParams.get("tenant_id");
     const user_id = url.searchParams.get("user_id");
@@ -74,7 +70,8 @@ serve(async (req) => {
     // Build query with filters
     let query = supabaseClient
       .from("audit_logs")
-      .select(`
+      .select(
+        `
         id,
         timestamp,
         user_id,
@@ -85,7 +82,8 @@ serve(async (req) => {
         user_agent,
         metadata,
         created_at
-      `)
+      `,
+      )
       .order("timestamp", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -111,11 +109,11 @@ serve(async (req) => {
     if (logsError) {
       console.error("Error fetching audit logs:", logsError);
       return new Response(
-        JSON.stringify({ error: "Failed to fetch audit logs" }), 
-        { 
+        JSON.stringify({ error: "Failed to fetch audit logs" }),
+        {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500 
-        }
+          status: 500,
+        },
       );
     }
 
@@ -131,23 +129,19 @@ serve(async (req) => {
           page,
           limit,
           total: totalCount || 0,
-          totalPages: Math.ceil((totalCount || 0) / limit)
-        }
-      }), 
-      { 
+          totalPages: Math.ceil((totalCount || 0) / limit),
+        },
+      }),
+      {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200 
-      }
+        status: 200,
+      },
     );
-
   } catch (error) {
     console.error("Error in audit logs retrieval:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }), 
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500 
-      }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
 });

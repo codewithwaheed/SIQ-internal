@@ -1,11 +1,23 @@
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Mail, UserPlus } from "lucide-react";
 
 interface InviteUserModalProps {
@@ -14,17 +26,21 @@ interface InviteUserModalProps {
   onSuccess: () => void;
 }
 
-export const InviteUserModal = ({ open, onOpenChange, onSuccess }: InviteUserModalProps) => {
+export const InviteUserModal = ({
+  open,
+  onOpenChange,
+  onSuccess,
+}: InviteUserModalProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    role: 'business_owner'
+    email: "",
+    role: "business_owner",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.email) {
       toast({
         title: "Error",
@@ -36,22 +52,30 @@ export const InviteUserModal = ({ open, onOpenChange, onSuccess }: InviteUserMod
 
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('No authentication token');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("No authentication token");
 
-      const response = await fetch('https://xfdqnmtzuuphxivsgmua.supabase.co/functions/v1/admin-users', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHFubXR6dXVwaHhpdnNnbXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjE2MDksImV4cCI6MjA2OTQ5NzYwOX0.op82w015Am91OghHdNauFrQbajQzeu4E0VKY_mqt5M0',
+      const response = await fetch(
+        "https://xfdqnmtzuuphxivsgmua.supabase.co/functions/v1/admin-users",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            apikey:
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHFubXR6dXVwaHhpdnNnbXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjE2MDksImV4cCI6MjA2OTQ5NzYwOX0.op82w015Am91OghHdNauFrQbajQzeu4E0VKY_mqt5M0",
+          },
+          body: JSON.stringify(formData),
         },
-        body: JSON.stringify(formData)
-      });
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || 'Failed to send invitation');
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || "Failed to send invitation");
       }
 
       toast({
@@ -59,7 +83,7 @@ export const InviteUserModal = ({ open, onOpenChange, onSuccess }: InviteUserMod
         description: "User invitation sent successfully",
       });
 
-      setFormData({ email: '', role: 'business_owner' });
+      setFormData({ email: "", role: "business_owner" });
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
@@ -85,7 +109,7 @@ export const InviteUserModal = ({ open, onOpenChange, onSuccess }: InviteUserMod
             Send an invitation to a new user to join your organization
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
@@ -96,7 +120,9 @@ export const InviteUserModal = ({ open, onOpenChange, onSuccess }: InviteUserMod
                 type="email"
                 placeholder="user@example.com"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="pl-10"
                 required
               />
@@ -105,9 +131,11 @@ export const InviteUserModal = ({ open, onOpenChange, onSuccess }: InviteUserMod
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select 
-              value={formData.role} 
-              onValueChange={(value) => setFormData({ ...formData, role: value })}
+            <Select
+              value={formData.role}
+              onValueChange={(value) =>
+                setFormData({ ...formData, role: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />

@@ -1,29 +1,34 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { 
-  CheckCircle, 
-  MessageCircle, 
-  Calendar, 
-  FileText, 
-  ThumbsUp, 
+import { useState } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import {
+  CheckCircle,
+  MessageCircle,
+  Calendar,
+  FileText,
+  ThumbsUp,
   ChevronDown,
   Clock,
   Shield,
-  Download
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+  Download,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ExpertReply {
   id: string;
-  type: 'answer' | 'checklist' | 'policy' | 'next_steps' | 'file_attachment';
+  type: "answer" | "checklist" | "policy" | "next_steps" | "file_attachment";
   content: string;
   consultant_name: string;
   consultant_avatar?: string;
@@ -50,38 +55,38 @@ interface ExpertReplyCardProps {
   onConvertToMeeting: (replyId: string) => void;
 }
 
-export function ExpertReplyCard({ 
-  reply, 
-  escalationId, 
-  onRequestClarification, 
-  onConvertToMeeting 
+export function ExpertReplyCard({
+  reply,
+  escalationId,
+  onRequestClarification,
+  onConvertToMeeting,
 }: ExpertReplyCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isHelpful, setIsHelpful] = useState(false);
   const [showClarificationForm, setShowClarificationForm] = useState(false);
-  const [clarificationText, setClarificationText] = useState('');
+  const [clarificationText, setClarificationText] = useState("");
   const [submittingClarification, setSubmittingClarification] = useState(false);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getReplyTypeIcon = (type: string) => {
     switch (type) {
-      case 'checklist':
+      case "checklist":
         return <CheckCircle className="h-4 w-4" />;
-      case 'policy':
+      case "policy":
         return <Shield className="h-4 w-4" />;
-      case 'next_steps':
+      case "next_steps":
         return <Clock className="h-4 w-4" />;
-      case 'file_attachment':
+      case "file_attachment":
         return <FileText className="h-4 w-4" />;
       default:
         return <MessageCircle className="h-4 w-4" />;
@@ -90,18 +95,18 @@ export function ExpertReplyCard({
 
   const getReplyTypeLabel = (type: string) => {
     switch (type) {
-      case 'answer':
-        return 'Expert Answer';
-      case 'checklist':
-        return 'Action Checklist';
-      case 'policy':
-        return 'Policy Reference';
-      case 'next_steps':
-        return 'Next Steps';
-      case 'file_attachment':
-        return 'Document Delivery';
+      case "answer":
+        return "Expert Answer";
+      case "checklist":
+        return "Action Checklist";
+      case "policy":
+        return "Policy Reference";
+      case "next_steps":
+        return "Next Steps";
+      case "file_attachment":
+        return "Document Delivery";
       default:
-        return 'Expert Reply';
+        return "Expert Reply";
     }
   };
 
@@ -109,8 +114,8 @@ export function ExpertReplyCard({
     if (isHelpful) return;
 
     try {
-      const { error } = await supabase.functions.invoke('mark-reply-helpful', {
-        body: { replyId: reply.id, escalationId }
+      const { error } = await supabase.functions.invoke("mark-reply-helpful", {
+        body: { replyId: reply.id, escalationId },
       });
 
       if (error) throw error;
@@ -118,14 +123,14 @@ export function ExpertReplyCard({
       setIsHelpful(true);
       toast({
         title: "Feedback sent",
-        description: "Thank you for marking this reply as helpful!"
+        description: "Thank you for marking this reply as helpful!",
       });
     } catch (error) {
-      console.error('Error marking reply helpful:', error);
+      console.error("Error marking reply helpful:", error);
       toast({
         title: "Error",
         description: "Failed to send feedback",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -136,17 +141,17 @@ export function ExpertReplyCard({
     setSubmittingClarification(true);
     try {
       await onRequestClarification(reply.id, clarificationText);
-      setClarificationText('');
+      setClarificationText("");
       setShowClarificationForm(false);
       toast({
         title: "Clarification sent",
-        description: "Your question has been sent to the consultant"
+        description: "Your question has been sent to the consultant",
       });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to send clarification request",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSubmittingClarification(false);
@@ -161,13 +166,24 @@ export function ExpertReplyCard({
         <p className="text-sm text-muted-foreground mb-4">{reply.content}</p>
         <div className="space-y-2">
           {reply.checklist_items.map((item) => (
-            <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-              <div className={`mt-1 h-4 w-4 rounded border-2 flex items-center justify-center ${
-                item.completed ? 'bg-green-500 border-green-500' : 'border-muted-foreground/30'
-              }`}>
-                {item.completed && <CheckCircle className="h-3 w-3 text-white" />}
+            <div
+              key={item.id}
+              className="flex items-start gap-3 p-3 rounded-lg bg-muted/30"
+            >
+              <div
+                className={`mt-1 h-4 w-4 rounded border-2 flex items-center justify-center ${
+                  item.completed
+                    ? "bg-green-500 border-green-500"
+                    : "border-muted-foreground/30"
+                }`}
+              >
+                {item.completed && (
+                  <CheckCircle className="h-3 w-3 text-white" />
+                )}
               </div>
-              <p className={`text-sm flex-1 ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
+              <p
+                className={`text-sm flex-1 ${item.completed ? "line-through text-muted-foreground" : ""}`}
+              >
                 {item.text}
               </p>
             </div>
@@ -188,7 +204,10 @@ export function ExpertReplyCard({
         </h4>
         <div className="space-y-2">
           {reply.attachments.map((attachment) => (
-            <div key={attachment.id} className="flex items-center justify-between p-3 rounded-lg border border-border/30 bg-muted/20">
+            <div
+              key={attachment.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-border/30 bg-muted/20"
+            >
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <div>
@@ -217,7 +236,10 @@ export function ExpertReplyCard({
             <Avatar className="h-10 w-10">
               <AvatarImage src={reply.consultant_avatar} />
               <AvatarFallback className="bg-blue-500 text-white">
-                {reply.consultant_name.split(' ').map(n => n[0]).join('')}
+                {reply.consultant_name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -243,7 +265,7 @@ export function ExpertReplyCard({
 
       <CardContent className="pt-0">
         {/* Reply content based on type */}
-        {reply.type === 'checklist' ? (
+        {reply.type === "checklist" ? (
           renderChecklistContent()
         ) : (
           <div className="prose prose-sm max-w-none">
@@ -269,7 +291,7 @@ export function ExpertReplyCard({
               className="h-8"
             >
               <ThumbsUp className="h-3 w-3 mr-1" />
-              {isHelpful ? 'Marked helpful' : 'Mark helpful'}
+              {isHelpful ? "Marked helpful" : "Mark helpful"}
               {reply.helpful_count && reply.helpful_count > 0 && (
                 <span className="ml-1 text-xs">({reply.helpful_count})</span>
               )}
@@ -317,7 +339,7 @@ export function ExpertReplyCard({
                 {submittingClarification ? (
                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
                 ) : (
-                  'Send question'
+                  "Send question"
                 )}
               </Button>
               <Button

@@ -1,11 +1,14 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 
 interface QuickRepliesProps {
   suggestions: string[];
   onSuggestionClick: (suggestion: string) => void;
 }
 
-export const QuickReplies = ({ suggestions, onSuggestionClick }: QuickRepliesProps) => {
+export const QuickReplies = ({
+  suggestions,
+  onSuggestionClick,
+}: QuickRepliesProps) => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
@@ -15,7 +18,7 @@ export const QuickReplies = ({ suggestions, onSuggestionClick }: QuickRepliesPro
       </div>
       <div className="flex flex-wrap gap-2">
         {suggestions.map((suggestion, idx) => (
-          <Button 
+          <Button
             key={idx}
             size="sm"
             variant="outline"

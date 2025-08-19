@@ -1,23 +1,35 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  User, 
-  MapPin, 
-  Clock, 
-  Star, 
-  Award, 
-  Briefcase, 
-  Globe, 
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import {
+  User,
+  MapPin,
+  Clock,
+  Star,
+  Award,
+  Briefcase,
+  Globe,
   Shield,
   CheckCircle,
   XCircle,
@@ -25,8 +37,8 @@ import {
   Calendar,
   TrendingUp,
   Users,
-  Timer
-} from 'lucide-react';
+  Timer,
+} from "lucide-react";
 
 interface ConsultantProfile {
   id: string;
@@ -36,7 +48,7 @@ interface ConsultantProfile {
   certifications: string[];
   years_experience: number;
   hourly_rate?: number;
-  availability_status: 'online' | 'offline' | 'busy' | 'away';
+  availability_status: "online" | "offline" | "busy" | "away";
   timezone: string;
   availability_hours: Record<string, any>;
   specializations: string[];
@@ -65,33 +77,33 @@ interface ConsultantProfile {
 }
 
 const AVAILABILITY_STATUS_CONFIG = {
-  online: { label: 'Online', color: 'bg-green-500', icon: CheckCircle },
-  offline: { label: 'Offline', color: 'bg-gray-500', icon: XCircle },
-  busy: { label: 'Busy', color: 'bg-red-500', icon: Activity },
-  away: { label: 'Away', color: 'bg-yellow-500', icon: Clock }
+  online: { label: "Online", color: "bg-green-500", icon: CheckCircle },
+  offline: { label: "Offline", color: "bg-gray-500", icon: XCircle },
+  busy: { label: "Busy", color: "bg-red-500", icon: Activity },
+  away: { label: "Away", color: "bg-yellow-500", icon: Clock },
 };
 
 const EXPERTISE_AREAS = [
-  'NIST Cybersecurity Framework',
-  'ISO 27001',
-  'SOC 2',
-  'HIPAA',
-  'PCI DSS',
-  'GDPR',
-  'FedRAMP',
-  'CMMC',
-  'Risk Assessment',
-  'Incident Response',
-  'Security Architecture',
-  'Penetration Testing',
-  'Vulnerability Management',
-  'Identity & Access Management',
-  'Cloud Security',
-  'Network Security',
-  'Application Security',
-  'Compliance Auditing',
-  'Security Training',
-  'Business Continuity'
+  "NIST Cybersecurity Framework",
+  "ISO 27001",
+  "SOC 2",
+  "HIPAA",
+  "PCI DSS",
+  "GDPR",
+  "FedRAMP",
+  "CMMC",
+  "Risk Assessment",
+  "Incident Response",
+  "Security Architecture",
+  "Penetration Testing",
+  "Vulnerability Management",
+  "Identity & Access Management",
+  "Cloud Security",
+  "Network Security",
+  "Application Security",
+  "Compliance Auditing",
+  "Security Training",
+  "Business Continuity",
 ];
 
 export const ConsultantProfileManager = () => {
@@ -104,23 +116,23 @@ export const ConsultantProfileManager = () => {
 
   // Form data
   const [formData, setFormData] = useState({
-    bio: '',
+    bio: "",
     expertise_areas: [] as string[],
     certifications: [] as string[],
     years_experience: 0,
     hourly_rate: 0,
-    timezone: 'UTC',
+    timezone: "UTC",
     specializations: [] as string[],
-    security_clearance: '',
-    work_authorization: '',
-    languages: ['English'],
-    portfolio_url: '',
-    linkedin_url: '',
-    resume_url: ''
+    security_clearance: "",
+    work_authorization: "",
+    languages: ["English"],
+    portfolio_url: "",
+    linkedin_url: "",
+    resume_url: "",
   });
 
   useEffect(() => {
-    if (user && userRole === 'consultant') {
+    if (user && userRole === "consultant") {
       fetchProfile();
     }
   }, [user, userRole]);
@@ -129,42 +141,47 @@ export const ConsultantProfileManager = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('manage-consultants', {
-        body: null,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "manage-consultants",
+        {
+          body: null,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
       if (error) throw error;
 
       // Look for current user's profile in the list
-      const userProfile = data.consultants?.find((c: any) => c.user_id === user.id);
-      
+      const userProfile = data.consultants?.find(
+        (c: any) => c.user_id === user.id,
+      );
+
       if (userProfile) {
         setProfile(userProfile);
         setFormData({
-          bio: userProfile.bio || '',
+          bio: userProfile.bio || "",
           expertise_areas: userProfile.expertise_areas || [],
           certifications: userProfile.certifications || [],
           years_experience: userProfile.years_experience || 0,
           hourly_rate: userProfile.hourly_rate || 0,
-          timezone: userProfile.timezone || 'UTC',
+          timezone: userProfile.timezone || "UTC",
           specializations: userProfile.specializations || [],
-          security_clearance: userProfile.security_clearance || '',
-          work_authorization: userProfile.work_authorization || '',
-          languages: userProfile.languages || ['English'],
-          portfolio_url: userProfile.portfolio_url || '',
-          linkedin_url: userProfile.linkedin_url || '',
-          resume_url: userProfile.resume_url || ''
+          security_clearance: userProfile.security_clearance || "",
+          work_authorization: userProfile.work_authorization || "",
+          languages: userProfile.languages || ["English"],
+          portfolio_url: userProfile.portfolio_url || "",
+          linkedin_url: userProfile.linkedin_url || "",
+          resume_url: userProfile.resume_url || "",
         });
       }
     } catch (error: any) {
-      console.error('Error fetching consultant profile:', error);
+      console.error("Error fetching consultant profile:", error);
       toast({
         title: "Error",
         description: "Failed to load consultant profile",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -176,26 +193,28 @@ export const ConsultantProfileManager = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase.functions.invoke('manage-consultants', {
+      const { error } = await supabase.functions.invoke("manage-consultants", {
         body: { status },
         headers: {
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, availability_status: status as any } : null);
+      setProfile((prev) =>
+        prev ? { ...prev, availability_status: status as any } : null,
+      );
       toast({
         title: "Success",
-        description: `Availability updated to ${status}`
+        description: `Availability updated to ${status}`,
       });
     } catch (error: any) {
-      console.error('Error updating availability:', error);
+      console.error("Error updating availability:", error);
       toast({
         title: "Error",
         description: "Failed to update availability",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -207,27 +226,27 @@ export const ConsultantProfileManager = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase.functions.invoke('manage-consultants', {
+      const { error } = await supabase.functions.invoke("manage-consultants", {
         body: formData,
         headers: {
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, ...formData } : null);
+      setProfile((prev) => (prev ? { ...prev, ...formData } : null));
       setEditMode(false);
       toast({
         title: "Success",
-        description: "Profile updated successfully"
+        description: "Profile updated successfully",
       });
     } catch (error: any) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       toast({
         title: "Error",
         description: "Failed to update profile",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -236,46 +255,50 @@ export const ConsultantProfileManager = () => {
 
   const addExpertiseArea = (area: string) => {
     if (!formData.expertise_areas.includes(area)) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        expertise_areas: [...prev.expertise_areas, area]
+        expertise_areas: [...prev.expertise_areas, area],
       }));
     }
   };
 
   const removeExpertiseArea = (area: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      expertise_areas: prev.expertise_areas.filter(a => a !== area)
+      expertise_areas: prev.expertise_areas.filter((a) => a !== area),
     }));
   };
 
   const addCertification = () => {
-    const input = document.getElementById('new-certification') as HTMLInputElement;
+    const input = document.getElementById(
+      "new-certification",
+    ) as HTMLInputElement;
     const certification = input.value.trim();
-    
+
     if (certification && !formData.certifications.includes(certification)) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        certifications: [...prev.certifications, certification]
+        certifications: [...prev.certifications, certification],
       }));
-      input.value = '';
+      input.value = "";
     }
   };
 
   const removeCertification = (cert: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      certifications: prev.certifications.filter(c => c !== cert)
+      certifications: prev.certifications.filter((c) => c !== cert),
     }));
   };
 
-  if (userRole !== 'consultant') {
+  if (userRole !== "consultant") {
     return (
       <div className="p-6">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-muted-foreground">Access denied. This page is only available to consultants.</p>
+            <p className="text-muted-foreground">
+              Access denied. This page is only available to consultants.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -302,9 +325,12 @@ export const ConsultantProfileManager = () => {
             <div className="text-center space-y-4">
               <User className="h-12 w-12 mx-auto text-muted-foreground" />
               <div>
-                <h3 className="text-lg font-semibold">No Consultant Profile Found</h3>
+                <h3 className="text-lg font-semibold">
+                  No Consultant Profile Found
+                </h3>
                 <p className="text-muted-foreground">
-                  Your consultant profile has not been set up yet. Please contact an administrator.
+                  Your consultant profile has not been set up yet. Please
+                  contact an administrator.
                 </p>
               </div>
             </div>
@@ -327,17 +353,19 @@ export const ConsultantProfileManager = () => {
             Manage your consultant profile and availability status
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {/* Availability Status */}
           <div className="flex items-center space-x-2">
-            <StatusIcon className={`h-4 w-4 text-white rounded-full p-0.5 ${statusConfig.color}`} />
+            <StatusIcon
+              className={`h-4 w-4 text-white rounded-full p-0.5 ${statusConfig.color}`}
+            />
             <span className="font-medium">{statusConfig.label}</span>
           </div>
-          
+
           {/* Availability Controls */}
-          <Select 
-            value={profile.availability_status} 
+          <Select
+            value={profile.availability_status}
             onValueChange={updateAvailability}
             disabled={saving}
           >
@@ -388,7 +416,12 @@ export const ConsultantProfileManager = () => {
                     <Textarea
                       id="bio"
                       value={formData.bio}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bio: e.target.value,
+                        }))
+                      }
                       placeholder="Describe your professional background and expertise..."
                       rows={4}
                     />
@@ -402,10 +435,12 @@ export const ConsultantProfileManager = () => {
                         id="experience"
                         type="number"
                         value={formData.years_experience}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          years_experience: parseInt(e.target.value) || 0 
-                        }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            years_experience: parseInt(e.target.value) || 0,
+                          }))
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -414,10 +449,12 @@ export const ConsultantProfileManager = () => {
                         id="hourly-rate"
                         type="number"
                         value={formData.hourly_rate}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          hourly_rate: parseFloat(e.target.value) || 0 
-                        }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            hourly_rate: parseFloat(e.target.value) || 0,
+                          }))
+                        }
                       />
                     </div>
                   </div>
@@ -431,16 +468,20 @@ export const ConsultantProfileManager = () => {
                           <SelectValue placeholder="Add expertise area..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {EXPERTISE_AREAS.filter(area => !formData.expertise_areas.includes(area)).map(area => (
-                            <SelectItem key={area} value={area}>{area}</SelectItem>
+                          {EXPERTISE_AREAS.filter(
+                            (area) => !formData.expertise_areas.includes(area),
+                          ).map((area) => (
+                            <SelectItem key={area} value={area}>
+                              {area}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <div className="flex flex-wrap gap-2">
-                        {formData.expertise_areas.map(area => (
-                          <Badge 
-                            key={area} 
-                            variant="secondary" 
+                        {formData.expertise_areas.map((area) => (
+                          <Badge
+                            key={area}
+                            variant="secondary"
                             className="cursor-pointer"
                             onClick={() => removeExpertiseArea(area)}
                           >
@@ -458,14 +499,18 @@ export const ConsultantProfileManager = () => {
                       <Input
                         id="new-certification"
                         placeholder="Add certification..."
-                        onKeyPress={(e) => e.key === 'Enter' && addCertification()}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" && addCertification()
+                        }
                       />
-                      <Button type="button" onClick={addCertification}>Add</Button>
+                      <Button type="button" onClick={addCertification}>
+                        Add
+                      </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {formData.certifications.map(cert => (
-                        <Badge 
-                          key={cert} 
+                      {formData.certifications.map((cert) => (
+                        <Badge
+                          key={cert}
                           variant="outline"
                           className="cursor-pointer"
                           onClick={() => removeCertification(cert)}
@@ -484,7 +529,12 @@ export const ConsultantProfileManager = () => {
                         id="portfolio"
                         type="url"
                         value={formData.portfolio_url}
-                        onChange={(e) => setFormData(prev => ({ ...prev, portfolio_url: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            portfolio_url: e.target.value,
+                          }))
+                        }
                         placeholder="https://..."
                       />
                     </div>
@@ -494,7 +544,12 @@ export const ConsultantProfileManager = () => {
                         id="linkedin"
                         type="url"
                         value={formData.linkedin_url}
-                        onChange={(e) => setFormData(prev => ({ ...prev, linkedin_url: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            linkedin_url: e.target.value,
+                          }))
+                        }
                         placeholder="https://linkedin.com/in/..."
                       />
                     </div>
@@ -504,14 +559,22 @@ export const ConsultantProfileManager = () => {
                         id="resume"
                         type="url"
                         value={formData.resume_url}
-                        onChange={(e) => setFormData(prev => ({ ...prev, resume_url: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            resume_url: e.target.value,
+                          }))
+                        }
                         placeholder="https://..."
                       />
                     </div>
                   </div>
 
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setEditMode(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditMode(false)}
+                    >
                       Cancel
                     </Button>
                     <Button onClick={saveProfile} disabled={saving}>
@@ -526,16 +589,29 @@ export const ConsultantProfileManager = () => {
                     <div className="space-y-4">
                       <div>
                         <h3 className="font-semibold text-lg">
-                          {profile.profiles.first_name} {profile.profiles.last_name}
+                          {profile.profiles.first_name}{" "}
+                          {profile.profiles.last_name}
                         </h3>
-                        <p className="text-muted-foreground">{profile.profiles.email}</p>
+                        <p className="text-muted-foreground">
+                          {profile.profiles.email}
+                        </p>
                       </div>
-                      
+
                       <div className="flex items-center space-x-4">
-                        <Badge variant={profile.is_verified ? "default" : "secondary"}>
-                          {profile.is_verified ? "Verified" : "Pending Verification"}
+                        <Badge
+                          variant={
+                            profile.is_verified ? "default" : "secondary"
+                          }
+                        >
+                          {profile.is_verified
+                            ? "Verified"
+                            : "Pending Verification"}
                         </Badge>
-                        <Badge variant={profile.is_active ? "default" : "destructive"}>
+                        <Badge
+                          variant={
+                            profile.is_active ? "default" : "destructive"
+                          }
+                        >
                           {profile.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </div>
@@ -569,8 +645,10 @@ export const ConsultantProfileManager = () => {
                   <div>
                     <h4 className="font-medium mb-2">Expertise Areas</h4>
                     <div className="flex flex-wrap gap-2">
-                      {profile.expertise_areas.map(area => (
-                        <Badge key={area} variant="secondary">{area}</Badge>
+                      {profile.expertise_areas.map((area) => (
+                        <Badge key={area} variant="secondary">
+                          {area}
+                        </Badge>
                       ))}
                     </div>
                   </div>
@@ -580,7 +658,7 @@ export const ConsultantProfileManager = () => {
                     <div>
                       <h4 className="font-medium mb-2">Certifications</h4>
                       <div className="flex flex-wrap gap-2">
-                        {profile.certifications.map(cert => (
+                        {profile.certifications.map((cert) => (
                           <Badge key={cert} variant="outline">
                             <Award className="h-3 w-3 mr-1" />
                             {cert}
@@ -602,7 +680,9 @@ export const ConsultantProfileManager = () => {
                 <div className="flex items-center space-x-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-2xl font-bold">{profile.total_escalations_handled}</p>
+                    <p className="text-2xl font-bold">
+                      {profile.total_escalations_handled}
+                    </p>
                     <p className="text-xs text-muted-foreground">Total Cases</p>
                   </div>
                 </div>
@@ -614,8 +694,12 @@ export const ConsultantProfileManager = () => {
                 <div className="flex items-center space-x-2">
                   <Timer className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-2xl font-bold">{profile.avg_response_time_hours.toFixed(1)}h</p>
-                    <p className="text-xs text-muted-foreground">Avg Response Time</p>
+                    <p className="text-2xl font-bold">
+                      {profile.avg_response_time_hours.toFixed(1)}h
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Avg Response Time
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -626,8 +710,12 @@ export const ConsultantProfileManager = () => {
                 <div className="flex items-center space-x-2">
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-2xl font-bold">{(profile.success_rate * 100).toFixed(1)}%</p>
-                    <p className="text-xs text-muted-foreground">Success Rate</p>
+                    <p className="text-2xl font-bold">
+                      {(profile.success_rate * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Success Rate
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -638,8 +726,12 @@ export const ConsultantProfileManager = () => {
                 <div className="flex items-center space-x-2">
                   <Star className="h-4 w-4 text-yellow-500" />
                   <div>
-                    <p className="text-2xl font-bold">{profile.client_feedback_score.toFixed(1)}</p>
-                    <p className="text-xs text-muted-foreground">Client Feedback</p>
+                    <p className="text-2xl font-bold">
+                      {profile.client_feedback_score.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Client Feedback
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -660,7 +752,9 @@ export const ConsultantProfileManager = () => {
                 <div>
                   <Label>Current Status</Label>
                   <div className="flex items-center space-x-2 mt-1">
-                    <StatusIcon className={`h-4 w-4 text-white rounded-full p-0.5 ${statusConfig.color}`} />
+                    <StatusIcon
+                      className={`h-4 w-4 text-white rounded-full p-0.5 ${statusConfig.color}`}
+                    />
                     <span className="font-medium">{statusConfig.label}</span>
                   </div>
                 </div>
@@ -674,7 +768,9 @@ export const ConsultantProfileManager = () => {
 
                 <div>
                   <Label>Timezone</Label>
-                  <p className="text-sm text-muted-foreground mt-1">{profile.timezone}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {profile.timezone}
+                  </p>
                 </div>
               </div>
             </CardContent>

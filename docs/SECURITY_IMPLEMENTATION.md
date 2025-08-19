@@ -20,16 +20,19 @@ All edge functions use a centralized security wrapper (`withSecurity`) that prov
 ### 2. Input Validation & Sanitization
 
 #### Message Content Security
+
 - **XSS Prevention**: Removes script tags, event handlers, and dangerous HTML
 - **Content Length Limits**: Maximum 10,000 characters per message
 - **Pattern Detection**: Blocks SQL injection attempts and code execution patterns
 - **Character Filtering**: Removes control characters and malicious sequences
 
 #### UUID Validation
+
 - All conversation and escalation IDs are validated against UUID format
 - Prevents path traversal and injection attacks
 
 #### File Upload Security (Future Enhancement)
+
 - Magic byte validation for file type verification
 - Size limits and extension restrictions
 - Virus scanning integration points
@@ -39,15 +42,18 @@ All edge functions use a centralized security wrapper (`withSecurity`) that prov
 Dynamic rate limiting based on user role and endpoint:
 
 #### Chat API Limits
+
 - **Business Owner**: 50 requests/minute
-- **Consultant**: 100 requests/minute  
+- **Consultant**: 100 requests/minute
 - **Admin**: 200 requests/minute
 
 #### Escalation Limits
+
 - **All Users**: 10 escalations/minute
 - **Critical Functions**: 5 requests/minute
 
 #### Security Features
+
 - **IP-based tracking**: Tracks attempts by IP address
 - **Failure rate detection**: Triggers alerts on high failure rates
 - **Automatic blocking**: Temporary blocks on suspicious patterns
@@ -60,7 +66,7 @@ All responses include comprehensive security headers:
 {
   'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'...",
   'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY', 
+  'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
@@ -71,11 +77,13 @@ All responses include comprehensive security headers:
 ### 5. Error Handling & Information Disclosure Prevention
 
 #### Sanitized Error Responses
+
 - Production errors hide internal details
 - Consistent error structure across all endpoints
 - No stack traces or sensitive information exposed
 
 #### Response Data Sanitization
+
 - Removes sensitive fields based on user role
 - Admins see full data, other roles see filtered data
 - Recursive sanitization of nested objects
@@ -83,6 +91,7 @@ All responses include comprehensive security headers:
 ### 6. Audit Logging & Security Monitoring
 
 #### Comprehensive Logging
+
 - All authentication attempts
 - Failed authorization checks
 - Security policy violations
@@ -90,12 +99,14 @@ All responses include comprehensive security headers:
 - Suspicious activity patterns
 
 #### Security Event Categories
+
 - **LOW**: Successful operations, normal activity
 - **MEDIUM**: Rate limits, input validation failures
 - **HIGH**: Authentication failures, access denials
 - **CRITICAL**: Security policy violations, potential attacks
 
 #### Monitored Patterns
+
 - Multiple failed login attempts
 - High-volume requests from single source
 - Attempts to access restricted information
@@ -104,16 +115,19 @@ All responses include comprehensive security headers:
 ### 7. Data Protection Measures
 
 #### At Rest
+
 - Database encryption (handled by Supabase)
 - Secure storage of API keys and secrets
 - Row-level security policies
 
 #### In Transit
+
 - HTTPS enforcement
 - Secure WebSocket connections
 - API key protection
 
 #### Processing
+
 - Memory-safe operations
 - Secure string handling
 - Input validation before processing
@@ -125,17 +139,21 @@ All responses include comprehensive security headers:
 All edge functions should use the security wrapper:
 
 ```typescript
-import { withSecurity } from '../_shared/security-hardening.ts';
+import { withSecurity } from "../_shared/security-hardening.ts";
 
 serve(async (req) => {
-  return withSecurity(req, {
-    requireAuth: true,
-    rateLimitKey: 'endpoint-name',
-    validateInput: 'schemaName',
-    logActivity: true
-  }, async (request: Request, context: SecurityContext) => {
-    // Your secure endpoint logic here
-  });
+  return withSecurity(
+    req,
+    {
+      requireAuth: true,
+      rateLimitKey: "endpoint-name",
+      validateInput: "schemaName",
+      logActivity: true,
+    },
+    async (request: Request, context: SecurityContext) => {
+      // Your secure endpoint logic here
+    },
+  );
 });
 ```
 
@@ -160,8 +178,15 @@ Automatic removal of sensitive fields:
 
 ```typescript
 const sensitiveFields = [
-  'password', 'secret', 'key', 'token', 'credentials',
-  'internal_notes', 'admin_notes', 'ip_address', 'user_agent'
+  "password",
+  "secret",
+  "key",
+  "token",
+  "credentials",
+  "internal_notes",
+  "admin_notes",
+  "ip_address",
+  "user_agent",
 ];
 ```
 
@@ -202,11 +227,13 @@ const sensitiveFields = [
 ## Incident Response
 
 ### Detection
+
 - Automated alerts on critical security events
 - Rate limit breach notifications
 - Failed authentication attempt clustering
 
 ### Response
+
 1. **Immediate**: Block suspicious IPs temporarily
 2. **Investigation**: Review audit logs and patterns
 3. **Mitigation**: Update security rules if needed
@@ -232,11 +259,13 @@ const sensitiveFields = [
 ## Compliance & Standards
 
 ### Current Compliance
+
 - **OWASP Top 10**: Protection against common vulnerabilities
 - **GDPR**: Data protection and privacy measures
 - **SOC 2**: Security and availability controls
 
 ### Security Standards
+
 - **NIST Cybersecurity Framework**: Risk management approach
 - **ISO 27001**: Information security management
 - **CIS Controls**: Critical security controls implementation

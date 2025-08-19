@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { MessageSquare, Crown, Clock, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { EscalationIntakeForm } from './EscalationIntakeForm';
-import { UpgradePrompt, UsageIndicator } from '@/components/ui/feature-gate';
-import { useFeatureGating } from '@/hooks/useFeatureGating';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { MessageSquare, Crown, Clock, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { EscalationIntakeForm } from "./EscalationIntakeForm";
+import { UpgradePrompt, UsageIndicator } from "@/components/ui/feature-gate";
+import { useFeatureGating } from "@/hooks/useFeatureGating";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: string;
   id?: string;
@@ -19,7 +19,7 @@ interface Message {
 interface EscalationButtonProps {
   messages: Message[];
   conversationId?: string;
-  variant?: 'inline' | 'floating';
+  variant?: "inline" | "floating";
   onEscalated?: (escalationData: any) => void;
   isEscalated?: boolean;
 }
@@ -27,26 +27,24 @@ interface EscalationButtonProps {
 export const EscalationButton = ({
   messages,
   conversationId,
-  variant = 'floating',
+  variant = "floating",
   onEscalated,
-  isEscalated = false
+  isEscalated = false,
 }: EscalationButtonProps) => {
   const [open, setOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [escalating, setEscalating] = useState(false);
   const [escalatedInfo, setEscalatedInfo] = useState<any>(null);
   const { toast } = useToast();
-  
-  const {
-    checkFeatureAccess
-  } = useFeatureGating();
+
+  const { checkFeatureAccess } = useFeatureGating();
 
   const handleDirectEscalation = async () => {
     if (!conversationId) {
       toast({
         title: "Error",
         description: "No active conversation to escalate",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -54,30 +52,32 @@ export const EscalationButton = ({
     setEscalating(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('conversation-escalate', {
-        body: {
-          conversationId,
-          reason: 'User requested human assistance',
-          priority: 'normal'
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "conversation-escalate",
+        {
+          body: {
+            conversationId,
+            reason: "User requested human assistance",
+            priority: "normal",
+          },
+        },
+      );
 
       if (error) throw error;
 
       setEscalatedInfo(data);
       onEscalated?.(data);
-      
+
       toast({
         title: "Escalated Successfully",
         description: data.message,
       });
-
     } catch (error: any) {
-      console.error('Escalation error:', error);
+      console.error("Escalation error:", error);
       toast({
         title: "Escalation Failed",
         description: error.message || "Failed to escalate conversation",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setEscalating(false);
@@ -87,8 +87,8 @@ export const EscalationButton = ({
   const handleButtonClick = () => {
     // Prevent multiple escalations
     if (isEscalated || escalating) return;
-    
-    const access = checkFeatureAccess('escalation');
+
+    const access = checkFeatureAccess("escalation");
     if (!access.hasAccess) {
       setUpgradeOpen(true);
     } else if (conversationId) {
@@ -130,52 +130,55 @@ export const EscalationButton = ({
   const buttonContent = (
     <>
       <MessageSquare className="h-4 w-4 mr-2" />
-      {escalating ? 'Connecting...' : 'Talk to a Cybersecurity Expert'}
+      {escalating ? "Connecting..." : "Talk to a Cybersecurity Expert"}
     </>
   );
 
-  const access = checkFeatureAccess('escalation');
-  const premiumIcon = <Crown className="w-3 h-3 absolute -top-1 -right-1 text-purple-500" />;
+  const access = checkFeatureAccess("escalation");
+  const premiumIcon = (
+    <Crown className="w-3 h-3 absolute -top-1 -right-1 text-purple-500" />
+  );
 
   return (
     <div className="space-y-2">
       {/* Usage Indicator */}
       <UsageIndicator feature="escalation" />
-      
+
       <div className="relative">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button 
+            <Button
               onClick={handleButtonClick}
               disabled={escalating || isEscalated}
-              variant={variant === 'inline' ? 'default' : 'outline'}
+              variant={variant === "inline" ? "default" : "outline"}
               size="sm"
               className={cn(
                 "relative w-full min-h-[48px]",
-                variant === 'inline' && "bg-primary text-primary-foreground hover:bg-primary/90",
-                (isEscalated || escalating) && "opacity-50 cursor-not-allowed"
+                variant === "inline" &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                (isEscalated || escalating) && "opacity-50 cursor-not-allowed",
               )}
             >
               {buttonContent}
               {!access.hasAccess && premiumIcon}
             </Button>
           </DialogTrigger>
-          
+
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <EscalationIntakeForm 
-              messages={messages} 
-              onSubmit={handleEscalationSubmit} 
-              onCancel={() => setOpen(false)} 
+            <EscalationIntakeForm
+              messages={messages}
+              onSubmit={handleEscalationSubmit}
+              onCancel={() => setOpen(false)}
             />
           </DialogContent>
         </Dialog>
       </div>
 
-      <UpgradePrompt 
-        feature="escalation" 
-        open={upgradeOpen} 
-        onOpenChange={setUpgradeOpen} 
-        trigger={<></>} 
+      <UpgradePrompt
+        feature="escalation"
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        trigger={<></>}
       />
     </div>
   );

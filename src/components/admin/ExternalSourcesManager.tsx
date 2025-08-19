@@ -3,12 +3,35 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Play, Pause, RefreshCw, Plus, Calendar, Activity, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  AlertCircle,
+  Play,
+  Pause,
+  RefreshCw,
+  Plus,
+  Calendar,
+  Activity,
+  CheckCircle,
+  XCircle,
+  Clock,
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -56,13 +79,13 @@ export const ExternalSourcesManager = () => {
   const [showAddForm, setShowAddForm] = useState(false);
 
   const [newSource, setNewSource] = useState({
-    name: '',
-    source_type: '',
-    base_url: '',
-    framework_category: '',
-    content_type: '',
-    sync_frequency: 'daily',
-    api_key_required: false
+    name: "",
+    source_type: "",
+    base_url: "",
+    framework_category: "",
+    content_type: "",
+    sync_frequency: "daily",
+    api_key_required: false,
   });
 
   useEffect(() => {
@@ -72,25 +95,26 @@ export const ExternalSourcesManager = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load sources
-      const { data: sourcesData, error: sourcesError } = await supabase.functions.invoke('sync-external-sources', {
-        body: { action: 'list-sources' }
-      });
+      const { data: sourcesData, error: sourcesError } =
+        await supabase.functions.invoke("sync-external-sources", {
+          body: { action: "list-sources" },
+        });
 
       if (sourcesError) throw sourcesError;
       setSources(sourcesData.sources || []);
 
       // Load sync logs
-      const { data: logsData, error: logsError } = await supabase.functions.invoke('sync-external-sources', {
-        body: { action: 'sync-logs' }
-      });
+      const { data: logsData, error: logsError } =
+        await supabase.functions.invoke("sync-external-sources", {
+          body: { action: "sync-logs" },
+        });
 
       if (logsError) throw logsError;
       setSyncLogs(logsData.logs || []);
-
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
       toast({
         title: "Error",
         description: "Failed to load external sources data",
@@ -103,12 +127,15 @@ export const ExternalSourcesManager = () => {
 
   const handleSync = async (sourceId?: string) => {
     try {
-      const syncId = sourceId || 'all';
-      setSyncing(prev => [...prev, syncId]);
+      const syncId = sourceId || "all";
+      setSyncing((prev) => [...prev, syncId]);
 
-      const { data, error } = await supabase.functions.invoke('sync-external-sources', {
-        body: sourceId ? { action: 'sync', sourceId } : { action: 'sync' }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "sync-external-sources",
+        {
+          body: sourceId ? { action: "sync", sourceId } : { action: "sync" },
+        },
+      );
 
       if (error) throw error;
 
@@ -121,36 +148,38 @@ export const ExternalSourcesManager = () => {
       setTimeout(() => {
         loadData();
       }, 2000);
-
     } catch (error) {
-      console.error('Error starting sync:', error);
+      console.error("Error starting sync:", error);
       toast({
         title: "Error",
         description: "Failed to start sync",
         variant: "destructive",
       });
     } finally {
-      setSyncing(prev => prev.filter(id => id !== (sourceId || 'all')));
+      setSyncing((prev) => prev.filter((id) => id !== (sourceId || "all")));
     }
   };
 
-  const toggleSourceStatus = async (sourceId: string, currentStatus: boolean) => {
+  const toggleSourceStatus = async (
+    sourceId: string,
+    currentStatus: boolean,
+  ) => {
     try {
       const { error } = await supabase
-        .from('external_sources')
+        .from("external_sources")
         .update({ is_active: !currentStatus })
-        .eq('id', sourceId);
+        .eq("id", sourceId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `Source ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
+        description: `Source ${!currentStatus ? "activated" : "deactivated"} successfully`,
       });
 
       loadData();
     } catch (error) {
-      console.error('Error toggling source status:', error);
+      console.error("Error toggling source status:", error);
       toast({
         title: "Error",
         description: "Failed to update source status",
@@ -162,7 +191,7 @@ export const ExternalSourcesManager = () => {
   const addNewSource = async () => {
     try {
       const { error } = await supabase
-        .from('external_sources')
+        .from("external_sources")
         .insert(newSource);
 
       if (error) throw error;
@@ -173,18 +202,18 @@ export const ExternalSourcesManager = () => {
       });
 
       setNewSource({
-        name: '',
-        source_type: '',
-        base_url: '',
-        framework_category: '',
-        content_type: '',
-        sync_frequency: 'daily',
-        api_key_required: false
+        name: "",
+        source_type: "",
+        base_url: "",
+        framework_category: "",
+        content_type: "",
+        sync_frequency: "daily",
+        api_key_required: false,
       });
       setShowAddForm(false);
       loadData();
     } catch (error) {
-      console.error('Error adding source:', error);
+      console.error("Error adding source:", error);
       toast({
         title: "Error",
         description: "Failed to add external source",
@@ -195,11 +224,11 @@ export const ExternalSourcesManager = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed':
+      case "failed":
         return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'running':
+      case "running":
         return <Clock className="h-4 w-4 text-blue-500 animate-pulse" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
@@ -207,35 +236,35 @@ export const ExternalSourcesManager = () => {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return "Never";
     return new Date(dateString).toLocaleString();
   };
 
   const sourceTypes = [
-    { value: 'nist', label: 'NIST' },
-    { value: 'mitre', label: 'MITRE' },
-    { value: 'cve', label: 'CVE Database' },
-    { value: 'rss', label: 'RSS Feed' },
-    { value: 'api', label: 'API' },
-    { value: 'generic', label: 'Generic Web Scraping' }
+    { value: "nist", label: "NIST" },
+    { value: "mitre", label: "MITRE" },
+    { value: "cve", label: "CVE Database" },
+    { value: "rss", label: "RSS Feed" },
+    { value: "api", label: "API" },
+    { value: "generic", label: "Generic Web Scraping" },
   ];
 
   const frameworkCategories = [
-    { value: 'NIST', label: 'NIST' },
-    { value: 'ISO27001', label: 'ISO 27001' },
-    { value: 'SOC2', label: 'SOC 2' },
-    { value: 'CMMC', label: 'CMMC' },
-    { value: 'HIPAA', label: 'HIPAA' },
-    { value: 'FedRAMP', label: 'FedRAMP' },
-    { value: 'general', label: 'General' }
+    { value: "NIST", label: "NIST" },
+    { value: "ISO27001", label: "ISO 27001" },
+    { value: "SOC2", label: "SOC 2" },
+    { value: "CMMC", label: "CMMC" },
+    { value: "HIPAA", label: "HIPAA" },
+    { value: "FedRAMP", label: "FedRAMP" },
+    { value: "general", label: "General" },
   ];
 
   const contentTypes = [
-    { value: 'framework_documentation', label: 'Framework Documentation' },
-    { value: 'best_practices', label: 'Best Practices' },
-    { value: 'standard_reference', label: 'Standard Reference' },
-    { value: 'vulnerability_data', label: 'Vulnerability Data' },
-    { value: 'threat_intelligence', label: 'Threat Intelligence' }
+    { value: "framework_documentation", label: "Framework Documentation" },
+    { value: "best_practices", label: "Best Practices" },
+    { value: "standard_reference", label: "Standard Reference" },
+    { value: "vulnerability_data", label: "Vulnerability Data" },
+    { value: "threat_intelligence", label: "Threat Intelligence" },
   ];
 
   if (loading) {
@@ -252,16 +281,17 @@ export const ExternalSourcesManager = () => {
         <div>
           <h2 className="text-2xl font-bold">External Sources Manager</h2>
           <p className="text-muted-foreground">
-            Manage automated cybersecurity content ingestion from external sources
+            Manage automated cybersecurity content ingestion from external
+            sources
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={() => handleSync()}
-            disabled={syncing.includes('all')}
+            disabled={syncing.includes("all")}
             variant="outline"
           >
-            {syncing.includes('all') ? (
+            {syncing.includes("all") ? (
               <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                 Syncing All...
@@ -292,9 +322,12 @@ export const ExternalSourcesManager = () => {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No External Sources</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  No External Sources
+                </h3>
                 <p className="text-muted-foreground text-center">
-                  Add external sources to automatically sync cybersecurity content
+                  Add external sources to automatically sync cybersecurity
+                  content
                 </p>
               </CardContent>
             </Card>
@@ -306,8 +339,12 @@ export const ExternalSourcesManager = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">{source.name}</h3>
-                          <Badge variant={source.is_active ? "default" : "secondary"}>
+                          <h3 className="font-semibold text-lg">
+                            {source.name}
+                          </h3>
+                          <Badge
+                            variant={source.is_active ? "default" : "secondary"}
+                          >
                             {source.is_active ? "Active" : "Inactive"}
                           </Badge>
                           <Badge variant="outline">
@@ -318,20 +355,36 @@ export const ExternalSourcesManager = () => {
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                           <div>
-                            <p className="text-sm text-muted-foreground">Framework</p>
-                            <p className="font-medium">{source.framework_category}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Framework
+                            </p>
+                            <p className="font-medium">
+                              {source.framework_category}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Content Type</p>
-                            <p className="font-medium">{source.content_type.replace('_', ' ')}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Content Type
+                            </p>
+                            <p className="font-medium">
+                              {source.content_type.replace("_", " ")}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Last Sync</p>
-                            <p className="font-medium">{formatDate(source.last_sync_at)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Last Sync
+                            </p>
+                            <p className="font-medium">
+                              {formatDate(source.last_sync_at)}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Next Sync</p>
-                            <p className="font-medium">{formatDate(source.next_sync_at)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Next Sync
+                            </p>
+                            <p className="font-medium">
+                              {formatDate(source.next_sync_at)}
+                            </p>
                           </div>
                         </div>
 
@@ -346,13 +399,17 @@ export const ExternalSourcesManager = () => {
                       <div className="flex items-center gap-2 ml-4">
                         <Switch
                           checked={source.is_active}
-                          onCheckedChange={() => toggleSourceStatus(source.id, source.is_active)}
+                          onCheckedChange={() =>
+                            toggleSourceStatus(source.id, source.is_active)
+                          }
                         />
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleSync(source.id)}
-                          disabled={syncing.includes(source.id) || !source.is_active}
+                          disabled={
+                            syncing.includes(source.id) || !source.is_active
+                          }
                         >
                           {syncing.includes(source.id) ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -388,8 +445,12 @@ export const ExternalSourcesManager = () => {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(log.status)}
-                        <h4 className="font-semibold">{log.external_sources.name}</h4>
-                        <Badge variant="outline">{log.external_sources.source_type}</Badge>
+                        <h4 className="font-semibold">
+                          {log.external_sources.name}
+                        </h4>
+                        <Badge variant="outline">
+                          {log.external_sources.source_type}
+                        </Badge>
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {formatDate(log.sync_started_at)}
@@ -398,27 +459,37 @@ export const ExternalSourcesManager = () => {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
                       <div>
-                        <p className="text-sm text-muted-foreground">Processed</p>
+                        <p className="text-sm text-muted-foreground">
+                          Processed
+                        </p>
                         <p className="font-medium">{log.documents_processed}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Added</p>
-                        <p className="font-medium text-green-600">{log.documents_added}</p>
+                        <p className="font-medium text-green-600">
+                          {log.documents_added}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Updated</p>
-                        <p className="font-medium text-blue-600">{log.documents_updated}</p>
+                        <p className="font-medium text-blue-600">
+                          {log.documents_updated}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Skipped</p>
-                        <p className="font-medium text-gray-600">{log.documents_skipped}</p>
+                        <p className="font-medium text-gray-600">
+                          {log.documents_skipped}
+                        </p>
                       </div>
                     </div>
 
                     {log.error_message && (
                       <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 border border-red-200 rounded">
                         <AlertCircle className="h-4 w-4 text-red-500" />
-                        <p className="text-sm text-red-700">{log.error_message}</p>
+                        <p className="text-sm text-red-700">
+                          {log.error_message}
+                        </p>
                       </div>
                     )}
 
@@ -440,7 +511,8 @@ export const ExternalSourcesManager = () => {
               <CardHeader>
                 <CardTitle>Add New External Source</CardTitle>
                 <CardDescription>
-                  Configure a new external source for automated content ingestion
+                  Configure a new external source for automated content
+                  ingestion
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -450,7 +522,9 @@ export const ExternalSourcesManager = () => {
                     <Input
                       id="name"
                       value={newSource.name}
-                      onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
+                      onChange={(e) =>
+                        setNewSource({ ...newSource, name: e.target.value })
+                      }
                       placeholder="e.g., NIST Cybersecurity Framework"
                     />
                   </div>
@@ -459,7 +533,9 @@ export const ExternalSourcesManager = () => {
                     <Label htmlFor="source_type">Source Type</Label>
                     <Select
                       value={newSource.source_type}
-                      onValueChange={(value) => setNewSource({ ...newSource, source_type: value })}
+                      onValueChange={(value) =>
+                        setNewSource({ ...newSource, source_type: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select source type" />
@@ -475,17 +551,27 @@ export const ExternalSourcesManager = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="framework_category">Framework Category</Label>
+                    <Label htmlFor="framework_category">
+                      Framework Category
+                    </Label>
                     <Select
                       value={newSource.framework_category}
-                      onValueChange={(value) => setNewSource({ ...newSource, framework_category: value })}
+                      onValueChange={(value) =>
+                        setNewSource({
+                          ...newSource,
+                          framework_category: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select framework" />
                       </SelectTrigger>
                       <SelectContent>
                         {frameworkCategories.map((framework) => (
-                          <SelectItem key={framework.value} value={framework.value}>
+                          <SelectItem
+                            key={framework.value}
+                            value={framework.value}
+                          >
                             {framework.label}
                           </SelectItem>
                         ))}
@@ -497,7 +583,9 @@ export const ExternalSourcesManager = () => {
                     <Label htmlFor="content_type">Content Type</Label>
                     <Select
                       value={newSource.content_type}
-                      onValueChange={(value) => setNewSource({ ...newSource, content_type: value })}
+                      onValueChange={(value) =>
+                        setNewSource({ ...newSource, content_type: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select content type" />
@@ -518,7 +606,9 @@ export const ExternalSourcesManager = () => {
                   <Input
                     id="base_url"
                     value={newSource.base_url}
-                    onChange={(e) => setNewSource({ ...newSource, base_url: e.target.value })}
+                    onChange={(e) =>
+                      setNewSource({ ...newSource, base_url: e.target.value })
+                    }
                     placeholder="https://example.com/api/feed"
                   />
                 </div>
@@ -527,7 +617,9 @@ export const ExternalSourcesManager = () => {
                   <Label htmlFor="sync_frequency">Sync Frequency</Label>
                   <Select
                     value={newSource.sync_frequency}
-                    onValueChange={(value) => setNewSource({ ...newSource, sync_frequency: value })}
+                    onValueChange={(value) =>
+                      setNewSource({ ...newSource, sync_frequency: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -544,7 +636,9 @@ export const ExternalSourcesManager = () => {
                   <Switch
                     id="api_key_required"
                     checked={newSource.api_key_required}
-                    onCheckedChange={(checked) => setNewSource({ ...newSource, api_key_required: checked })}
+                    onCheckedChange={(checked) =>
+                      setNewSource({ ...newSource, api_key_required: checked })
+                    }
                   />
                   <Label htmlFor="api_key_required">Requires API Key</Label>
                 </div>
@@ -553,7 +647,10 @@ export const ExternalSourcesManager = () => {
                   <Button onClick={addNewSource} className="flex-1">
                     Add Source
                   </Button>
-                  <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAddForm(false)}
+                  >
                     Cancel
                   </Button>
                 </div>

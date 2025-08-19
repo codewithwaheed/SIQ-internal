@@ -1,20 +1,40 @@
-import React, { useState } from 'react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { FileText, Download, CheckCircle, MessageSquare, RefreshCw, Clock, User } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import React, { useState } from "react";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  FileText,
+  Download,
+  CheckCircle,
+  MessageSquare,
+  RefreshCw,
+  Clock,
+  User,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface Deliverable {
   id: string;
   escalation_id: string;
   consultant_id: string;
-  deliverable_type: 'summary_memo' | 'policy_draft' | 'checklist' | 'risk_log_entry' | 'meeting_notes' | 'roadmap';
+  deliverable_type:
+    | "summary_memo"
+    | "policy_draft"
+    | "checklist"
+    | "risk_log_entry"
+    | "meeting_notes"
+    | "roadmap";
   title: string;
   description?: string;
   content: any;
@@ -23,7 +43,7 @@ interface Deliverable {
     url: string;
     size: number;
   }>;
-  status: 'draft' | 'submitted' | 'accepted' | 'revision_requested';
+  status: "draft" | "submitted" | "accepted" | "revision_requested";
   acceptance_deadline?: string;
   user_feedback?: string;
   revision_notes?: string;
@@ -42,8 +62,12 @@ interface DeliverableCardProps {
   className?: string;
 }
 
-export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: DeliverableCardProps) => {
-  const [feedback, setFeedback] = useState('');
+export const DeliverableCard = ({
+  deliverable,
+  onStatusUpdate,
+  className,
+}: DeliverableCardProps) => {
+  const [feedback, setFeedback] = useState("");
   const [loading, setLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { toast } = useToast();
@@ -52,13 +76,13 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('deliverables')
+        .from("deliverables")
         .update({
-          status: 'accepted',
+          status: "accepted",
           accepted_at: new Date().toISOString(),
-          user_feedback: feedback || 'Accepted without feedback'
+          user_feedback: feedback || "Accepted without feedback",
         })
-        .eq('id', deliverable.id);
+        .eq("id", deliverable.id);
 
       if (error) throw error;
 
@@ -70,7 +94,7 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
       onStatusUpdate?.();
       setDetailsOpen(false);
     } catch (error) {
-      console.error('Error accepting deliverable:', error);
+      console.error("Error accepting deliverable:", error);
       toast({
         title: "Error",
         description: "Failed to accept deliverable",
@@ -94,12 +118,12 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('deliverables')
+        .from("deliverables")
         .update({
-          status: 'revision_requested',
-          revision_notes: feedback
+          status: "revision_requested",
+          revision_notes: feedback,
         })
-        .eq('id', deliverable.id);
+        .eq("id", deliverable.id);
 
       if (error) throw error;
 
@@ -111,7 +135,7 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
       onStatusUpdate?.();
       setDetailsOpen(false);
     } catch (error) {
-      console.error('Error requesting revision:', error);
+      console.error("Error requesting revision:", error);
       toast({
         title: "Error",
         description: "Failed to request revision",
@@ -125,13 +149,13 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
   const downloadFile = async (attachment: any) => {
     try {
       const { data, error } = await supabase.storage
-        .from('consultant-deliverables')
+        .from("consultant-deliverables")
         .download(attachment.url);
 
       if (error) throw error;
 
       const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = attachment.name;
       document.body.appendChild(a);
@@ -139,7 +163,7 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error("Error downloading file:", error);
       toast({
         title: "Error",
         description: "Failed to download file",
@@ -150,13 +174,13 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
 
   const getTypeIcon = () => {
     switch (deliverable.deliverable_type) {
-      case 'summary_memo':
-      case 'policy_draft':
-      case 'meeting_notes':
+      case "summary_memo":
+      case "policy_draft":
+      case "meeting_notes":
         return <FileText className="h-4 w-4" />;
-      case 'checklist':
+      case "checklist":
         return <CheckCircle className="h-4 w-4" />;
-      case 'roadmap':
+      case "roadmap":
         return <Clock className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
@@ -165,35 +189,48 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
 
   const getStatusColor = () => {
     switch (deliverable.status) {
-      case 'accepted':
-        return 'default';
-      case 'submitted':
-        return 'secondary';
-      case 'revision_requested':
-        return 'destructive';
-      case 'draft':
-        return 'outline';
+      case "accepted":
+        return "default";
+      case "submitted":
+        return "secondary";
+      case "revision_requested":
+        return "destructive";
+      case "draft":
+        return "outline";
       default:
-        return 'secondary';
+        return "secondary";
     }
   };
 
   const getTypeLabel = () => {
-    return deliverable.deliverable_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return deliverable.deliverable_type
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return format(new Date(timestamp), 'MMM d, yyyy h:mm a');
+    return format(new Date(timestamp), "MMM d, yyyy h:mm a");
   };
 
   const renderContent = () => {
-    if (deliverable.deliverable_type === 'checklist' && deliverable.content.items) {
+    if (
+      deliverable.deliverable_type === "checklist" &&
+      deliverable.content.items
+    ) {
       return (
         <div className="space-y-2">
           {deliverable.content.items.map((item: any, index: number) => (
             <div key={index} className="flex items-center gap-2">
-              <CheckCircle className={`h-4 w-4 ${item.completed ? 'text-green-600' : 'text-muted-foreground'}`} />
-              <span className={item.completed ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
+              <CheckCircle
+                className={`h-4 w-4 ${item.completed ? "text-green-600" : "text-muted-foreground"}`}
+              />
+              <span
+                className={
+                  item.completed ? "line-through text-muted-foreground" : ""
+                }
+              >
+                {item.text}
+              </span>
             </div>
           ))}
         </div>
@@ -204,7 +241,11 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
       return <p className="text-sm">{deliverable.content.text}</p>;
     }
 
-    return <p className="text-sm text-muted-foreground">No content preview available</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        No content preview available
+      </p>
+    );
   };
 
   return (
@@ -212,9 +253,7 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              {getTypeIcon()}
-            </div>
+            <div className="p-2 bg-primary/10 rounded-lg">{getTypeIcon()}</div>
             <div>
               <h4 className="font-medium">{deliverable.title}</h4>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
@@ -224,13 +263,17 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
               </div>
             </div>
           </div>
-          <Badge variant={getStatusColor()}>{deliverable.status.replace(/_/g, ' ')}</Badge>
+          <Badge variant={getStatusColor()}>
+            {deliverable.status.replace(/_/g, " ")}
+          </Badge>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {deliverable.description && (
-          <p className="text-sm text-muted-foreground">{deliverable.description}</p>
+          <p className="text-sm text-muted-foreground">
+            {deliverable.description}
+          </p>
         )}
 
         <div className="flex items-center gap-2 text-sm">
@@ -240,34 +283,40 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
               <User className="h-3 w-3" />
             </AvatarFallback>
           </Avatar>
-          <span className="text-muted-foreground">by {deliverable.consultant.name}</span>
+          <span className="text-muted-foreground">
+            by {deliverable.consultant.name}
+          </span>
         </div>
 
-        {deliverable.file_attachments && deliverable.file_attachments.length > 0 && (
-          <div className="space-y-2">
-            <h5 className="text-sm font-medium">Attachments</h5>
-            <div className="space-y-1">
-              {deliverable.file_attachments.map((attachment, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="text-sm">{attachment.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({Math.round(attachment.size / 1024)} KB)
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => downloadFile(attachment)}
+        {deliverable.file_attachments &&
+          deliverable.file_attachments.length > 0 && (
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium">Attachments</h5>
+              <div className="space-y-1">
+                {deliverable.file_attachments.map((attachment, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-muted rounded"
                   >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <span className="text-sm">{attachment.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({Math.round(attachment.size / 1024)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => downloadFile(attachment)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         <div className="flex items-center gap-2">
           <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
@@ -280,7 +329,7 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
               <DialogHeader>
                 <DialogTitle>{deliverable.title}</DialogTitle>
               </DialogHeader>
-              
+
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Content</h4>
@@ -289,7 +338,7 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
                   </div>
                 </div>
 
-                {deliverable.status === 'submitted' && (
+                {deliverable.status === "submitted" && (
                   <div className="space-y-4">
                     <div>
                       <h4 className="font-medium mb-2">Your Feedback</h4>
@@ -300,7 +349,7 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="flex gap-2">
                       <Button
                         onClick={handleAccept}
@@ -344,11 +393,8 @@ export const DeliverableCard = ({ deliverable, onStatusUpdate, className }: Deli
             </DialogContent>
           </Dialog>
 
-          {deliverable.status === 'submitted' && (
-            <Button
-              size="sm"
-              onClick={() => setDetailsOpen(true)}
-            >
+          {deliverable.status === "submitted" && (
+            <Button size="sm" onClick={() => setDetailsOpen(true)}>
               <MessageSquare className="h-4 w-4 mr-2" />
               Review & Accept
             </Button>

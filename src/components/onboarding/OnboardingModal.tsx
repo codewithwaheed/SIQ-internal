@@ -1,9 +1,21 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChevronLeft, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,10 +27,26 @@ interface OnboardingModalProps {
 }
 
 const countries = [
-  "United States", "Canada", "United Kingdom", "Australia", "Germany", 
-  "France", "Japan", "South Korea", "Singapore", "Netherlands",
-  "Switzerland", "Sweden", "Norway", "Denmark", "Finland",
-  "New Zealand", "Ireland", "Austria", "Belgium", "Luxembourg"
+  "United States",
+  "Canada",
+  "United Kingdom",
+  "Australia",
+  "Germany",
+  "France",
+  "Japan",
+  "South Korea",
+  "Singapore",
+  "Netherlands",
+  "Switzerland",
+  "Sweden",
+  "Norway",
+  "Denmark",
+  "Finland",
+  "New Zealand",
+  "Ireland",
+  "Austria",
+  "Belgium",
+  "Luxembourg",
 ];
 
 export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
@@ -42,16 +70,16 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
 
   const handleComplete = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           country,
           company_name: companyName || null,
         })
-        .eq('user_id', user.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -59,10 +87,10 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
         title: "Profile updated successfully!",
         description: "Welcome to your personalized experience.",
       });
-      
+
       onComplete();
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       toast({
         title: "Error updating profile",
         description: "Please try again.",
@@ -82,7 +110,7 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
             Complete your profile setup to personalize your experience
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Header */}
           <div className="text-center space-y-2">
@@ -93,10 +121,9 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <p className="text-sm text-muted-foreground">
-              {step === 1 
+              {step === 1
                 ? "Answer a few questions to boost AI's accuracy"
-                : "Answer a few questions to boost AI's accuracy"
-              }
+                : "Answer a few questions to boost AI's accuracy"}
             </p>
           </div>
 
@@ -108,7 +135,8 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
                   Country
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Helps us apply the right legal framework based on your location.
+                  Helps us apply the right legal framework based on your
+                  location.
                 </p>
                 <Select value={country} onValueChange={setCountry}>
                   <SelectTrigger>
@@ -157,9 +185,13 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
                   <ChevronLeft className="h-4 w-4" />
                   Go back
                 </Button>
-                
+
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={handleComplete} disabled={loading}>
+                  <Button
+                    variant="ghost"
+                    onClick={handleComplete}
+                    disabled={loading}
+                  >
                     Skip
                   </Button>
                   <Button onClick={handleComplete} disabled={loading}>

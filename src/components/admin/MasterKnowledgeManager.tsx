@@ -4,13 +4,34 @@ import { useApi, apiCall } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, Upload, FileText, Trash2, Eye, Download, RefreshCw, Satellite } from "lucide-react";
+import {
+  AlertCircle,
+  Upload,
+  FileText,
+  Trash2,
+  Eye,
+  Download,
+  RefreshCw,
+  Satellite,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalSourcesManager } from "./ExternalSourcesManager";
 
@@ -37,52 +58,56 @@ export const MasterKnowledgeManager = () => {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({
-    title: '',
-    description: '',
-    contentType: '',
-    frameworkCategory: '',
-    tags: ''
+    title: "",
+    description: "",
+    contentType: "",
+    frameworkCategory: "",
+    tags: "",
   });
 
   // Use real API endpoints
-  const { data: documentsData, loading, refetch } = useApi('upload-master-knowledge?action=list');
+  const {
+    data: documentsData,
+    loading,
+    refetch,
+  } = useApi("upload-master-knowledge?action=list");
   const documents = documentsData?.documents || [];
 
   const contentTypes = [
-    { value: 'framework_documentation', label: 'Framework Documentation' },
-    { value: 'best_practices', label: 'Best Practices' },
-    { value: 'policy_template', label: 'Policy Template' },
-    { value: 'implementation_guide', label: 'Implementation Guide' },
-    { value: 'standard_reference', label: 'Standard Reference' }
+    { value: "framework_documentation", label: "Framework Documentation" },
+    { value: "best_practices", label: "Best Practices" },
+    { value: "policy_template", label: "Policy Template" },
+    { value: "implementation_guide", label: "Implementation Guide" },
+    { value: "standard_reference", label: "Standard Reference" },
   ];
 
   const frameworkCategories = [
-    { value: 'NIST', label: 'NIST' },
-    { value: 'ISO27001', label: 'ISO 27001' },
-    { value: 'SOC2', label: 'SOC 2' },
-    { value: 'CMMC', label: 'CMMC' },
-    { value: 'HIPAA', label: 'HIPAA' },
-    { value: 'FedRAMP', label: 'FedRAMP' },
-    { value: 'PCI_DSS', label: 'PCI DSS' },
-    { value: 'GDPR', label: 'GDPR' },
-    { value: 'general', label: 'General' }
+    { value: "NIST", label: "NIST" },
+    { value: "ISO27001", label: "ISO 27001" },
+    { value: "SOC2", label: "SOC 2" },
+    { value: "CMMC", label: "CMMC" },
+    { value: "HIPAA", label: "HIPAA" },
+    { value: "FedRAMP", label: "FedRAMP" },
+    { value: "PCI_DSS", label: "PCI DSS" },
+    { value: "GDPR", label: "GDPR" },
+    { value: "general", label: "General" },
   ];
 
   // Set up real-time subscription for status updates
   useEffect(() => {
     const channel = supabase
-      .channel('master-knowledge-changes')
+      .channel("master-knowledge-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'master_knowledge_base'
+          event: "*",
+          schema: "public",
+          table: "master_knowledge_base",
         },
         (payload) => {
-          console.log('Real-time update:', payload);
+          console.log("Real-time update:", payload);
           refetch(); // Refetch data when changes occur
-        }
+        },
       )
       .subscribe();
 
@@ -92,7 +117,12 @@ export const MasterKnowledgeManager = () => {
   }, [refetch]);
 
   const handleFileUpload = async () => {
-    if (!selectedFile || !uploadForm.title || !uploadForm.contentType || !uploadForm.frameworkCategory) {
+    if (
+      !selectedFile ||
+      !uploadForm.title ||
+      !uploadForm.contentType ||
+      !uploadForm.frameworkCategory
+    ) {
       toast({
         title: "Error",
         description: "Please fill in all required fields and select a file",
@@ -103,27 +133,38 @@ export const MasterKnowledgeManager = () => {
 
     setUploading(true);
     try {
-      console.log('Starting file upload...', {
+      console.log("Starting file upload...", {
         file: selectedFile?.name,
         title: uploadForm.title,
         contentType: uploadForm.contentType,
-        frameworkCategory: uploadForm.frameworkCategory
+        frameworkCategory: uploadForm.frameworkCategory,
       });
 
       const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('title', uploadForm.title);
-      formData.append('description', uploadForm.description);
-      formData.append('contentType', uploadForm.contentType);
-      formData.append('frameworkCategory', uploadForm.frameworkCategory);
-      formData.append('tags', JSON.stringify(uploadForm.tags.split(',').map(tag => tag.trim()).filter(Boolean)));
+      formData.append("file", selectedFile);
+      formData.append("title", uploadForm.title);
+      formData.append("description", uploadForm.description);
+      formData.append("contentType", uploadForm.contentType);
+      formData.append("frameworkCategory", uploadForm.frameworkCategory);
+      formData.append(
+        "tags",
+        JSON.stringify(
+          uploadForm.tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+        ),
+      );
 
-      console.log('Calling upload-master-knowledge function...');
-      const { data, error } = await supabase.functions.invoke('upload-master-knowledge', {
-        body: formData,
-      });
+      console.log("Calling upload-master-knowledge function...");
+      const { data, error } = await supabase.functions.invoke(
+        "upload-master-knowledge",
+        {
+          body: formData,
+        },
+      );
 
-      console.log('Function response:', { data, error });
+      console.log("Function response:", { data, error });
 
       if (error) throw error;
 
@@ -132,24 +173,24 @@ export const MasterKnowledgeManager = () => {
           title: "Success",
           description: "Master knowledge document uploaded successfully",
         });
-        
+
         // Reset form
         setSelectedFile(null);
         setUploadForm({
-          title: '',
-          description: '',
-          contentType: '',
-          frameworkCategory: '',
-          tags: ''
+          title: "",
+          description: "",
+          contentType: "",
+          frameworkCategory: "",
+          tags: "",
         });
-        
+
         // Reload documents
         refetch();
       } else {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || "Upload failed");
       }
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error("Error uploading document:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to upload document",
@@ -160,42 +201,49 @@ export const MasterKnowledgeManager = () => {
     }
   };
 
-  const toggleDocumentStatus = async (documentId: string, currentStatus: boolean) => {
+  const toggleDocumentStatus = async (
+    documentId: string,
+    currentStatus: boolean,
+  ) => {
     try {
       await apiCall(`upload-master-knowledge/${documentId}`, {
-        method: 'PATCH',
-        body: { is_active: !currentStatus }
+        method: "PATCH",
+        body: { is_active: !currentStatus },
       });
 
       toast({
         title: "Success",
-        description: `Document ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
+        description: `Document ${!currentStatus ? "activated" : "deactivated"} successfully`,
       });
-      
+
       refetch();
     } catch (error) {
-      console.error('Error toggling document status:', error);
+      console.error("Error toggling document status:", error);
     }
   };
 
   const deleteDocument = async (documentId: string) => {
-    if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this document? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
     try {
       await apiCall(`upload-master-knowledge/${documentId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       });
 
       toast({
         title: "Success",
         description: "Document deleted successfully",
       });
-      
+
       refetch();
     } catch (error) {
-      console.error('Error deleting document:', error);
+      console.error("Error deleting document:", error);
     }
   };
 
@@ -204,15 +252,14 @@ export const MasterKnowledgeManager = () => {
       pending: { color: "bg-yellow-500", text: "Pending" },
       processing: { color: "bg-blue-500", text: "Processing" },
       completed: { color: "bg-green-500", text: "Completed" },
-      failed: { color: "bg-red-500", text: "Failed" }
+      failed: { color: "bg-red-500", text: "Failed" },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+
     return (
-      <Badge className={`${config.color} text-white`}>
-        {config.text}
-      </Badge>
+      <Badge className={`${config.color} text-white`}>{config.text}</Badge>
     );
   };
 
@@ -230,12 +277,10 @@ export const MasterKnowledgeManager = () => {
             Manage cybersecurity framework documents and knowledge base content
           </p>
         </div>
-        <Button 
-          onClick={() => refetch()} 
-          variant="outline"
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+        <Button onClick={() => refetch()} variant="outline" disabled={loading}>
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -255,7 +300,8 @@ export const MasterKnowledgeManager = () => {
                 Upload Master Knowledge Document
               </CardTitle>
               <CardDescription>
-                Upload cybersecurity framework documents to the master knowledge base
+                Upload cybersecurity framework documents to the master knowledge
+                base
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -265,7 +311,9 @@ export const MasterKnowledgeManager = () => {
                   <Input
                     id="title"
                     value={uploadForm.title}
-                    onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                    onChange={(e) =>
+                      setUploadForm({ ...uploadForm, title: e.target.value })
+                    }
                     placeholder="Document title"
                   />
                 </div>
@@ -274,7 +322,9 @@ export const MasterKnowledgeManager = () => {
                   <Label htmlFor="contentType">Content Type *</Label>
                   <Select
                     value={uploadForm.contentType}
-                    onValueChange={(value) => setUploadForm({ ...uploadForm, contentType: value })}
+                    onValueChange={(value) =>
+                      setUploadForm({ ...uploadForm, contentType: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select content type" />
@@ -290,17 +340,24 @@ export const MasterKnowledgeManager = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="frameworkCategory">Framework Category *</Label>
+                  <Label htmlFor="frameworkCategory">
+                    Framework Category *
+                  </Label>
                   <Select
                     value={uploadForm.frameworkCategory}
-                    onValueChange={(value) => setUploadForm({ ...uploadForm, frameworkCategory: value })}
+                    onValueChange={(value) =>
+                      setUploadForm({ ...uploadForm, frameworkCategory: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select framework" />
                     </SelectTrigger>
                     <SelectContent>
                       {frameworkCategories.map((framework) => (
-                        <SelectItem key={framework.value} value={framework.value}>
+                        <SelectItem
+                          key={framework.value}
+                          value={framework.value}
+                        >
                           {framework.label}
                         </SelectItem>
                       ))}
@@ -313,7 +370,9 @@ export const MasterKnowledgeManager = () => {
                   <Input
                     id="tags"
                     value={uploadForm.tags}
-                    onChange={(e) => setUploadForm({ ...uploadForm, tags: e.target.value })}
+                    onChange={(e) =>
+                      setUploadForm({ ...uploadForm, tags: e.target.value })
+                    }
                     placeholder="security, compliance, audit"
                   />
                 </div>
@@ -324,7 +383,12 @@ export const MasterKnowledgeManager = () => {
                 <Textarea
                   id="description"
                   value={uploadForm.description}
-                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                  onChange={(e) =>
+                    setUploadForm({
+                      ...uploadForm,
+                      description: e.target.value,
+                    })
+                  }
                   placeholder="Document description and purpose"
                   rows={3}
                 />
@@ -394,37 +458,53 @@ export const MasterKnowledgeManager = () => {
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-semibold">{doc.title}</h3>
                               {getStatusBadge(doc.processing_status)}
-                              <Badge variant={doc.is_active ? "default" : "secondary"}>
+                              <Badge
+                                variant={
+                                  doc.is_active ? "default" : "secondary"
+                                }
+                              >
                                 {doc.is_active ? "Active" : "Inactive"}
                               </Badge>
                             </div>
-                            
+
                             <p className="text-sm text-muted-foreground mb-2">
                               {doc.description}
                             </p>
-                            
+
                             <div className="flex flex-wrap gap-2 mb-2">
-                              <Badge variant="outline">{doc.framework_category}</Badge>
-                              <Badge variant="outline">{doc.content_type.replace('_', ' ')}</Badge>
-                              <Badge variant="outline">{formatFileSize(doc.file_size)}</Badge>
+                              <Badge variant="outline">
+                                {doc.framework_category}
+                              </Badge>
+                              <Badge variant="outline">
+                                {doc.content_type.replace("_", " ")}
+                              </Badge>
+                              <Badge variant="outline">
+                                {formatFileSize(doc.file_size)}
+                              </Badge>
                             </div>
-                            
+
                             {doc.tags && doc.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1">
                                 {doc.tags.map((tag, index) => (
-                                  <Badge key={index} variant="secondary" className="text-xs">
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
                                     {tag}
                                   </Badge>
                                 ))}
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex items-center gap-2 ml-4">
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => toggleDocumentStatus(doc.id, doc.is_active)}
+                              onClick={() =>
+                                toggleDocumentStatus(doc.id, doc.is_active)
+                              }
                             >
                               {doc.is_active ? "Deactivate" : "Activate"}
                             </Button>
@@ -438,21 +518,24 @@ export const MasterKnowledgeManager = () => {
                             </Button>
                           </div>
                         </div>
-                        
-                        {doc.processing_status === 'processing' && (
+
+                        {doc.processing_status === "processing" && (
                           <div className="mt-2">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
-                              <span className="text-sm font-medium">Processing...</span>
+                              <span className="text-sm font-medium">
+                                Processing...
+                              </span>
                             </div>
                             <Progress value={75} className="h-2" />
                             <p className="text-xs text-muted-foreground mt-1">
-                              Extracting text and generating embeddings... Status updates in real-time.
+                              Extracting text and generating embeddings...
+                              Status updates in real-time.
                             </p>
                           </div>
                         )}
-                        
-                        {doc.processing_status === 'failed' && (
+
+                        {doc.processing_status === "failed" && (
                           <div className="mt-2 flex items-center gap-2 text-red-600">
                             <AlertCircle className="h-4 w-4" />
                             <span className="text-sm">Processing failed</span>

@@ -1,21 +1,21 @@
-import { ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  AlertTriangle, 
-  Calendar, 
-  Clock, 
-  User, 
-  Video, 
-  FileText, 
+import { ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertTriangle,
+  Calendar,
+  Clock,
+  User,
+  Video,
+  FileText,
   CheckCircle,
   MessageSquare,
   ArrowUp,
-  Phone
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+  Phone,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Base container for escalation UI elements
 interface EscalationContainerProps {
@@ -23,7 +23,10 @@ interface EscalationContainerProps {
   className?: string;
 }
 
-export function EscalationContainer({ children, className }: EscalationContainerProps) {
+export function EscalationContainer({
+  children,
+  className,
+}: EscalationContainerProps) {
   return (
     <div className={cn("space-y-4 max-w-sm mx-auto sm:max-w-none", className)}>
       {children}
@@ -33,32 +36,32 @@ export function EscalationContainer({ children, className }: EscalationContainer
 
 // Reusable escalate button component
 interface EscalateButtonProps {
-  variant?: 'primary' | 'secondary' | 'minimal';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "minimal";
+  size?: "sm" | "md" | "lg";
   onClick: () => void;
   disabled?: boolean;
   className?: string;
 }
 
-export function EscalateButton({ 
-  variant = 'primary', 
-  size = 'md', 
-  onClick, 
+export function EscalateButton({
+  variant = "primary",
+  size = "md",
+  onClick,
   disabled,
-  className 
+  className,
 }: EscalateButtonProps) {
   const baseClasses = "touch-manipulation min-h-[48px] font-medium";
-  
+
   const variantClasses = {
     primary: "bg-red-500 hover:bg-red-600 text-white shadow-lg",
     secondary: "bg-white border-2 border-red-500 text-red-500 hover:bg-red-50",
-    minimal: "text-red-500 hover:text-red-600 hover:bg-red-50"
+    minimal: "text-red-500 hover:text-red-600 hover:bg-red-50",
   };
 
   const sizeClasses = {
     sm: "px-3 py-2 text-sm",
     md: "px-4 py-3 text-base",
-    lg: "px-6 py-4 text-lg"
+    lg: "px-6 py-4 text-lg",
   };
 
   return (
@@ -69,7 +72,7 @@ export function EscalateButton({
         baseClasses,
         variantClasses[variant],
         sizeClasses[size],
-        className
+        className,
       )}
     >
       <ArrowUp className="h-4 w-4 mr-2" />
@@ -86,7 +89,12 @@ interface IntakeCardProps {
   className?: string;
 }
 
-export function IntakeCard({ title, description, children, className }: IntakeCardProps) {
+export function IntakeCard({
+  title,
+  description,
+  children,
+  className,
+}: IntakeCardProps) {
   return (
     <Card className={cn("border-orange-200 bg-orange-50/30", className)}>
       <CardHeader className="pb-3">
@@ -98,16 +106,21 @@ export function IntakeCard({ title, description, children, className }: IntakeCa
           <p className="text-sm text-orange-700">{description}</p>
         )}
       </CardHeader>
-      <CardContent className="pt-0">
-        {children}
-      </CardContent>
+      <CardContent className="pt-0">{children}</CardContent>
     </Card>
   );
 }
 
 // Status chip component
 interface StatusChipProps {
-  status: 'submitted' | 'routing' | 'assigned' | 'in_progress' | 'awaiting_user' | 'resolved' | 'closed';
+  status:
+    | "submitted"
+    | "routing"
+    | "assigned"
+    | "in_progress"
+    | "awaiting_user"
+    | "resolved"
+    | "closed";
   slaDeadline?: string;
   consultant?: {
     name: string;
@@ -117,27 +130,41 @@ interface StatusChipProps {
   className?: string;
 }
 
-export function StatusChip({ status, slaDeadline, consultant, onClick, className }: StatusChipProps) {
+export function StatusChip({
+  status,
+  slaDeadline,
+  consultant,
+  onClick,
+  className,
+}: StatusChipProps) {
   const statusConfig = {
-    submitted: { color: 'bg-blue-500', label: 'Submitted', icon: Clock },
-    routing: { color: 'bg-yellow-500', label: 'Finding Expert', icon: User },
-    assigned: { color: 'bg-purple-500', label: 'Assigned', icon: User },
-    in_progress: { color: 'bg-green-500', label: 'In Progress', icon: MessageSquare },
-    awaiting_user: { color: 'bg-orange-500', label: 'Awaiting You', icon: Clock },
-    resolved: { color: 'bg-green-600', label: 'Resolved', icon: CheckCircle },
-    closed: { color: 'bg-gray-500', label: 'Closed', icon: CheckCircle }
+    submitted: { color: "bg-blue-500", label: "Submitted", icon: Clock },
+    routing: { color: "bg-yellow-500", label: "Finding Expert", icon: User },
+    assigned: { color: "bg-purple-500", label: "Assigned", icon: User },
+    in_progress: {
+      color: "bg-green-500",
+      label: "In Progress",
+      icon: MessageSquare,
+    },
+    awaiting_user: {
+      color: "bg-orange-500",
+      label: "Awaiting You",
+      icon: Clock,
+    },
+    resolved: { color: "bg-green-600", label: "Resolved", icon: CheckCircle },
+    closed: { color: "bg-gray-500", label: "Closed", icon: CheckCircle },
   };
 
   const config = statusConfig[status];
   const StatusIcon = config.icon;
 
   return (
-    <div 
+    <div
       className={cn(
         "inline-flex items-center gap-2 px-3 py-2 rounded-full text-white text-sm font-medium cursor-pointer transition-transform active:scale-95",
         config.color,
         onClick && "hover:opacity-90",
-        className
+        className,
       )}
       onClick={onClick}
     >
@@ -147,7 +174,10 @@ export function StatusChip({ status, slaDeadline, consultant, onClick, className
         <Avatar className="h-5 w-5 border border-white/20">
           <AvatarImage src={consultant.avatar} />
           <AvatarFallback className="text-xs bg-white/20">
-            {consultant.name.split(' ').map(n => n[0]).join('')}
+            {consultant.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")}
           </AvatarFallback>
         </Avatar>
       )}
@@ -169,7 +199,12 @@ interface ExpertCardProps {
   className?: string;
 }
 
-export function ExpertCard({ expert, onMessage, onSchedule, className }: ExpertCardProps) {
+export function ExpertCard({
+  expert,
+  onMessage,
+  onSchedule,
+  className,
+}: ExpertCardProps) {
   return (
     <Card className={cn("border-blue-200 bg-blue-50/30", className)}>
       <CardContent className="p-4">
@@ -177,7 +212,10 @@ export function ExpertCard({ expert, onMessage, onSchedule, className }: ExpertC
           <Avatar className="h-12 w-12">
             <AvatarImage src={expert.avatar} />
             <AvatarFallback className="bg-blue-500 text-white">
-              {expert.name.split(' ').map(n => n[0]).join('')}
+              {expert.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -204,7 +242,12 @@ export function ExpertCard({ expert, onMessage, onSchedule, className }: ExpertC
         </div>
         <div className="flex gap-2 mt-4">
           {onMessage && (
-            <Button size="sm" variant="outline" onClick={onMessage} className="flex-1 h-9">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onMessage}
+              className="flex-1 h-9"
+            >
               <MessageSquare className="h-3 w-3 mr-1" />
               Message
             </Button>
@@ -226,14 +269,14 @@ interface MeetingCardProps {
   meeting: {
     id: string;
     title: string;
-    type: 'video' | 'audio' | 'screen_share';
+    type: "video" | "audio" | "screen_share";
     scheduledAt: string;
     duration: number;
     consultant: {
       name: string;
       avatar?: string;
     };
-    status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+    status: "scheduled" | "in_progress" | "completed" | "cancelled";
     meetingUrl?: string;
   };
   onJoin?: () => void;
@@ -241,20 +284,25 @@ interface MeetingCardProps {
   className?: string;
 }
 
-export function MeetingCard({ meeting, onJoin, onReschedule, className }: MeetingCardProps) {
+export function MeetingCard({
+  meeting,
+  onJoin,
+  onReschedule,
+  className,
+}: MeetingCardProps) {
   const typeIcons = {
     video: Video,
     audio: Phone,
-    screen_share: FileText
+    screen_share: FileText,
   };
 
   const TypeIcon = typeIcons[meeting.type];
-  
+
   const statusColors = {
-    scheduled: 'border-blue-200 bg-blue-50/30',
-    in_progress: 'border-green-200 bg-green-50/30',
-    completed: 'border-gray-200 bg-gray-50/30',
-    cancelled: 'border-red-200 bg-red-50/30'
+    scheduled: "border-blue-200 bg-blue-50/30",
+    in_progress: "border-green-200 bg-green-50/30",
+    completed: "border-gray-200 bg-gray-50/30",
+    cancelled: "border-red-200 bg-red-50/30",
   };
 
   return (
@@ -265,15 +313,15 @@ export function MeetingCard({ meeting, onJoin, onReschedule, className }: Meetin
             <TypeIcon className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium text-sm">{meeting.title}</span>
           </div>
-          <Badge 
-            variant="secondary" 
+          <Badge
+            variant="secondary"
             className={cn(
               "text-xs",
-              meeting.status === 'scheduled' && "bg-blue-100 text-blue-700",
-              meeting.status === 'in_progress' && "bg-green-100 text-green-700"
+              meeting.status === "scheduled" && "bg-blue-100 text-blue-700",
+              meeting.status === "in_progress" && "bg-green-100 text-green-700",
             )}
           >
-            {meeting.status.replace('_', ' ')}
+            {meeting.status.replace("_", " ")}
           </Badge>
         </div>
 
@@ -290,14 +338,17 @@ export function MeetingCard({ meeting, onJoin, onReschedule, className }: Meetin
             <Avatar className="h-4 w-4">
               <AvatarImage src={meeting.consultant.avatar} />
               <AvatarFallback className="text-xs">
-                {meeting.consultant.name.split(' ').map(n => n[0]).join('')}
+                {meeting.consultant.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
               </AvatarFallback>
             </Avatar>
             <span>{meeting.consultant.name}</span>
           </div>
         </div>
 
-        {meeting.status === 'scheduled' && (
+        {meeting.status === "scheduled" && (
           <div className="flex gap-2 mt-4">
             {onJoin && meeting.meetingUrl && (
               <Button size="sm" onClick={onJoin} className="flex-1 h-9">
@@ -306,7 +357,12 @@ export function MeetingCard({ meeting, onJoin, onReschedule, className }: Meetin
               </Button>
             )}
             {onReschedule && (
-              <Button size="sm" variant="outline" onClick={onReschedule} className="h-9">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onReschedule}
+                className="h-9"
+              >
                 <Calendar className="h-3 w-3" />
               </Button>
             )}
@@ -322,7 +378,7 @@ interface DeliverableCardProps {
   deliverable: {
     id: string;
     title: string;
-    type: 'document' | 'checklist' | 'policy' | 'next_steps';
+    type: "document" | "checklist" | "policy" | "next_steps";
     description: string;
     createdAt: string;
     consultant: {
@@ -340,12 +396,17 @@ interface DeliverableCardProps {
   className?: string;
 }
 
-export function DeliverableCard({ deliverable, onView, onDownload, className }: DeliverableCardProps) {
+export function DeliverableCard({
+  deliverable,
+  onView,
+  onDownload,
+  className,
+}: DeliverableCardProps) {
   const typeIcons = {
     document: FileText,
     checklist: CheckCircle,
     policy: AlertTriangle,
-    next_steps: Clock
+    next_steps: Clock,
   };
 
   const TypeIcon = typeIcons[deliverable.type];
@@ -359,17 +420,24 @@ export function DeliverableCard({ deliverable, onView, onDownload, className }: 
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-green-900">{deliverable.title}</h3>
-            <p className="text-sm text-green-700 mt-1">{deliverable.description}</p>
+            <p className="text-sm text-green-700 mt-1">
+              {deliverable.description}
+            </p>
             <div className="flex items-center gap-2 mt-2 text-xs text-green-600">
               <Avatar className="h-4 w-4">
                 <AvatarImage src={deliverable.consultant.avatar} />
                 <AvatarFallback className="text-xs">
-                  {deliverable.consultant.name.split(' ').map(n => n[0]).join('')}
+                  {deliverable.consultant.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
               <span>{deliverable.consultant.name}</span>
               <span>•</span>
-              <span>{new Date(deliverable.createdAt).toLocaleDateString()}</span>
+              <span>
+                {new Date(deliverable.createdAt).toLocaleDateString()}
+              </span>
             </div>
           </div>
         </div>
@@ -391,16 +459,23 @@ export function DeliverableCard({ deliverable, onView, onDownload, className }: 
 
         <div className="flex gap-2 mt-4">
           {onView && (
-            <Button size="sm" variant="outline" onClick={onView} className="flex-1 h-9">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onView}
+              className="flex-1 h-9"
+            >
               View Details
             </Button>
           )}
-          {onDownload && deliverable.attachments && deliverable.attachments.length > 0 && (
-            <Button size="sm" onClick={onDownload} className="h-9">
-              <FileText className="h-3 w-3 mr-1" />
-              Download
-            </Button>
-          )}
+          {onDownload &&
+            deliverable.attachments &&
+            deliverable.attachments.length > 0 && (
+              <Button size="sm" onClick={onDownload} className="h-9">
+                <FileText className="h-3 w-3 mr-1" />
+                Download
+              </Button>
+            )}
         </div>
       </CardContent>
     </Card>

@@ -9,7 +9,8 @@ To establish security requirements for mobile devices, protect organizational da
 **Scope**  
 This policy applies to all mobile devices including smartphones, tablets, and laptops used to access {{business_name}} resources, whether company-owned or personally-owned (BYOD).
 
-**Definitions**  
+**Definitions**
+
 - **Mobile Device**: Portable computing devices including smartphones, tablets, laptops, and wearables
 - **Mobile Device Management (MDM)**: Software solution for managing and securing mobile devices
 - **BYOD**: Bring Your Own Device - personal devices used for business purposes
@@ -36,7 +37,8 @@ All mobile devices accessing {{business_name}} resources must comply with securi
    - Prohibition of unauthorized app stores
    - Business and personal data separation
 
-**Procedures**  
+**Procedures**
+
 1. **Device Enrollment**
    - Complete MDM enrollment before accessing business resources
    - Install required security certificates and profiles
@@ -55,7 +57,8 @@ All mobile devices accessing {{business_name}} resources must comply with securi
    - Maintain device in good working condition
    - Accept potential data loss during security incidents
 
-**Responsibilities**  
+**Responsibilities**
+
 - **IT Security Team**: Configure MDM policies, monitor compliance, respond to incidents
 - **IT Support**: Provide device setup assistance, troubleshoot technical issues
 - **Employees**: Follow security requirements, report incidents, maintain device security
@@ -63,13 +66,15 @@ All mobile devices accessing {{business_name}} resources must comply with securi
 
 **Consequences of Non-Compliance**  
 Policy violations may result in:
+
 - Immediate suspension of mobile device access
 - Remote wipe of business data and applications
 - Disciplinary action including termination
 - Personal liability for security breaches
 - Loss of BYOD privileges
 
-**References**  
+**References**
+
 - {{business_name}} Information Security Policy
 - {{business_name}} Acceptable Use Policy
 - {{business_name}} BYOD Agreement

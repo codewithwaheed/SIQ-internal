@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { File, CheckCircle, AlertCircle, Clock, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ContextChip } from '@/components/ui/feedback';
+import { useState, useEffect } from "react";
+import { File, CheckCircle, AlertCircle, Clock, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ContextChip } from "@/components/ui/feedback";
 
 interface Document {
   id: string;
@@ -10,7 +10,7 @@ interface Document {
   type: string;
   size: number;
   uploaded_at: string;
-  status?: 'processing' | 'ready' | 'error';
+  status?: "processing" | "ready" | "error";
   tags?: string[];
 }
 
@@ -22,16 +22,18 @@ interface ContextManagerProps {
   className?: string;
 }
 
-export const ContextManager = ({ 
-  documents, 
-  activeDocuments, 
-  onDocumentToggle, 
+export const ContextManager = ({
+  documents,
+  activeDocuments,
+  onDocumentToggle,
   onClearContext,
-  className 
+  className,
 }: ContextManagerProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
-  const activeDocList = documents.filter(doc => activeDocuments.includes(doc.id));
+  const activeDocList = documents.filter((doc) =>
+    activeDocuments.includes(doc.id),
+  );
 
   return null;
 };
@@ -43,13 +45,13 @@ interface SessionContextProps {
   className?: string;
 }
 
-export const SessionContext = ({ 
-  conversationCount, 
-  documentCount, 
-  sessionStart, 
-  className 
+export const SessionContext = ({
+  conversationCount,
+  documentCount,
+  sessionStart,
+  className,
 }: SessionContextProps) => {
-  const [sessionDuration, setSessionDuration] = useState('');
+  const [sessionDuration, setSessionDuration] = useState("");
 
   useEffect(() => {
     const updateDuration = () => {
@@ -57,7 +59,7 @@ export const SessionContext = ({
       const diff = now.getTime() - sessionStart.getTime();
       const minutes = Math.floor(diff / 60000);
       const hours = Math.floor(minutes / 60);
-      
+
       if (hours > 0) {
         setSessionDuration(`${hours}h ${minutes % 60}m`);
       } else {
@@ -72,7 +74,9 @@ export const SessionContext = ({
   }, [sessionStart]);
 
   return (
-    <div className={`flex items-center gap-4 text-xs text-muted-foreground ${className || ''}`}>
+    <div
+      className={`flex items-center gap-4 text-xs text-muted-foreground ${className || ""}`}
+    >
       <div className="flex items-center gap-1">
         <Clock className="h-3 w-3" />
         <span>Session: {sessionDuration}</span>

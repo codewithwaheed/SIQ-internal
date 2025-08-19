@@ -9,7 +9,8 @@ This policy establishes requirements for creating, managing, and protecting pass
 **Scope**  
 This policy applies to all employees, contractors, and third parties who have access to {{business_name}} information systems, applications, and network resources.
 
-**Definitions**  
+**Definitions**
+
 - **Password**: A secret combination of characters used to authenticate user identity
 - **Multi-Factor Authentication (MFA)**: Authentication method requiring two or more verification factors
 - **Privileged Account**: Account with elevated system permissions
@@ -37,7 +38,8 @@ All user passwords **shall** meet rigorous complexity requirements designed to r
 
 **3.3.3 Multi-Factor Authentication Requirements**: Multi-factor authentication (MFA) **{{mfa_required}}** to provide additional security layers beyond password protection. This requirement particularly applies to accounts with administrative privileges, remote access capabilities, or access to sensitive organizational data.
 
-**Procedures**  
+**Procedures**
+
 1. **Password Creation**
    - Use strong, unique passwords for each system
    - Avoid predictable patterns or sequences
@@ -53,19 +55,22 @@ All user passwords **shall** meet rigorous complexity requirements designed to r
    - Verify identity through established channels
    - Report suspicious password reset requests immediately
 
-**Responsibilities**  
+**Responsibilities**
+
 - **IT Security Team**: Implement technical controls, monitor compliance, provide training
 - **Managers**: Ensure team compliance, support security awareness
 - **All Users**: Follow password requirements, report security incidents, maintain account security
 
 **Consequences of Non-Compliance**  
 Violations may result in:
+
 - Immediate account suspension
 - Mandatory security training
 - Progressive disciplinary action up to termination
 - Legal action for willful security breaches
 
-**References**  
+**References**
+
 - NIST SP 800-63B Digital Identity Guidelines
 - {{business_name}} Information Security Policy
 - {{business_name}} Incident Response Plan

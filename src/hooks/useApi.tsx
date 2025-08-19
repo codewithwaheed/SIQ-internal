@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface UseApiOptions {
   enabled?: boolean;
@@ -10,10 +10,7 @@ interface UseApiOptions {
   method?: string;
 }
 
-export function useApi<T = any>(
-  endpoint: string, 
-  options: UseApiOptions = {}
-) {
+export function useApi<T = any>(endpoint: string, options: UseApiOptions = {}) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -21,14 +18,16 @@ export function useApi<T = any>(
 
   const fetchData = async () => {
     if (!endpoint) return;
-    
+
     setLoading(true);
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('No authentication token');
+        throw new Error("No authentication token");
       }
 
       const response = await supabase.functions.invoke(endpoint, {
@@ -48,8 +47,8 @@ export function useApi<T = any>(
       const error = err as Error;
       setError(error);
       options.onError?.(error);
-      
-      if (error.message !== 'No authentication token') {
+
+      if (error.message !== "No authentication token") {
         toast({
           title: "Error",
           description: error.message,
@@ -72,13 +71,18 @@ export function useApi<T = any>(
   return { data, loading, error, refetch };
 }
 
-export async function apiCall(endpoint: string, options: {
-  method?: string;
-  body?: any;
-} = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
+export async function apiCall(
+  endpoint: string,
+  options: {
+    method?: string;
+    body?: any;
+  } = {},
+) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session?.access_token) {
-    throw new Error('No authentication token');
+    throw new Error("No authentication token");
   }
 
   const response = await supabase.functions.invoke(endpoint, {

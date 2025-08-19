@@ -1,11 +1,11 @@
-import React from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Menu, X, LogOut, Settings, User } from 'lucide-react';
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { Link, NavLink } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Menu, X, LogOut, Settings, User } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,50 +13,54 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
 interface UnifiedHeaderProps {
-  context: 'public' | 'dashboard';
+  context: "public" | "dashboard";
   showAuth?: boolean;
   transparent?: boolean;
 }
 
-export const UnifiedHeader = ({ context, showAuth = true, transparent = false }: UnifiedHeaderProps) => {
+export const UnifiedHeader = ({
+  context,
+  showAuth = true,
+  transparent = false,
+}: UnifiedHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, profile, userRole, signOut } = useAuth();
 
   const scrollToPricing = () => {
-    const pricingSection = document.getElementById('pricing-section');
+    const pricingSection = document.getElementById("pricing-section");
     if (pricingSection) {
-      pricingSection.scrollIntoView({ behavior: 'smooth' });
+      pricingSection.scrollIntoView({ behavior: "smooth" });
     } else {
-      window.location.href = '/#pricing-section';
+      window.location.href = "/#pricing-section";
     }
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin':
-        return 'bg-destructive text-destructive-foreground';
-      case 'consultant':
-        return 'bg-accent text-accent-foreground';
-      case 'business_owner':
-        return 'bg-primary text-primary-foreground';
+      case "admin":
+        return "bg-destructive text-destructive-foreground";
+      case "consultant":
+        return "bg-accent text-accent-foreground";
+      case "business_owner":
+        return "bg-primary text-primary-foreground";
       default:
-        return 'bg-muted text-muted-foreground';
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'business_owner':
-        return 'Business Owner';
-      case 'consultant':
-        return 'Consultant';
-      case 'admin':
-        return 'Admin';
+      case "business_owner":
+        return "Business Owner";
+      case "consultant":
+        return "Consultant";
+      case "admin":
+        return "Admin";
       default:
-        return 'User';
+        return "User";
     }
   };
 
@@ -64,11 +68,11 @@ export const UnifiedHeader = ({ context, showAuth = true, transparent = false }:
     if (profile?.first_name && profile?.last_name) {
       return `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase();
     }
-    return user?.email?.[0]?.toUpperCase() || 'U';
+    return user?.email?.[0]?.toUpperCase() || "U";
   };
 
   const headerClasses = `
-    ${transparent ? 'bg-transparent' : 'bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60'} 
+    ${transparent ? "bg-transparent" : "bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60"} 
     border-b border-border sticky top-0 z-50
   `;
 
@@ -77,36 +81,54 @@ export const UnifiedHeader = ({ context, showAuth = true, transparent = false }:
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link 
-            to={context === 'dashboard' ? '/dashboard' : '/'} 
+          <Link
+            to={context === "dashboard" ? "/dashboard" : "/"}
             className="flex items-center"
-            onClick={() => context === 'public' && window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onClick={() =>
+              context === "public" &&
+              window.scrollTo({ top: 0, behavior: "smooth" })
+            }
           >
-            <img 
-              src="/lovable-uploads/6362c9bd-c403-4a72-abae-4de6f5238518.png" 
-              alt="SentrIQ Labs" 
+            <img
+              src="/lovable-uploads/6362c9bd-c403-4a72-abae-4de6f5238518.png"
+              alt="SentrIQ Labs"
               className="h-8"
             />
           </Link>
-          
+
           {/* Public Navigation */}
-          {context === 'public' && (
+          {context === "public" && (
             <>
               {/* Desktop Menu */}
               <div className="hidden md:flex items-center space-x-8">
-                <Link to="/features" className="text-foreground hover:text-primary transition-colors">
+                <Link
+                  to="/features"
+                  className="text-foreground hover:text-primary transition-colors"
+                >
                   Features
                 </Link>
-                <button onClick={scrollToPricing} className="text-foreground hover:text-primary transition-colors">
+                <button
+                  onClick={scrollToPricing}
+                  className="text-foreground hover:text-primary transition-colors"
+                >
                   Pricing
                 </button>
-                <Link to="/about" className="text-foreground hover:text-primary transition-colors">
+                <Link
+                  to="/about"
+                  className="text-foreground hover:text-primary transition-colors"
+                >
                   About
                 </Link>
-                <Link to="/faq" className="text-foreground hover:text-primary transition-colors">
+                <Link
+                  to="/faq"
+                  className="text-foreground hover:text-primary transition-colors"
+                >
                   FAQ
                 </Link>
-                <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
+                <Link
+                  to="/contact"
+                  className="text-foreground hover:text-primary transition-colors"
+                >
                   Contact
                 </Link>
                 {showAuth && !user && (
@@ -133,24 +155,31 @@ export const UnifiedHeader = ({ context, showAuth = true, transparent = false }:
                   size="icon"
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                 >
-                  {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                  {isMenuOpen ? (
+                    <X className="h-6 w-6" />
+                  ) : (
+                    <Menu className="h-6 w-6" />
+                  )}
                 </Button>
               </div>
             </>
           )}
 
           {/* Dashboard Navigation */}
-          {context === 'dashboard' && user && (
+          {context === "dashboard" && user && (
             <div className="flex items-center space-x-4">
               {userRole && (
                 <Badge className={getRoleColor(userRole)}>
                   {getRoleLabel(userRole)}
                 </Badge>
               )}
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className="relative h-10 w-10 rounded-full"
+                  >
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={user?.user_metadata?.avatar_url} />
                       <AvatarFallback className="bg-primary text-primary-foreground">
@@ -165,8 +194,7 @@ export const UnifiedHeader = ({ context, showAuth = true, transparent = false }:
                       <p className="text-sm font-medium leading-none">
                         {profile?.first_name && profile?.last_name
                           ? `${profile.first_name} ${profile.last_name}`
-                          : 'User'
-                        }
+                          : "User"}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user?.email}
@@ -203,40 +231,40 @@ export const UnifiedHeader = ({ context, showAuth = true, transparent = false }:
         </div>
 
         {/* Mobile Menu for Public Pages */}
-        {context === 'public' && isMenuOpen && (
+        {context === "public" && isMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t border-border">
-            <Link 
-              to="/features" 
+            <Link
+              to="/features"
               className="block text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Features
             </Link>
-            <button 
+            <button
               onClick={() => {
                 scrollToPricing();
                 setIsMenuOpen(false);
-              }} 
+              }}
               className="block text-foreground hover:text-primary transition-colors"
             >
               Pricing
             </button>
-            <Link 
-              to="/about" 
+            <Link
+              to="/about"
               className="block text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               About
             </Link>
-            <Link 
-              to="/faq" 
+            <Link
+              to="/faq"
               className="block text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               FAQ
             </Link>
-            <Link 
-              to="/contact" 
+            <Link
+              to="/contact"
               className="block text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >

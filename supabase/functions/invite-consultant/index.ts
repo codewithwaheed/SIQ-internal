@@ -1,11 +1,12 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Resend } from 'npm:resend@2.0.0'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 interface InviteRequest {
   email: string;
@@ -16,51 +17,58 @@ interface InviteRequest {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
     // Verify admin access
-    const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.headers.get("Authorization")?.replace("Bearer ", "");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Check if user is admin
     const { data: userRole } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
       .single();
 
     if (!userRole) {
-      return new Response(JSON.stringify({ error: 'Unauthorized - Admin access required' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Admin access required" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    const { email, firstName, lastName, expertise, message }: InviteRequest = await req.json();
+    const { email, firstName, lastName, expertise, message }: InviteRequest =
+      await req.json();
 
     // Create invite token
     const inviteToken = crypto.randomUUID();
@@ -69,28 +77,28 @@ serve(async (req) => {
 
     // Create invite record
     const { data: invite, error: inviteError } = await supabase
-      .from('invites')
+      .from("invites")
       .insert({
         email,
         token: inviteToken,
-        role: 'consultant',
+        role: "consultant",
         expires_at: expiresAt.toISOString(),
-        created_by: user.id
+        created_by: user.id,
       })
       .select()
       .single();
 
     if (inviteError) {
-      throw new Error('Failed to create invite: ' + inviteError.message);
+      throw new Error("Failed to create invite: " + inviteError.message);
     }
 
     // Send invitation email
-    const inviteUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:3000'}/auth?invite=${inviteToken}`;
-    
+    const inviteUrl = `${Deno.env.get("SITE_URL") || "http://localhost:3000"}/auth?invite=${inviteToken}`;
+
     const emailResponse = await resend.emails.send({
-      from: 'CyberSec Platform <invites@yourdomain.com>',
+      from: "CyberSec Platform <invites@yourdomain.com>",
       to: [email],
-      subject: '🛡️ Invitation to Join CyberSec Platform as a Consultant',
+      subject: "🛡️ Invitation to Join CyberSec Platform as a Consultant",
       html: `
         <!DOCTYPE html>
         <html>
@@ -120,22 +128,30 @@ serve(async (req) => {
                 <li>🔔 <strong>Real-time notifications:</strong> Get instant alerts for new escalations</li>
               </ul>
               
-              ${expertise.length > 0 ? `
+              ${
+                expertise.length > 0
+                  ? `
               <div style="margin-top: 15px;">
                 <strong>Your Expertise Areas:</strong>
                 <div style="margin-top: 5px;">
-                  ${expertise.map(area => `<span style="background: #e7f3ff; color: #0066cc; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; display: inline-block;">${area}</span>`).join('')}
+                  ${expertise.map((area) => `<span style="background: #e7f3ff; color: #0066cc; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; display: inline-block;">${area}</span>`).join("")}
                 </div>
               </div>
-              ` : ''}
+              `
+                  : ""
+              }
             </div>
             
-            ${message ? `
+            ${
+              message
+                ? `
             <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107;">
               <p style="margin: 0;"><strong>Personal Message:</strong></p>
               <p style="margin: 5px 0 0 0; font-style: italic;">"${message}"</p>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${inviteUrl}" 
@@ -181,41 +197,44 @@ serve(async (req) => {
     }
 
     // Log the invitation
-    const { error: logError } = await supabase
-      .from('audit_logs')
-      .insert({
-        action: 'CONSULTANT_INVITED',
-        description: `Consultant invitation sent to ${email}`,
-        user_id: user.id,
-        metadata: {
-          invited_email: email,
-          invited_name: `${firstName} ${lastName}`,
-          expertise_areas: expertise,
-          invite_token: inviteToken,
-          expires_at: expiresAt.toISOString(),
-          email_id: emailResponse.data?.id
-        }
-      });
-
-    return new Response(JSON.stringify({ 
-      success: true,
-      inviteId: invite.id,
-      emailId: emailResponse.data?.id,
-      expiresAt: expiresAt.toISOString(),
-      message: 'Invitation sent successfully' 
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    const { error: logError } = await supabase.from("audit_logs").insert({
+      action: "CONSULTANT_INVITED",
+      description: `Consultant invitation sent to ${email}`,
+      user_id: user.id,
+      metadata: {
+        invited_email: email,
+        invited_name: `${firstName} ${lastName}`,
+        expertise_areas: expertise,
+        invite_token: inviteToken,
+        expires_at: expiresAt.toISOString(),
+        email_id: emailResponse.data?.id,
+      },
     });
 
+    return new Response(
+      JSON.stringify({
+        success: true,
+        inviteId: invite.id,
+        emailId: emailResponse.data?.id,
+        expiresAt: expiresAt.toISOString(),
+        message: "Invitation sent successfully",
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
-    console.error('Error sending consultant invitation:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Failed to send invitation',
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.error("Error sending consultant invitation:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Failed to send invitation",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

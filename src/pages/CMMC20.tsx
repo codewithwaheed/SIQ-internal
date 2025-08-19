@@ -1,14 +1,20 @@
-import { UnifiedHeader } from '@/components/ui/unified-header';
-import { Footer } from '@/components/ui/footer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Shield, Star, Target } from 'lucide-react';
+import { UnifiedHeader } from "@/components/ui/unified-header";
+import { Footer } from "@/components/ui/footer";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Shield, Star, Target } from "lucide-react";
 
 const CMMC20 = () => {
   return (
     <div className="min-h-screen bg-background">
       <UnifiedHeader context="public" showAuth />
-      
+
       <main className="pt-24 pb-12">
         <div className="max-w-4xl mx-auto px-6">
           {/* Hero Section */}
@@ -21,7 +27,8 @@ const CMMC20 = () => {
               CMMC 2.0 Compliance
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Cybersecurity Maturity Model Certification for Defense Industrial Base contractors
+              Cybersecurity Maturity Model Certification for Defense Industrial
+              Base contractors
             </p>
           </div>
 
@@ -35,31 +42,39 @@ const CMMC20 = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                The Cybersecurity Maturity Model Certification (CMMC) 2.0 is a framework designed to protect Federal Contract Information (FCI) 
-                and Controlled Unclassified Information (CUI) within the Defense Industrial Base (DIB).
+                The Cybersecurity Maturity Model Certification (CMMC) 2.0 is a
+                framework designed to protect Federal Contract Information (FCI)
+                and Controlled Unclassified Information (CUI) within the Defense
+                Industrial Base (DIB).
               </p>
-              
+
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <span className="text-green-700 font-bold text-lg">1</span>
                   </div>
                   <h4 className="font-semibold mb-2">Level 1</h4>
-                  <p className="text-sm text-muted-foreground">Foundational safeguarding of FCI</p>
+                  <p className="text-sm text-muted-foreground">
+                    Foundational safeguarding of FCI
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <span className="text-blue-700 font-bold text-lg">2</span>
                   </div>
                   <h4 className="font-semibold mb-2">Level 2</h4>
-                  <p className="text-sm text-muted-foreground">Advanced protection of CUI</p>
+                  <p className="text-sm text-muted-foreground">
+                    Advanced protection of CUI
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <span className="text-purple-700 font-bold text-lg">3</span>
                   </div>
                   <h4 className="font-semibold mb-2">Level 3</h4>
-                  <p className="text-sm text-muted-foreground">Expert protection against APTs</p>
+                  <p className="text-sm text-muted-foreground">
+                    Expert protection against APTs
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -70,7 +85,8 @@ const CMMC20 = () => {
             <CardHeader>
               <CardTitle>Key Requirements by Level</CardTitle>
               <CardDescription>
-                Understanding the progressive security requirements across CMMC levels
+                Understanding the progressive security requirements across CMMC
+                levels
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -112,7 +128,8 @@ const CMMC20 = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      System Security Plan (SSP) and Plan of Action & Milestones (POA&M)
+                      System Security Plan (SSP) and Plan of Action & Milestones
+                      (POA&M)
                     </li>
                   </ul>
                 </div>
@@ -125,7 +142,8 @@ const CMMC20 = () => {
                   <ul className="space-y-2 text-sm pl-6">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                      Additional security practices for advanced persistent threats
+                      Additional security practices for advanced persistent
+                      threats
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
@@ -144,9 +162,12 @@ const CMMC20 = () => {
           {/* CTA */}
           <Card>
             <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">Ready for CMMC 2.0 Certification?</h3>
+              <h3 className="text-2xl font-bold mb-4">
+                Ready for CMMC 2.0 Certification?
+              </h3>
               <p className="text-muted-foreground mb-6">
-                Get expert guidance on CMMC requirements, gap analysis, and implementation strategies.
+                Get expert guidance on CMMC requirements, gap analysis, and
+                implementation strategies.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a

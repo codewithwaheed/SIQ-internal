@@ -1,8 +1,12 @@
 // Security Guard Component for Chat Interface
-import React from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, AlertTriangle } from 'lucide-react';
-import { guardRequest, getComplianceTopicSuggestion, COMPLIANCE_TOPICS } from '@/lib/security-guard';
+import React from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield, AlertTriangle } from "lucide-react";
+import {
+  guardRequest,
+  getComplianceTopicSuggestion,
+  COMPLIANCE_TOPICS,
+} from "@/lib/security-guard";
 
 interface SecurityGuardProps {
   userMessage: string;
@@ -17,7 +21,7 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({
   userRole,
   userId,
   onMessageBlocked,
-  onContinue
+  onContinue,
 }) => {
   const guardResult = guardRequest(userMessage, userRole, userId);
 
@@ -27,7 +31,10 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({
 
   // Log the blocked attempt for audit purposes
   if (onMessageBlocked) {
-    onMessageBlocked(userMessage, 'Security guard blocked unauthorized data request');
+    onMessageBlocked(
+      userMessage,
+      "Security guard blocked unauthorized data request",
+    );
   }
 
   return (
@@ -45,7 +52,7 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({
             <Shield className="h-4 w-4 text-primary" />
             Compliance Topics I Can Help With:
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {COMPLIANCE_TOPICS.slice(0, 6).map((topic, index) => (
               <button
@@ -62,7 +69,7 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({
               </button>
             ))}
           </div>
-          
+
           <p className="text-xs text-muted-foreground mt-3">
             {getComplianceTopicSuggestion()}
           </p>

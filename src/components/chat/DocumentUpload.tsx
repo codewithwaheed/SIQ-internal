@@ -1,15 +1,28 @@
-import { useState } from 'react';
-import { Upload, File, X, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/contexts/AuthContext';
-import { AuditLogger } from '@/lib/audit-logger';
+import { useState } from "react";
+import {
+  Upload,
+  File,
+  X,
+  CheckCircle,
+  AlertCircle,
+  MessageCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuditLogger } from "@/lib/audit-logger";
 
 interface Document {
   id: string;
@@ -25,12 +38,15 @@ interface DocumentUploadProps {
   trigger?: React.ReactNode;
 }
 
-export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadProps) => {
+export const DocumentUpload = ({
+  onDocumentUploaded,
+  trigger,
+}: DocumentUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -41,18 +57,19 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
 
     // Validate file type
     const allowedTypes = [
-      'application/pdf',
-      'text/plain',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/csv',
-      'application/csv'
+      "application/pdf",
+      "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/csv",
+      "application/csv",
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload PDF, TXT, Word documents, or CSV files only.",
+        description:
+          "Please upload PDF, TXT, Word documents, or CSV files only.",
         variant: "destructive",
       });
       return;
@@ -74,7 +91,7 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
 
     // Simulate progress for better UX
     const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
+      setUploadProgress((prev) => {
         if (prev >= 90) {
           clearInterval(progressInterval);
           return prev;
@@ -85,14 +102,17 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
       if (description) {
-        formData.append('description', description);
+        formData.append("description", description);
       }
 
-      const { data, error } = await supabase.functions.invoke('upload-document', {
-        body: formData,
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "upload-document",
+        {
+          body: formData,
+        },
+      );
 
       if (error) {
         throw error;
@@ -101,46 +121,47 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
       if (data.success) {
         setUploadProgress(100);
         setUploadSuccess(true);
-        
+
         // Log successful upload
         if (user) {
           AuditLogger.logFileOperation(
-            user.id, 
-            'FILE_UPLOADED', 
-            file.name, 
-            data.document?.id, 
-            { 
-              size: file.size, 
+            user.id,
+            "FILE_UPLOADED",
+            file.name,
+            data.document?.id,
+            {
+              size: file.size,
               type: file.type,
-              description: description || 'No description provided'
-            }
+              description: description || "No description provided",
+            },
           );
         }
-        
+
         if (onDocumentUploaded) {
           onDocumentUploaded(data.document);
         }
       } else {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || "Upload failed");
       }
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
       clearInterval(progressInterval);
-      
+
       // Log failed upload
       if (user) {
         AuditLogger.logFileOperation(
-          user.id, 
-          'FILE_UPLOADED', 
-          file.name, 
-          undefined, 
-          { error: error.message, size: file.size, status: 'failed' }
+          user.id,
+          "FILE_UPLOADED",
+          file.name,
+          undefined,
+          { error: error.message, size: file.size, status: "failed" },
         );
       }
-      
+
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload document. Please try again.",
+        description:
+          error.message || "Failed to upload document. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -177,7 +198,7 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
 
   const resetModal = () => {
     setUploadedFile(null);
-    setDescription('');
+    setDescription("");
     setUploadProgress(0);
     setUploadSuccess(false);
     setUploading(false);
@@ -205,7 +226,7 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {!uploadSuccess ? (
             <>
@@ -213,8 +234,8 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
               <div
                 className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   dragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50 hover:bg-muted/50"
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -229,7 +250,7 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
                   onChange={handleInputChange}
                   disabled={uploading}
                 />
-                
+
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                     {uploading ? (
@@ -238,16 +259,18 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
                       <Upload className="h-8 w-8 text-primary" />
                     )}
                   </div>
-                  
+
                   <div>
                     <p className="text-lg font-medium text-foreground">
-                      {uploading ? 'Uploading...' : 'Drop your document here or click to browse'}
+                      {uploading
+                        ? "Uploading..."
+                        : "Drop your document here or click to browse"}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       Supports PDF, TXT, DOC, DOCX, CSV (max 10MB)
                     </p>
                   </div>
-                  
+
                   {!uploading && (
                     <Button variant="outline" size="lg" className="mt-4">
                       <File className="h-5 w-5 mr-2" />
@@ -261,8 +284,12 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
               {uploading && uploadedFile && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{uploadedFile.name}</span>
-                    <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
+                    <span className="text-sm font-medium">
+                      {uploadedFile.name}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {uploadProgress}%
+                    </span>
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
                 </div>
@@ -287,16 +314,18 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
-              
+
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Upload Successful!</h3>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Upload Successful!
+                </h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   {uploadedFile?.name} has been uploaded and processed.
                 </p>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
+                <Button
                   className="gap-2"
                   onClick={() => {
                     setOpen(false);
@@ -306,10 +335,7 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
                   <MessageCircle className="h-4 w-4" />
                   Ask the assistant about this document
                 </Button>
-                <Button 
-                  variant="outline"
-                  onClick={resetModal}
-                >
+                <Button variant="outline" onClick={resetModal}>
                   Upload Another
                 </Button>
               </div>

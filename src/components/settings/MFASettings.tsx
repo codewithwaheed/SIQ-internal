@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Plus, Trash2, CheckCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { MFASetup } from '@/components/auth/MFASetup';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield, Plus, Trash2, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { MFASetup } from "@/components/auth/MFASetup";
 
 export const MFASettings = () => {
   const { getMFAFactors, unenrollMFA } = useAuth();
@@ -27,7 +33,11 @@ export const MFASettings = () => {
 
   const handleRemoveFactor = async (factorId: string) => {
     // Confirm before removing MFA
-    if (!confirm('Are you sure you want to disable MFA? This will reduce your account security.')) {
+    if (
+      !confirm(
+        "Are you sure you want to disable MFA? This will reduce your account security.",
+      )
+    ) {
       return;
     }
 
@@ -35,7 +45,7 @@ export const MFASettings = () => {
     try {
       const { error } = await unenrollMFA(factorId);
       if (!error) {
-        setFactors(factors.filter(f => f.id !== factorId));
+        setFactors(factors.filter((f) => f.id !== factorId));
       }
     } finally {
       setLoading(false);
@@ -69,7 +79,10 @@ export const MFASettings = () => {
               Add an extra layer of security to your account
             </CardDescription>
           </div>
-          <Button onClick={() => setShowSetup(true)} disabled={factors.length > 0}>
+          <Button
+            onClick={() => setShowSetup(true)}
+            disabled={factors.length > 0}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Enable MFA
           </Button>
@@ -85,21 +98,28 @@ export const MFASettings = () => {
             <Alert>
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Two-factor authentication is enabled and protecting your account.
+                Two-factor authentication is enabled and protecting your
+                account.
               </AlertDescription>
             </Alert>
-            
+
             {factors.map((factor) => (
-              <div key={factor.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div
+                key={factor.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
                 <div className="flex items-center space-x-3">
                   <Shield className="h-5 w-5 text-green-600" />
                   <div>
                     <p className="font-medium">Authenticator App</p>
                     <p className="text-sm text-muted-foreground">
-                      TOTP - {factor.friendly_name || 'Primary authenticator'}
+                      TOTP - {factor.friendly_name || "Primary authenticator"}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-800"
+                  >
                     Active
                   </Badge>
                 </div>
@@ -117,17 +137,21 @@ export const MFASettings = () => {
           <Alert>
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              Two-factor authentication is not enabled. We recommend enabling MFA to secure your account.
+              Two-factor authentication is not enabled. We recommend enabling
+              MFA to secure your account.
             </AlertDescription>
           </Alert>
         )}
-        
+
         <div className="text-sm text-muted-foreground space-y-2">
-          <p><strong>What is Two-Factor Authentication?</strong></p>
           <p>
-            MFA adds an extra layer of security by requiring a second form of authentication 
-            in addition to your password. Even if someone gets your password, they won't be 
-            able to access your account without the authentication code from your device.
+            <strong>What is Two-Factor Authentication?</strong>
+          </p>
+          <p>
+            MFA adds an extra layer of security by requiring a second form of
+            authentication in addition to your password. Even if someone gets
+            your password, they won't be able to access your account without the
+            authentication code from your device.
           </p>
         </div>
       </CardContent>

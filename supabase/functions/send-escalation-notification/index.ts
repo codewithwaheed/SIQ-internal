@@ -5,7 +5,8 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface NotificationRequest {
@@ -24,13 +25,13 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      escalationId, 
-      userEmail, 
-      userName, 
-      summary, 
-      priority, 
-      estimatedResponseTime 
+    const {
+      escalationId,
+      userEmail,
+      userName,
+      summary,
+      priority,
+      estimatedResponseTime,
     }: NotificationRequest = await req.json();
 
     console.log("Sending escalation notification to:", userEmail);
@@ -62,7 +63,7 @@ serve(async (req) => {
           <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
             <h3 style="color: #1e293b; margin: 0 0 12px 0; font-size: 16px;">Request Details</h3>
             <p style="margin: 0 0 8px 0;"><strong>Request ID:</strong> ${escalationId}</p>
-            <p style="margin: 0 0 8px 0;"><strong>Priority:</strong> <span style="text-transform: capitalize; color: ${priority === 'high' ? '#dc2626' : priority === 'medium' ? '#d97706' : '#059669'};">${priority}</span></p>
+            <p style="margin: 0 0 8px 0;"><strong>Priority:</strong> <span style="text-transform: capitalize; color: ${priority === "high" ? "#dc2626" : priority === "medium" ? "#d97706" : "#059669"};">${priority}</span></p>
             <p style="margin: 0 0 12px 0;"><strong>Summary:</strong></p>
             <p style="margin: 0; background: #f1f5f9; padding: 12px; border-radius: 4px; font-style: italic;">"${summary}"</p>
           </div>
@@ -96,32 +97,34 @@ serve(async (req) => {
 
     console.log("Email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify({
-      success: true,
-      emailId: emailResponse.data?.id,
-      message: "Notification email sent successfully"
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
+    return new Response(
+      JSON.stringify({
+        success: true,
+        emailId: emailResponse.data?.id,
+        message: "Notification email sent successfully",
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
       },
-    });
-
+    );
   } catch (error: any) {
     console.error("Error in send-escalation-notification function:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: false,
-        error: error.message 
+        error: error.message,
       }),
       {
         status: 500,
-        headers: { 
-          "Content-Type": "application/json", 
-          ...corsHeaders 
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
         },
-      }
+      },
     );
   }
 });

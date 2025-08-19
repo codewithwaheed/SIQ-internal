@@ -1,6 +1,7 @@
 // Security Guard System - Protects internal data and provides compliance responses
 
-const REFUSAL_MESSAGE = "I'm sorry, but I can't share that. However, I'm happy to help you with cybersecurity compliance questions.";
+const REFUSAL_MESSAGE =
+  "I'm sorry, but I can't share that. However, I'm happy to help you with cybersecurity compliance questions.";
 const REDIRECT_MESSAGE = "Let's move on to compliance topics I can help with.";
 
 // Enhanced patterns for comprehensive security coverage
@@ -16,7 +17,7 @@ const BLOCK_PATTERNS = [
   /connection\s+string/i,
   /private\s+key/i,
   /certificate/i,
-  
+
   // Source code and architecture
   /source\s+code/i,
   /model\s+architecture/i,
@@ -27,7 +28,7 @@ const BLOCK_PATTERNS = [
   /supabase\s+function/i,
   /github\s+repo/i,
   /repository\s+url/i,
-  
+
   // Training data and model info
   /training\s+data/i,
   /where\s+do\s+you\s+get\s+your\s+data/i,
@@ -37,7 +38,7 @@ const BLOCK_PATTERNS = [
   /model\s+weights/i,
   /vector\s+database/i,
   /embedding\s+data/i,
-  
+
   // Internal documentation and logs
   /internal\s+(docs?|documentation)/i,
   /internal\s+logs?/i,
@@ -48,7 +49,7 @@ const BLOCK_PATTERNS = [
   /audit\s+logs?/i,
   /console\s+logs?/i,
   /debug\s+logs?/i,
-  
+
   // Infrastructure and configuration
   /s3\s+bucket/i,
   /aws\s+credentials/i,
@@ -60,7 +61,7 @@ const BLOCK_PATTERNS = [
   /docker\s+config/i,
   /kubernetes\s+config/i,
   /deployment\s+config/i,
-  
+
   // Data dumps and exports (enhanced)
   /(full|entire|complete)\s+(database|knowledge\s*base|kb)/i,
   /(full|entire|complete)\s+(log|chat\s*history)/i,
@@ -70,7 +71,7 @@ const BLOCK_PATTERNS = [
   /mass\s+(export|download)/i,
   /backup\s+(file|data)/i,
   /entire\s+dataset/i,
-  
+
   // SQL injection attempts (enhanced)
   /select\s+\*\s+from/i,
   /union\s+all.*select/i,
@@ -82,7 +83,7 @@ const BLOCK_PATTERNS = [
   /grant\s+all/i,
   /revoke\s+all/i,
   /insert\s+into.*values/i,
-  
+
   // File system access (enhanced)
   /show\s+me\s+the\s+files/i,
   /list\s+all\s+files/i,
@@ -91,7 +92,7 @@ const BLOCK_PATTERNS = [
   /read\s+file/i,
   /access\s+filesystem/i,
   /browse\s+folders/i,
-  
+
   // PII and sensitive data requests
   /user\s+emails/i,
   /customer\s+data/i,
@@ -101,7 +102,7 @@ const BLOCK_PATTERNS = [
   /phone\s+numbers/i,
   /addresses/i,
   /financial\s+data/i,
-  
+
   // Business intelligence and competitive info
   /revenue\s+data/i,
   /customer\s+list/i,
@@ -109,7 +110,7 @@ const BLOCK_PATTERNS = [
   /business\s+plan/i,
   /financial\s+reports/i,
   /profit\s+margins/i,
-  
+
   // Edge case vectors
   /jailbreak/i,
   /ignore\s+(previous|all)\s+instructions/i,
@@ -137,90 +138,98 @@ export interface GuardResult {
 }
 
 export function guardRequest(
-  userMessage: string, 
-  userRole: string = 'user', 
-  userId: string = 'anonymous'
+  userMessage: string,
+  userRole: string = "user",
+  userId: string = "anonymous",
 ): GuardResult {
   // Input validation
-  if (!userMessage || typeof userMessage !== 'string') {
+  if (!userMessage || typeof userMessage !== "string") {
     return { blocked: false };
   }
 
   // Normalize message for better pattern matching
   const normalizedMessage = userMessage.toLowerCase().trim();
-  
+
   // Admins can access everything (but still log for audit)
-  if (userRole === 'admin') {
+  if (userRole === "admin") {
     // Log admin access for audit purposes
-    console.log('[SECURITY-GUARD] Admin bypass', { userId, message: normalizedMessage.substring(0, 100) });
+    console.log("[SECURITY-GUARD] Admin bypass", {
+      userId,
+      message: normalizedMessage.substring(0, 100),
+    });
     return { blocked: false };
   }
 
   // Check if message contains blocked patterns
-  const blockedPattern = BLOCK_PATTERNS.find(pattern => pattern.test(normalizedMessage));
-  
+  const blockedPattern = BLOCK_PATTERNS.find((pattern) =>
+    pattern.test(normalizedMessage),
+  );
+
   if (!blockedPattern) {
     return { blocked: false };
   }
 
   // Log the blocked attempt
-  console.warn('[SECURITY-GUARD] Blocked request', {
+  console.warn("[SECURITY-GUARD] Blocked request", {
     userId,
     userRole,
     pattern: blockedPattern.source,
-    message: normalizedMessage.substring(0, 100) + '...',
-    timestamp: new Date().toISOString()
+    message: normalizedMessage.substring(0, 100) + "...",
+    timestamp: new Date().toISOString(),
   });
 
   // Track attempts for this user
   const now = Date.now();
-  const userState = userAttempts.get(userId) || { dataRequestAttempts: 0, lastAttemptTime: 0 };
-  
+  const userState = userAttempts.get(userId) || {
+    dataRequestAttempts: 0,
+    lastAttemptTime: 0,
+  };
+
   // Reset attempts if more than 1 hour has passed
   if (now - userState.lastAttemptTime > 3600000) {
     userState.dataRequestAttempts = 0;
   }
-  
+
   userState.dataRequestAttempts++;
   userState.lastAttemptTime = now;
   userAttempts.set(userId, userState);
 
   // After 3 attempts, show redirect message
   if (userState.dataRequestAttempts >= 3) {
-    console.warn('[SECURITY-GUARD] Repeated violation', {
+    console.warn("[SECURITY-GUARD] Repeated violation", {
       userId,
       attemptCount: userState.dataRequestAttempts,
-      pattern: blockedPattern.source
+      pattern: blockedPattern.source,
     });
-    
+
     return {
       blocked: true,
       message: REDIRECT_MESSAGE,
-      shouldRedirect: true
+      shouldRedirect: true,
     };
   }
 
   return {
     blocked: true,
     message: REFUSAL_MESSAGE,
-    shouldRedirect: false
+    shouldRedirect: false,
   };
 }
 
 export function isAdminRole(userRole: string): boolean {
-  return userRole === 'admin';
+  return userRole === "admin";
 }
 
 export function requireAdmin(userRole: string): void {
   if (!isAdminRole(userRole)) {
-    throw new Error('Access denied: Admin role required');
+    throw new Error("Access denied: Admin role required");
   }
 }
 
 // Compliance topic suggestions
 export const COMPLIANCE_TOPICS = [
   "NIST Cybersecurity Framework implementation",
-  "ISO 27001 compliance requirements", 
+  "ISO 27001 compliance requirements",
   "SOC 2 audit preparation",
   "CMMC compliance for defense contractors",
   "HIPAA security controls for healthcare",
@@ -228,10 +237,11 @@ export const COMPLIANCE_TOPICS = [
   "GDPR data protection compliance",
   "Incident response planning",
   "Risk assessment methodologies",
-  "Security awareness training programs"
+  "Security awareness training programs",
 ];
 
 export function getComplianceTopicSuggestion(): string {
-  const randomTopic = COMPLIANCE_TOPICS[Math.floor(Math.random() * COMPLIANCE_TOPICS.length)];
+  const randomTopic =
+    COMPLIANCE_TOPICS[Math.floor(Math.random() * COMPLIANCE_TOPICS.length)];
   return `Would you like help with ${randomTopic}?`;
 }

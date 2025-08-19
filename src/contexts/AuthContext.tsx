@@ -1,11 +1,17 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { AuditLogger } from '@/lib/audit-logger';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { User, Session, AuthError } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { AuditLogger } from "@/lib/audit-logger";
 
-type UserRole = 'business_owner' | 'consultant' | 'admin';
-type SubscriptionTier = 'Basic' | 'Pro' | 'Premium';
+type UserRole = "business_owner" | "consultant" | "admin";
+type SubscriptionTier = "Basic" | "Pro" | "Premium";
 
 interface Profile {
   id: string;
@@ -33,13 +39,26 @@ interface AuthContextType {
   loading: boolean;
   needsOnboarding: boolean;
   mfaChallenge: any | null;
-  signUp: (email: string, password: string, metadata?: any, redirectUrl?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any; mfaChallenge?: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    metadata?: any,
+    redirectUrl?: string,
+  ) => Promise<{ error: any }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: any; mfaChallenge?: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   completeOnboarding: () => void;
   checkSubscription: () => Promise<void>;
-  enrollMFA: () => Promise<{ error: any; qr?: string; secret?: string; factorId?: string }>;
+  enrollMFA: () => Promise<{
+    error: any;
+    qr?: string;
+    secret?: string;
+    factorId?: string;
+  }>;
   verifyMFA: (factorId: string, code: string) => Promise<{ error: any }>;
   challengeMFA: (factorId: string, code: string) => Promise<{ error: any }>;
   unenrollMFA: (factorId: string) => Promise<{ error: any }>;
@@ -53,7 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
+  const [subscriptionInfo, setSubscriptionInfo] =
+    useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [mfaChallenge, setMfaChallenge] = useState<any | null>(null);
@@ -62,17 +82,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     try {
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
         .single();
 
       if (profileError) throw profileError;
 
       const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
         .single();
 
       if (roleError) throw roleError;
@@ -81,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserRole(roleData.role);
       setNeedsOnboarding(!profileData.country);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error("Error fetching profile:", error);
     }
   };
 
@@ -89,61 +109,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session?.access_token) {
       setSubscriptionInfo({
         subscribed: false,
-        subscription_tier: 'Basic',
-        subscription_end: null
+        subscription_tier: "Basic",
+        subscription_end: null,
       });
       return;
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
+      const { data, error } = await supabase.functions.invoke(
+        "check-subscription",
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
       setSubscriptionInfo({
         subscribed: data.subscribed || false,
-        subscription_tier: data.subscription_tier || 'Basic',
-        subscription_end: data.subscription_end || null
+        subscription_tier: data.subscription_tier || "Basic",
+        subscription_end: data.subscription_end || null,
       });
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      console.error("Error checking subscription:", error);
       setSubscriptionInfo({
         subscribed: false,
-        subscription_tier: 'Basic',
-        subscription_end: null
+        subscription_tier: "Basic",
+        subscription_end: null,
       });
     }
   };
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Defer profile fetching to avoid deadlock
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-            checkSubscription();
-          }, 0);
-        } else {
-          setProfile(null);
-          setUserRole(null);
-          setSubscriptionInfo({
-            subscribed: false,
-            subscription_tier: 'Basic',
-            subscription_end: null
-          });
-        }
-        setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        // Defer profile fetching to avoid deadlock
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+          checkSubscription();
+        }, 0);
+      } else {
+        setProfile(null);
+        setUserRole(null);
+        setSubscriptionInfo({
+          subscribed: false,
+          subscription_tier: "Basic",
+          subscription_end: null,
+        });
       }
-    );
+      setLoading(false);
+    });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -158,32 +181,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, metadata?: any, redirectUrl?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    metadata?: any,
+    redirectUrl?: string,
+  ) => {
     const finalRedirectUrl = redirectUrl || `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: finalRedirectUrl,
-        data: metadata
-      }
+        data: metadata,
+      },
     });
 
     if (error) {
       // Log failed signup attempt
-      AuditLogger.logAuth('unknown', 'LOGIN_FAILURE', `Signup failed for ${email}: ${error.message}`);
+      AuditLogger.logAuth(
+        "unknown",
+        "LOGIN_FAILURE",
+        `Signup failed for ${email}: ${error.message}`,
+      );
       toast({
         title: "Sign up failed",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } else {
       // Log successful signup
-      AuditLogger.logAuth('unknown', 'SIGNUP', `User signed up with email: ${email}`);
+      AuditLogger.logAuth(
+        "unknown",
+        "SIGNUP",
+        `User signed up with email: ${email}`,
+      );
       toast({
         title: "Check your email",
-        description: "We've sent you a confirmation link."
+        description: "We've sent you a confirmation link.",
       });
     }
 
@@ -193,11 +229,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password,
     });
 
     // Check if MFA challenge is required
-    if (data?.user && !data?.session && error?.message?.includes('mfa')) {
+    if (data?.user && !data?.session && error?.message?.includes("mfa")) {
       // MFA challenge required
       const challenge = error as any;
       setMfaChallenge(challenge);
@@ -206,21 +242,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       // Log failed login attempt
-      AuditLogger.logAuth('unknown', 'LOGIN_FAILURE', `Login failed for ${email}: ${error.message}`);
+      AuditLogger.logAuth(
+        "unknown",
+        "LOGIN_FAILURE",
+        `Login failed for ${email}: ${error.message}`,
+      );
       toast({
         title: "Sign in failed",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } else {
       // Log successful login
       if (data?.user) {
-        AuditLogger.logAuth(data.user.id, 'LOGIN_SUCCESS', `User ${email} logged in successfully`);
+        AuditLogger.logAuth(
+          data.user.id,
+          "LOGIN_SUCCESS",
+          `User ${email} logged in successfully`,
+        );
       }
       setMfaChallenge(null);
       toast({
         title: "Welcome back!",
-        description: "You've been signed in successfully."
+        description: "You've been signed in successfully.",
       });
     }
 
@@ -230,19 +274,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     const currentUserId = user?.id;
     await supabase.auth.signOut();
-    
+
     // Log logout
     if (currentUserId) {
-      AuditLogger.logAuth(currentUserId, 'LOGOUT', 'User logged out');
+      AuditLogger.logAuth(currentUserId, "LOGOUT", "User logged out");
     }
-    
+
     setUser(null);
     setSession(null);
     setProfile(null);
     setUserRole(null);
     toast({
       title: "Signed out",
-      description: "You've been signed out successfully."
+      description: "You've been signed out successfully.",
     });
   };
 
@@ -251,31 +295,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update(updates)
-        .eq('user_id', user.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
-      
+      setProfile((prev) => (prev ? { ...prev, ...updates } : null));
+
       // Log profile update
       AuditLogger.log({
         userId: user.id,
-        action: 'PROFILE_UPDATED',
-        description: `Profile updated: ${Object.keys(updates).join(', ')}`,
-        metadata: { updatedFields: Object.keys(updates) }
+        action: "PROFILE_UPDATED",
+        description: `Profile updated: ${Object.keys(updates).join(", ")}`,
+        metadata: { updatedFields: Object.keys(updates) },
       });
-      
+
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully."
+        description: "Your profile has been updated successfully.",
       });
     } catch (error: any) {
       toast({
         title: "Update failed",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -287,22 +331,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const enrollMFA = async () => {
     try {
       const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: 'totp'
+        factorType: "totp",
       });
 
       if (error) throw error;
 
-      return { 
-        error: null, 
+      return {
+        error: null,
         qr: data.totp.qr_code,
         secret: data.totp.secret,
-        factorId: data.id
+        factorId: data.id,
       };
     } catch (error: any) {
       toast({
         title: "MFA enrollment failed",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return { error };
     }
@@ -313,7 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.mfa.verify({
         factorId,
         challengeId: mfaChallenge?.id,
-        code
+        code,
       });
 
       if (error) throw error;
@@ -321,7 +365,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMfaChallenge(null);
       toast({
         title: "MFA setup complete",
-        description: "Multi-factor authentication has been enabled."
+        description: "Multi-factor authentication has been enabled.",
       });
 
       return { error: null };
@@ -329,7 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "MFA verification failed",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return { error };
     }
@@ -340,7 +384,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.mfa.verify({
         factorId,
         challengeId: mfaChallenge?.id,
-        code
+        code,
       });
 
       if (error) throw error;
@@ -348,7 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMfaChallenge(null);
       toast({
         title: "Welcome back!",
-        description: "Successfully signed in with MFA."
+        description: "Successfully signed in with MFA.",
       });
 
       return { error: null };
@@ -356,7 +400,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "MFA verification failed",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return { error };
     }
@@ -370,7 +414,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast({
         title: "MFA disabled",
-        description: "Multi-factor authentication has been disabled."
+        description: "Multi-factor authentication has been disabled.",
       });
 
       return { error: null };
@@ -378,7 +422,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Failed to disable MFA",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return { error };
     }
@@ -397,27 +441,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      profile,
-      userRole,
-      subscriptionInfo,
-      loading,
-      needsOnboarding,
-      mfaChallenge,
-      signUp,
-      signIn,
-      signOut,
-      updateProfile,
-      completeOnboarding,
-      checkSubscription,
-      enrollMFA,
-      verifyMFA,
-      challengeMFA,
-      unenrollMFA,
-      getMFAFactors
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        profile,
+        userRole,
+        subscriptionInfo,
+        loading,
+        needsOnboarding,
+        mfaChallenge,
+        signUp,
+        signIn,
+        signOut,
+        updateProfile,
+        completeOnboarding,
+        checkSubscription,
+        enrollMFA,
+        verifyMFA,
+        challengeMFA,
+        unenrollMFA,
+        getMFAFactors,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -426,7 +472,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

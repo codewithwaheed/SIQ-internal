@@ -16,6 +16,7 @@ This guide outlines the secure deployment pipeline for SentrIQ, ensuring all sen
 ### Required Environment Variables
 
 #### Frontend (Vercel) - Public Variables
+
 ```bash
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
@@ -23,6 +24,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_... (or pk_test_... for staging)
 ```
 
 #### Backend (Supabase Edge Functions) - Private Variables
+
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
@@ -36,11 +38,12 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ### Environment Configuration
 
 #### Production Environment
+
 1. **Vercel Project Settings**:
    - Navigate to your project in Vercel dashboard
    - Go to Settings → Environment Variables
    - Add all `VITE_*` variables for Production environment
-   - Ensure sensitive variables (without VITE_ prefix) are NOT added to frontend
+   - Ensure sensitive variables (without VITE\_ prefix) are NOT added to frontend
 
 2. **Supabase Edge Functions**:
    - Access Supabase dashboard → Settings → Edge Functions
@@ -48,6 +51,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
    - All backend secrets are stored securely and never exposed to client
 
 #### Staging Environment
+
 - Use separate Supabase project for staging
 - Use Stripe test mode keys
 - Configure separate OAuth providers for testing
@@ -55,11 +59,13 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ## Security Configuration
 
 ### HTTPS Enforcement
+
 - Automatic SSL certificates via Vercel
 - HTTP to HTTPS redirects configured in `vercel.json`
 - HSTS headers enforced for browser security
 
 ### Security Headers
+
 The following security headers are automatically applied:
 
 - **Content Security Policy**: Restricts resource loading to trusted sources
@@ -69,7 +75,9 @@ The following security headers are automatically applied:
 - **Cross-Origin Policies**: Protects against cross-origin attacks
 
 ### Permissions Policy
+
 Restricted browser features:
+
 - Camera access disabled
 - Microphone access disabled
 - Geolocation access disabled
@@ -81,6 +89,7 @@ Restricted browser features:
 ### Automatic Deployment (Recommended)
 
 1. **GitHub Integration**:
+
    ```bash
    # Connect repository to Vercel
    # Every push to main branch triggers deployment
@@ -95,6 +104,7 @@ Restricted browser features:
 ### Manual Deployment
 
 1. **Build locally**:
+
    ```bash
    npm install
    npm run build
@@ -108,6 +118,7 @@ Restricted browser features:
 ## Pre-Deployment Checklist
 
 ### Security Verification
+
 - [ ] No secrets in Git repository
 - [ ] All environment variables configured
 - [ ] HTTPS enforcement working
@@ -115,6 +126,7 @@ Restricted browser features:
 - [ ] CSP policy allows required resources only
 
 ### Functionality Testing
+
 - [ ] Authentication flow works
 - [ ] File upload functionality
 - [ ] Payment processing
@@ -123,6 +135,7 @@ Restricted browser features:
 - [ ] Error handling
 
 ### Performance Optimization
+
 - [ ] Bundle size optimized
 - [ ] Images compressed
 - [ ] Caching headers configured
@@ -131,17 +144,20 @@ Restricted browser features:
 ## Monitoring and Maintenance
 
 ### Error Monitoring
+
 ```bash
 # Vercel provides built-in analytics and error tracking
 # Access via Vercel dashboard → Analytics/Functions
 ```
 
 ### Log Monitoring
+
 - Supabase provides real-time logs for edge functions
 - Vercel provides deployment and runtime logs
 - Set up alerts for critical errors
 
 ### Security Monitoring
+
 ```bash
 # Regular security audits
 npm audit
@@ -154,11 +170,13 @@ npm update
 ## Access Control
 
 ### Team Access
+
 - Limit Vercel project access to essential team members
 - Enable 2FA for all team accounts
 - Use principle of least privilege
 
 ### API Key Rotation
+
 1. Generate new keys in respective services
 2. Update environment variables
 3. Deploy to apply changes
@@ -167,21 +185,25 @@ npm update
 ## Backup and Recovery
 
 ### Database Backups
+
 - Supabase provides automatic daily backups
 - Enable point-in-time recovery if needed
 
 ### Code Repository
+
 - Ensure Git repository has proper access controls
 - Regular backups via GitHub
 
 ## Compliance Considerations
 
 ### Data Protection
+
 - All data encrypted in transit (HTTPS)
 - All data encrypted at rest (Supabase)
 - Regular security audits
 
 ### Audit Logging
+
 - User actions logged via audit_logs table
 - Authentication events tracked
 - File upload/download activities monitored
@@ -191,7 +213,7 @@ npm update
 ### Common Issues
 
 1. **Environment Variables Not Loading**:
-   - Verify variable names (VITE_ prefix for frontend)
+   - Verify variable names (VITE\_ prefix for frontend)
    - Check environment scope (Production/Preview)
    - Redeploy after adding variables
 
@@ -208,6 +230,7 @@ npm update
 ### Emergency Procedures
 
 1. **Immediate Security Issue**:
+
    ```bash
    # Disable deployment
    vercel project ls

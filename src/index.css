@@ -10,23 +10,23 @@ Based on exact brand colors and Poppins typography
   :root {
     /* === SPACING SCALE - USE ONLY THESE === */
     --space-0: 0;
-    --space-1: 4px;          /* xs gap */
-    --space-2: 8px;          /* sm gap */
-    --space-3: 12px;         /* md gap */
-    --space-4: 16px;         /* lg gap */
-    --space-5: 24px;         /* xl gap */
-    --space-6: 32px;         /* 2xl section gap */
+    --space-1: 4px; /* xs gap */
+    --space-2: 8px; /* sm gap */
+    --space-3: 12px; /* md gap */
+    --space-4: 16px; /* lg gap */
+    --space-5: 24px; /* xl gap */
+    --space-6: 32px; /* 2xl section gap */
 
     /* === CONTAINER + GRID === */
-    --page-max-w: 1040px;    /* desktop max */
+    --page-max-w: 1040px; /* desktop max */
     --page-side-pad: var(--space-5); /* 24px */
 
     /* Composer styling for floating card */
-    --composer-gap: 8px;                /* visual space under the floating card */
-    --composer-maxw: 860px;             /* max width for floating card */
-    --composer-side-gutter: 16px;       /* side padding on small screens */
-    --composer-h: 72px;                 /* default, will be updated at runtime */
-    
+    --composer-gap: 8px; /* visual space under the floating card */
+    --composer-maxw: 860px; /* max width for floating card */
+    --composer-side-gutter: 16px; /* side padding on small screens */
+    --composer-h: 72px; /* default, will be updated at runtime */
+
     /* Core backgrounds - clean and minimal */
     --background: 0 0% 100%;
     --foreground: 210 15% 15%;
@@ -76,9 +76,21 @@ Based on exact brand colors and Poppins typography
     --ring: 226 100% 53%;
 
     /* Modern gradients using brand colors */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--brand-blue)), hsl(var(--brand-medium-blue)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--brand-blue)) 0%, hsl(var(--brand-cyan)) 100%);
-    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(210 20% 99%));
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(var(--brand-blue)),
+      hsl(var(--brand-medium-blue))
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(var(--brand-blue)) 0%,
+      hsl(var(--brand-cyan)) 100%
+    );
+    --gradient-background: linear-gradient(
+      180deg,
+      hsl(var(--background)),
+      hsl(210 20% 99%)
+    );
 
     /* Clean shadows */
     --shadow-minimal: 0 1px 3px -1px hsl(210 15% 15% / 0.08);
@@ -105,9 +117,21 @@ Based on exact brand colors and Poppins typography
     --ring: 215 28% 17%;
 
     /* Security-themed gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(213 94% 75%));
-    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(215 20% 96%));
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(var(--primary)),
+      hsl(var(--primary-glow))
+    );
+    --gradient-accent: linear-gradient(
+      135deg,
+      hsl(var(--accent)),
+      hsl(213 94% 75%)
+    );
+    --gradient-background: linear-gradient(
+      180deg,
+      hsl(var(--background)),
+      hsl(215 20% 96%)
+    );
 
     /* Professional shadows */
     --shadow-subtle: 0 2px 8px -2px hsl(var(--primary) / 0.1);
@@ -173,14 +197,15 @@ Based on exact brand colors and Poppins typography
 }
 
 /* Layout System - Use dynamic viewport to avoid iOS 100vh bugs */
-html, body { 
-  height: 100%; 
+html,
+body {
+  height: 100%;
 }
 
 /* === PAGE SHELL === */
-.page { 
-  min-height: 100dvh; 
-  display: flex; 
+.page {
+  min-height: 100dvh;
+  display: flex;
   flex-direction: column;
   max-width: var(--page-max-w);
   margin-inline: auto;
@@ -206,11 +231,11 @@ main.app-content {
   z-index: 50;
   margin: 0;
   padding: 0;
-  background: transparent;            /* no bar behind the composer */
+  background: transparent; /* no bar behind the composer */
   display: flex;
   justify-content: center;
-  pointer-events: none;               /* clicks go to the inner card only */
-  padding-left: 256px;                /* Account for sidebar width on desktop */
+  pointer-events: none; /* clicks go to the inner card only */
+  padding-left: 256px; /* Account for sidebar width on desktop */
 }
 
 /* Adjust for collapsed sidebar or mobile */
@@ -221,7 +246,7 @@ main.app-content {
 }
 
 .sidebar-collapsed .chat-composer {
-  padding-left: 64px;                 /* Account for collapsed sidebar width */
+  padding-left: 64px; /* Account for collapsed sidebar width */
 }
 
 /* Floating composer card */
@@ -235,7 +260,9 @@ main.app-content {
   margin-bottom: calc(env(safe-area-inset-bottom) + var(--composer-gap));
   background: hsl(var(--background));
   border-radius: 16px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid hsl(var(--border));
 }
 
@@ -248,15 +275,15 @@ main.app-content {
 }
 
 /* Touch targets for mobile */
-.composer-shell button, 
+.composer-shell button,
 .composer-shell .icon-btn {
   min-height: 48px;
   min-width: 48px;
 }
 
 /* Ensure anchored elements don't land under composer */
-*[id] { 
-  scroll-margin-bottom: calc(var(--composer-h) + var(--composer-gap)); 
+*[id] {
+  scroll-margin-bottom: calc(var(--composer-h) + var(--composer-gap));
 }
 
 @layer base {
@@ -294,8 +321,8 @@ main.app-content {
 
   .section-card-warning {
     @apply section-card;
-    background: #FFF9EB;
-    border-color: #F59E0B;
+    background: #fff9eb;
+    border-color: #f59e0b;
   }
 
   /* === GRID HELPERS === */
@@ -318,18 +345,37 @@ main.app-content {
   }
 
   @media (max-width: 800px) {
-    .grid-2, .grid-3 {
+    .grid-2,
+    .grid-3 {
       grid-template-columns: 1fr;
     }
   }
 
   /* === FLEX HELPERS === */
-  .flex-gap-1 { display: flex; gap: var(--space-1); }
-  .flex-gap-2 { display: flex; gap: var(--space-2); }
-  .flex-gap-3 { display: flex; gap: var(--space-3); }
-  .flex-gap-4 { display: flex; gap: var(--space-4); }
-  .flex-gap-5 { display: flex; gap: var(--space-5); }
-  .flex-gap-6 { display: flex; gap: var(--space-6); }
+  .flex-gap-1 {
+    display: flex;
+    gap: var(--space-1);
+  }
+  .flex-gap-2 {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .flex-gap-3 {
+    display: flex;
+    gap: var(--space-3);
+  }
+  .flex-gap-4 {
+    display: flex;
+    gap: var(--space-4);
+  }
+  .flex-gap-5 {
+    display: flex;
+    gap: var(--space-5);
+  }
+  .flex-gap-6 {
+    display: flex;
+    gap: var(--space-6);
+  }
 
   /* === RESPONSIVE SPACING === */
   @media (max-width: 400px) {
@@ -342,84 +388,97 @@ main.app-content {
   .typing-indicator {
     @apply flex space-x-1 items-center;
   }
-  
+
   .typing-dot {
     @apply w-2 h-2 bg-muted-foreground rounded-full animate-pulse;
   }
-  
-  .typing-dot:nth-child(1) { animation-delay: 0ms; }
-  .typing-dot:nth-child(2) { animation-delay: 150ms; }
-  .typing-dot:nth-child(3) { animation-delay: 300ms; }
-  
+
+  .typing-dot:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .typing-dot:nth-child(2) {
+    animation-delay: 150ms;
+  }
+  .typing-dot:nth-child(3) {
+    animation-delay: 300ms;
+  }
+
   /* Progress Bar */
   .progress-bar {
     @apply w-full bg-secondary rounded-full h-2 overflow-hidden;
   }
-  
+
   .progress-fill {
     @apply h-full bg-accent transition-all duration-300 ease-out;
   }
-  
+
   /* Upload States */
   .upload-zone {
     @apply transition-all duration-200 ease-out;
   }
-  
+
   .upload-zone:hover {
     @apply scale-[1.02] shadow-md;
   }
-  
+
   .upload-zone.uploading {
     @apply border-accent bg-accent/5;
   }
-  
+
   /* Message Animations */
   .message-enter {
     @apply animate-fade-in;
   }
-  
+
   .message-success {
     @apply animate-pulse;
     animation-duration: 0.6s;
     animation-iteration-count: 2;
   }
-  
+
   /* Interaction Feedback */
   .button-press {
     @apply active:scale-95 transition-transform duration-100;
   }
-  
+
   .hover-lift {
     @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
   }
-  
+
   /* Context Indicators */
   .context-chip {
     @apply inline-flex items-center px-2 py-1 rounded-full bg-accent/10 text-accent text-xs border border-accent/20;
   }
-  
+
   .context-chip.active {
     @apply bg-accent text-accent-foreground;
   }
-  
+
   /* Notification Styles */
   .notification-enter {
     @apply animate-slide-in-right;
   }
-  
+
   .notification-exit {
     @apply animate-slide-out-right;
   }
-  
+
   /* Error States */
   .error-shake {
     animation: shake 0.5s ease-in-out;
   }
-  
+
   @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(5px);
+    }
   }
 }
 
@@ -469,7 +528,8 @@ main.app-content {
 }
 
 @keyframes pulse-success {
-  0%, 100% {
+  0%,
+  100% {
     background-color: inherit;
     border-color: inherit;
   }
@@ -481,8 +541,12 @@ main.app-content {
 
 /* Marquee Animation for Trusted By Section */
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
@@ -502,7 +566,8 @@ main.app-content {
 
 /* Scale-based pulse animation for logo */
 @keyframes pulse-scale {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -521,7 +586,7 @@ main.app-content {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  
+
   .logo-marquee::-webkit-scrollbar {
     display: none;
   }

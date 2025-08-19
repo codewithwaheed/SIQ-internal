@@ -1,10 +1,10 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { UnifiedHeader } from '@/components/ui/unified-header';
-import { AdminDashboard as AdminDashboardComponent } from '@/components/admin/AdminDashboard';
+import { UnifiedHeader } from "@/components/ui/unified-header";
+import { AdminDashboard as AdminDashboardComponent } from "@/components/admin/AdminDashboard";
 
 const AdminDashboard = () => {
   const { user, userRole, loading } = useAuth();
@@ -24,7 +24,7 @@ const AdminDashboard = () => {
   }
 
   // Check if user is admin
-  if (userRole !== 'admin') {
+  if (userRole !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -32,10 +32,10 @@ const AdminDashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen bg-gradient-background flex w-full">
         <AppSidebar />
-        
+
         <div className="flex-1 flex flex-col">
           <UnifiedHeader context="dashboard" />
-          
+
           <main className="flex-1 overflow-hidden">
             <div className="container mx-auto p-6 space-y-6 h-full overflow-y-auto">
               <AdminDashboardComponent />

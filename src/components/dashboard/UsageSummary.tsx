@@ -1,12 +1,24 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, FileText, AlertTriangle, TrendingUp, CreditCard } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  MessageSquare,
+  FileText,
+  AlertTriangle,
+  TrendingUp,
+  CreditCard,
+} from "lucide-react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 
 interface UsageStats {
   chatsThisMonth: number;
@@ -31,7 +43,9 @@ export function UsageSummary() {
     escalationsThisMonth: 0,
     totalEscalations: 0,
   });
-  const [recentEscalations, setRecentEscalations] = useState<EscalationWithTimestamp[]>([]);
+  const [recentEscalations, setRecentEscalations] = useState<
+    EscalationWithTimestamp[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,40 +64,40 @@ export function UsageSummary() {
 
       // Fetch chats this month
       const { count: chatsCount } = await supabase
-        .from('chat_conversations')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', monthStart.toISOString())
-        .lte('created_at', monthEnd.toISOString());
+        .from("chat_conversations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", monthStart.toISOString())
+        .lte("created_at", monthEnd.toISOString());
 
       // Fetch uploads this month
       const { count: uploadsCount } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('uploaded_at', monthStart.toISOString())
-        .lte('uploaded_at', monthEnd.toISOString());
+        .from("documents")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("uploaded_at", monthStart.toISOString())
+        .lte("uploaded_at", monthEnd.toISOString());
 
       // Fetch escalations this month
       const { count: escalationsThisMonth } = await supabase
-        .from('escalations')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', monthStart.toISOString())
-        .lte('created_at', monthEnd.toISOString());
+        .from("escalations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", monthStart.toISOString())
+        .lte("created_at", monthEnd.toISOString());
 
       // Fetch total escalations
       const { count: totalEscalations } = await supabase
-        .from('escalations')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .from("escalations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
       // Fetch recent escalations with timestamps
       const { data: escalationsData } = await supabase
-        .from('escalations')
-        .select('id, reason, status, created_at, priority')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .from("escalations")
+        .select("id, reason, status, created_at, priority")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
         .limit(5);
 
       setStats({
@@ -95,7 +109,7 @@ export function UsageSummary() {
 
       setRecentEscalations(escalationsData || []);
     } catch (error) {
-      console.error('Error fetching usage stats:', error);
+      console.error("Error fetching usage stats:", error);
     } finally {
       setLoading(false);
     }
@@ -103,11 +117,11 @@ export function UsageSummary() {
 
   const getSubscriptionLimits = () => {
     switch (subscriptionInfo?.subscription_tier) {
-      case 'Basic':
+      case "Basic":
         return { chats: 50, uploads: 5, escalations: 2 };
-      case 'Premium':
+      case "Premium":
         return { chats: 200, uploads: 25, escalations: 10 };
-      case 'Pro':
+      case "Pro":
         return { chats: 1000, uploads: 100, escalations: 50 };
       default:
         return { chats: 5, uploads: 1, escalations: 0 };
@@ -115,7 +129,8 @@ export function UsageSummary() {
   };
 
   const limits = getSubscriptionLimits();
-  const isApproachingLimit = (used: number, limit: number) => used / limit > 0.8;
+  const isApproachingLimit = (used: number, limit: number) =>
+    used / limit > 0.8;
 
   if (loading) {
     return (
@@ -129,7 +144,9 @@ export function UsageSummary() {
     <div className="page">
       <div className="page-title">
         <h1 className="text-2xl font-bold tracking-tight">Usage Summary</h1>
-        <p className="text-muted-foreground">Monitor your account usage and subscription details</p>
+        <p className="text-muted-foreground">
+          Monitor your account usage and subscription details
+        </p>
       </div>
 
       {/* Subscription Status */}
@@ -139,14 +156,15 @@ export function UsageSummary() {
           <h2 className="text-lg font-semibold">Subscription Status</h2>
         </div>
         <div className="flex items-center gap-4">
-          <Badge variant={subscriptionInfo?.subscribed ? "default" : "secondary"}>
+          <Badge
+            variant={subscriptionInfo?.subscribed ? "default" : "secondary"}
+          >
             {subscriptionInfo?.subscription_tier || "Free"}
           </Badge>
           <span className="text-sm text-muted-foreground">
-            {subscriptionInfo?.subscription_end 
-              ? `Renews ${format(new Date(subscriptionInfo.subscription_end), 'MMM dd, yyyy')}`
-              : "No active subscription"
-            }
+            {subscriptionInfo?.subscription_end
+              ? `Renews ${format(new Date(subscriptionInfo.subscription_end), "MMM dd, yyyy")}`
+              : "No active subscription"}
           </span>
         </div>
       </div>
@@ -160,8 +178,8 @@ export function UsageSummary() {
           </div>
           <div className="text-2xl font-bold">{stats.chatsThisMonth}</div>
           <div className="space-y-2">
-            <Progress 
-              value={(stats.chatsThisMonth / limits.chats) * 100} 
+            <Progress
+              value={(stats.chatsThisMonth / limits.chats) * 100}
               className="h-2"
             />
             <p className="text-xs text-muted-foreground">
@@ -180,8 +198,8 @@ export function UsageSummary() {
           </div>
           <div className="text-2xl font-bold">{stats.uploadsThisMonth}</div>
           <div className="space-y-2">
-            <Progress 
-              value={(stats.uploadsThisMonth / limits.uploads) * 100} 
+            <Progress
+              value={(stats.uploadsThisMonth / limits.uploads) * 100}
               className="h-2"
             />
             <p className="text-xs text-muted-foreground">
@@ -200,13 +218,16 @@ export function UsageSummary() {
           </div>
           <div className="text-2xl font-bold">{stats.escalationsThisMonth}</div>
           <div className="space-y-2">
-            <Progress 
-              value={(stats.escalationsThisMonth / limits.escalations) * 100} 
+            <Progress
+              value={(stats.escalationsThisMonth / limits.escalations) * 100}
               className="h-2"
             />
             <p className="text-xs text-muted-foreground">
               {stats.escalationsThisMonth} of {limits.escalations} used
-              {isApproachingLimit(stats.escalationsThisMonth, limits.escalations) && (
+              {isApproachingLimit(
+                stats.escalationsThisMonth,
+                limits.escalations,
+              ) && (
                 <span className="text-amber-500 ml-1">• Approaching limit</span>
               )}
             </p>
@@ -218,19 +239,33 @@ export function UsageSummary() {
       {recentEscalations.length > 0 && (
         <div className="section-card">
           <h2 className="text-lg font-semibold">Recent Escalations</h2>
-          <p className="text-muted-foreground text-sm">Your latest expert consultation requests</p>
+          <p className="text-muted-foreground text-sm">
+            Your latest expert consultation requests
+          </p>
           <div className="space-y-3">
             {recentEscalations.map((escalation) => (
-              <div key={escalation.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div
+                key={escalation.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
                 <div className="flex-1">
-                  <p className="font-medium text-sm">{escalation.reason || 'Consultation Request'}</p>
+                  <p className="font-medium text-sm">
+                    {escalation.reason || "Consultation Request"}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    {format(new Date(escalation.created_at), 'MMM dd, yyyy at HH:mm')}
+                    {format(
+                      new Date(escalation.created_at),
+                      "MMM dd, yyyy at HH:mm",
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge 
-                    variant={escalation.priority === 'high' ? 'destructive' : 'secondary'}
+                  <Badge
+                    variant={
+                      escalation.priority === "high"
+                        ? "destructive"
+                        : "secondary"
+                    }
                     className="text-xs"
                   >
                     {escalation.priority}
@@ -246,8 +281,8 @@ export function UsageSummary() {
       )}
 
       {/* Upgrade CTA */}
-      {(isApproachingLimit(stats.chatsThisMonth, limits.chats) || 
-        isApproachingLimit(stats.uploadsThisMonth, limits.uploads) || 
+      {(isApproachingLimit(stats.chatsThisMonth, limits.chats) ||
+        isApproachingLimit(stats.uploadsThisMonth, limits.uploads) ||
         isApproachingLimit(stats.escalationsThisMonth, limits.escalations)) && (
         <div className="section-card-warning">
           <div className="flex items-center gap-2 text-amber-800">
@@ -255,11 +290,10 @@ export function UsageSummary() {
             <h2 className="text-lg font-semibold">Approaching Usage Limits</h2>
           </div>
           <p className="text-amber-700 text-sm">
-            You're close to reaching your monthly limits. Consider upgrading your plan for more features.
+            You're close to reaching your monthly limits. Consider upgrading
+            your plan for more features.
           </p>
-          <Button className="w-full sm:w-auto">
-            Upgrade Plan
-          </Button>
+          <Button className="w-full sm:w-auto">Upgrade Plan</Button>
         </div>
       )}
     </div>

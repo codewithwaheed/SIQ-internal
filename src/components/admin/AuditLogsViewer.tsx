@@ -1,24 +1,36 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Activity, 
-  Search, 
-  Filter, 
-  RefreshCw, 
+import {
+  Activity,
+  Search,
+  Filter,
+  RefreshCw,
   Download,
   Calendar,
   User,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
 } from "lucide-react";
 
 interface AuditLog {
@@ -53,16 +65,16 @@ export function AuditLogsViewer() {
     page: 1,
     limit: 50,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   });
 
   // Filters
   const [filters, setFilters] = useState({
-    action: 'all',
-    user_id: '',
-    start_date: '',
-    end_date: '',
-    search: ''
+    action: "all",
+    user_id: "",
+    start_date: "",
+    end_date: "",
+    search: "",
   });
 
   const fetchAuditLogs = async (page = 1) => {
@@ -74,17 +86,22 @@ export function AuditLogsViewer() {
         page: page.toString(),
         limit: pagination.limit.toString(),
         ...Object.fromEntries(
-          Object.entries(filters).filter(([key, value]) => value !== '' && value !== 'all')
-        )
+          Object.entries(filters).filter(
+            ([key, value]) => value !== "" && value !== "all",
+          ),
+        ),
       });
 
-      const { data, error } = await supabase.functions.invoke('admin-audit-logs', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
+      const { data, error } = await supabase.functions.invoke(
+        "admin-audit-logs",
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: {},
+          method: "GET",
         },
-        body: {},
-        method: 'GET'
-      });
+      );
 
       if (error) throw error;
 
@@ -92,11 +109,11 @@ export function AuditLogsViewer() {
       setLogs(response.logs || []);
       setPagination(response.pagination);
     } catch (error: any) {
-      console.error('Error fetching audit logs:', error);
+      console.error("Error fetching audit logs:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to fetch audit logs",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -108,7 +125,7 @@ export function AuditLogsViewer() {
   }, [session]);
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const applyFilters = () => {
@@ -117,11 +134,11 @@ export function AuditLogsViewer() {
 
   const clearFilters = () => {
     setFilters({
-      action: 'all',
-      user_id: '',
-      start_date: '',
-      end_date: '',
-      search: ''
+      action: "all",
+      user_id: "",
+      start_date: "",
+      end_date: "",
+      search: "",
     });
     fetchAuditLogs(1);
   };
@@ -129,24 +146,32 @@ export function AuditLogsViewer() {
   const exportLogs = async () => {
     try {
       // Create CSV content
-      const headers = ['Timestamp', 'User ID', 'Action', 'Description', 'IP Address'];
+      const headers = [
+        "Timestamp",
+        "User ID",
+        "Action",
+        "Description",
+        "IP Address",
+      ];
       const csvContent = [
-        headers.join(','),
-        ...logs.map(log => [
-          new Date(log.timestamp).toISOString(),
-          log.user_id || 'System',
-          log.action,
-          `"${log.description.replace(/"/g, '""')}"`, // Escape quotes
-          log.ip_address || 'Unknown'
-        ].join(','))
-      ].join('\n');
+        headers.join(","),
+        ...logs.map((log) =>
+          [
+            new Date(log.timestamp).toISOString(),
+            log.user_id || "System",
+            log.action,
+            `"${log.description.replace(/"/g, '""')}"`, // Escape quotes
+            log.ip_address || "Unknown",
+          ].join(","),
+        ),
+      ].join("\n");
 
       // Download CSV
-      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const blob = new Blob([csvContent], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `audit-logs-${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -154,45 +179,44 @@ export function AuditLogsViewer() {
 
       toast({
         title: "Export successful",
-        description: "Audit logs have been exported to CSV"
+        description: "Audit logs have been exported to CSV",
       });
     } catch (error) {
       toast({
         title: "Export failed",
         description: "Failed to export audit logs",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const getActionBadge = (action: string) => {
-    const style = {
-      'LOGIN_SUCCESS': 'bg-green-100 text-green-800',
-      'LOGIN_FAILURE': 'bg-red-100 text-red-800',
-      'LOGOUT': 'bg-gray-100 text-gray-800',
-      'FILE_UPLOADED': 'bg-blue-100 text-blue-800',
-      'ESCALATION_REQUESTED': 'bg-yellow-100 text-yellow-800',
-      'ESCALATION_RESOLVED': 'bg-green-100 text-green-800',
-      'SUBSCRIPTION_UPDATED': 'bg-purple-100 text-purple-800',
-      'ADMIN_ACTION': 'bg-orange-100 text-orange-800',
-      'SYSTEM_EVENT': 'bg-gray-100 text-gray-800'
-    }[action] || 'bg-gray-100 text-gray-800';
+    const style =
+      {
+        LOGIN_SUCCESS: "bg-green-100 text-green-800",
+        LOGIN_FAILURE: "bg-red-100 text-red-800",
+        LOGOUT: "bg-gray-100 text-gray-800",
+        FILE_UPLOADED: "bg-blue-100 text-blue-800",
+        ESCALATION_REQUESTED: "bg-yellow-100 text-yellow-800",
+        ESCALATION_RESOLVED: "bg-green-100 text-green-800",
+        SUBSCRIPTION_UPDATED: "bg-purple-100 text-purple-800",
+        ADMIN_ACTION: "bg-orange-100 text-orange-800",
+        SYSTEM_EVENT: "bg-gray-100 text-gray-800",
+      }[action] || "bg-gray-100 text-gray-800";
 
     return (
-      <Badge className={`${style} border-0`}>
-        {action.replace(/_/g, ' ')}
-      </Badge>
+      <Badge className={`${style} border-0`}>{action.replace(/_/g, " ")}</Badge>
     );
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    return new Date(timestamp).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   };
 
@@ -209,7 +233,10 @@ export function AuditLogsViewer() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => fetchAuditLogs(pagination.page)}>
+          <Button
+            variant="outline"
+            onClick={() => fetchAuditLogs(pagination.page)}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -232,7 +259,10 @@ export function AuditLogsViewer() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="text-sm font-medium">Action Type</label>
-              <Select value={filters.action} onValueChange={(value) => handleFilterChange('action', value)}>
+              <Select
+                value={filters.action}
+                onValueChange={(value) => handleFilterChange("action", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="All actions" />
                 </SelectTrigger>
@@ -241,8 +271,12 @@ export function AuditLogsViewer() {
                   <SelectItem value="LOGIN_SUCCESS">Login Success</SelectItem>
                   <SelectItem value="LOGIN_FAILURE">Login Failure</SelectItem>
                   <SelectItem value="FILE_UPLOADED">File Upload</SelectItem>
-                  <SelectItem value="ESCALATION_REQUESTED">Escalation</SelectItem>
-                  <SelectItem value="SUBSCRIPTION_UPDATED">Subscription</SelectItem>
+                  <SelectItem value="ESCALATION_REQUESTED">
+                    Escalation
+                  </SelectItem>
+                  <SelectItem value="SUBSCRIPTION_UPDATED">
+                    Subscription
+                  </SelectItem>
                   <SelectItem value="ADMIN_ACTION">Admin Action</SelectItem>
                 </SelectContent>
               </Select>
@@ -253,7 +287,7 @@ export function AuditLogsViewer() {
               <Input
                 placeholder="Enter user ID"
                 value={filters.user_id}
-                onChange={(e) => handleFilterChange('user_id', e.target.value)}
+                onChange={(e) => handleFilterChange("user_id", e.target.value)}
               />
             </div>
 
@@ -262,7 +296,9 @@ export function AuditLogsViewer() {
               <Input
                 type="datetime-local"
                 value={filters.start_date}
-                onChange={(e) => handleFilterChange('start_date', e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("start_date", e.target.value)
+                }
               />
             </div>
 
@@ -271,7 +307,7 @@ export function AuditLogsViewer() {
               <Input
                 type="datetime-local"
                 value={filters.end_date}
-                onChange={(e) => handleFilterChange('end_date', e.target.value)}
+                onChange={(e) => handleFilterChange("end_date", e.target.value)}
               />
             </div>
 

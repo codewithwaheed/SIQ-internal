@@ -6,14 +6,14 @@ const PLACEHOLDER_REGEX = /\{\{([a-z0-9_]+)\}\}/gi;
 export function findPlaceholders(template: string): string[] {
   const placeholders = new Set<string>();
   let match;
-  
+
   // Reset regex to ensure we find all matches
   PLACEHOLDER_REGEX.lastIndex = 0;
-  
+
   while ((match = PLACEHOLDER_REGEX.exec(template)) !== null) {
     placeholders.add(match[1]);
   }
-  
+
   return Array.from(placeholders);
 }
 
@@ -22,26 +22,27 @@ export function findPlaceholders(template: string): string[] {
  * v2.0: Optionally excludes reserved tokens
  */
 export async function findMissingPlaceholders(
-  template: string, 
+  template: string,
   context: Record<string, any>,
-  excludeReserved: boolean = false
+  excludeReserved: boolean = false,
 ): Promise<string[]> {
   const allPlaceholders = findPlaceholders(template);
   let filteredPlaceholders = allPlaceholders;
-  
+
   // Filter out reserved tokens if requested
   if (excludeReserved) {
     // Dynamic import to avoid circular dependency
-    const { isReservedToken } = await import('@/config/defaults');
-    filteredPlaceholders = allPlaceholders.filter(placeholder => 
-      !isReservedToken(placeholder)
+    const { isReservedToken } = await import("@/config/defaults");
+    filteredPlaceholders = allPlaceholders.filter(
+      (placeholder) => !isReservedToken(placeholder),
     );
   }
-  
-  return filteredPlaceholders.filter(placeholder => 
-    context[placeholder] === undefined || 
-    context[placeholder] === null || 
-    context[placeholder] === ''
+
+  return filteredPlaceholders.filter(
+    (placeholder) =>
+      context[placeholder] === undefined ||
+      context[placeholder] === null ||
+      context[placeholder] === "",
   );
 }
 
@@ -52,11 +53,11 @@ export async function findMissingPlaceholders(
 export function groupMissingFields(missingFields: string[]): string[][] {
   const groups: string[][] = [];
   const maxPerGroup = 3;
-  
+
   for (let i = 0; i < missingFields.length; i += maxPerGroup) {
     groups.push(missingFields.slice(i, i + maxPerGroup));
   }
-  
+
   return groups;
 }
 
@@ -65,9 +66,9 @@ export function groupMissingFields(missingFields: string[]): string[][] {
  */
 export function humanizeFieldName(fieldName: string): string {
   return fieldName
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 /**
@@ -79,32 +80,36 @@ export function validateTemplateStructure(template: string): {
   extraHeadings: string[];
 } {
   const requiredHeadings = [
-    'Introduction',
-    'Purpose', 
-    'Scope',
-    'Definitions',
-    'Policy Statement',
-    'Procedures',
-    'Responsibilities',
-    'Consequences of Non-Compliance',
-    'References',
-    'Revision History'
+    "Introduction",
+    "Purpose",
+    "Scope",
+    "Definitions",
+    "Policy Statement",
+    "Procedures",
+    "Responsibilities",
+    "Consequences of Non-Compliance",
+    "References",
+    "Revision History",
   ];
-  
+
   const headingRegex = /^\*\*([^*]+)\*\*\s*$/gm;
   const foundHeadings = [];
   let match;
-  
+
   while ((match = headingRegex.exec(template)) !== null) {
     foundHeadings.push(match[1].trim());
   }
-  
-  const missingHeadings = requiredHeadings.filter(h => !foundHeadings.includes(h));
-  const extraHeadings = foundHeadings.filter(h => !requiredHeadings.includes(h));
-  
+
+  const missingHeadings = requiredHeadings.filter(
+    (h) => !foundHeadings.includes(h),
+  );
+  const extraHeadings = foundHeadings.filter(
+    (h) => !requiredHeadings.includes(h),
+  );
+
   return {
     isValid: missingHeadings.length === 0,
     missingHeadings,
-    extraHeadings
+    extraHeadings,
   };
 }

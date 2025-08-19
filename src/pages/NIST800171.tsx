@@ -1,14 +1,20 @@
-import { UnifiedHeader } from '@/components/ui/unified-header';
-import { Footer } from '@/components/ui/footer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Shield, Users, FileText } from 'lucide-react';
+import { UnifiedHeader } from "@/components/ui/unified-header";
+import { Footer } from "@/components/ui/footer";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Shield, Users, FileText } from "lucide-react";
 
 const NIST800171 = () => {
   return (
     <div className="min-h-screen bg-background">
       <UnifiedHeader context="public" showAuth />
-      
+
       <main className="pt-24 pb-12">
         <div className="max-w-4xl mx-auto px-6">
           {/* Hero Section */}
@@ -21,7 +27,8 @@ const NIST800171 = () => {
               NIST 800-171 Compliance
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Protecting Controlled Unclassified Information (CUI) in nonfederal systems and organizations
+              Protecting Controlled Unclassified Information (CUI) in nonfederal
+              systems and organizations
             </p>
           </div>
 
@@ -35,9 +42,11 @@ const NIST800171 = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                NIST Special Publication 800-171 provides guidelines for protecting Controlled Unclassified Information (CUI) 
-                in nonfederal systems and organizations. It's essential for organizations that handle federal contract information 
-                or work with government agencies.
+                NIST Special Publication 800-171 provides guidelines for
+                protecting Controlled Unclassified Information (CUI) in
+                nonfederal systems and organizations. It's essential for
+                organizations that handle federal contract information or work
+                with government agencies.
               </p>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
@@ -91,28 +100,32 @@ const NIST800171 = () => {
             <CardHeader>
               <CardTitle>14 Control Families</CardTitle>
               <CardDescription>
-                NIST 800-171 organizes security requirements into 14 control families
+                NIST 800-171 organizes security requirements into 14 control
+                families
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-4">
                 {[
-                  'Access Control (AC)',
-                  'Awareness and Training (AT)',
-                  'Audit and Accountability (AU)',
-                  'Configuration Management (CM)',
-                  'Identification and Authentication (IA)',
-                  'Incident Response (IR)',
-                  'Maintenance (MA)',
-                  'Media Protection (MP)',
-                  'Personnel Security (PS)',
-                  'Physical Protection (PE)',
-                  'Risk Assessment (RA)',
-                  'Security Assessment (CA)',
-                  'System and Communications Protection (SC)',
-                  'System and Information Integrity (SI)'
+                  "Access Control (AC)",
+                  "Awareness and Training (AT)",
+                  "Audit and Accountability (AU)",
+                  "Configuration Management (CM)",
+                  "Identification and Authentication (IA)",
+                  "Incident Response (IR)",
+                  "Maintenance (MA)",
+                  "Media Protection (MP)",
+                  "Personnel Security (PS)",
+                  "Physical Protection (PE)",
+                  "Risk Assessment (RA)",
+                  "Security Assessment (CA)",
+                  "System and Communications Protection (SC)",
+                  "System and Information Integrity (SI)",
                 ].map((control, index) => (
-                  <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg"
+                  >
                     <Shield className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium">{control}</span>
                   </div>
@@ -124,9 +137,12 @@ const NIST800171 = () => {
           {/* CTA */}
           <Card>
             <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">Need Help with NIST 800-171 Compliance?</h3>
+              <h3 className="text-2xl font-bold mb-4">
+                Need Help with NIST 800-171 Compliance?
+              </h3>
               <p className="text-muted-foreground mb-6">
-                Our AI-powered platform can help you understand requirements, implement controls, and maintain compliance.
+                Our AI-powered platform can help you understand requirements,
+                implement controls, and maintain compliance.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a

@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { FileText, Download, Save, CheckCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { humanizeFieldName } from '@/lib/placeholderScanner';
-import { supabase } from '@/integrations/supabase/client';
-import { MissingFieldCard, getFieldPlaceholder } from './MissingFieldCard';
-import { Document, Packer, Paragraph } from 'docx';
-import { sanitizePolicyContent, createSafeHtml } from '@/lib/sanitization';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { FileText, Download, Save, CheckCircle } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { humanizeFieldName } from "@/lib/placeholderScanner";
+import { supabase } from "@/integrations/supabase/client";
+import { MissingFieldCard, getFieldPlaceholder } from "./MissingFieldCard";
+import { Document, Packer, Paragraph } from "docx";
+import { sanitizePolicyContent, createSafeHtml } from "@/lib/sanitization";
 
-type MissingField = { key: string; label: string; placeholder?: string; };
+type MissingField = { key: string; label: string; placeholder?: string };
 
 interface PolicyGenerationInterfaceProps {
   policyType: string;
@@ -25,7 +25,9 @@ interface PolicyGenerationInterfaceProps {
   messageId?: string;
 }
 
-export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps> = ({
+export const PolicyGenerationInterface: React.FC<
+  PolicyGenerationInterfaceProps
+> = ({
   policyType,
   policyTitle,
   missingFields,
@@ -35,7 +37,7 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
   isGenerating = false,
   generatedPolicy,
   templateUsed,
-  messageId
+  messageId,
 }) => {
   // v2.0 State shape for max 3 fields per turn with enhanced field info
   const [queue, setQueue] = useState<MissingField[]>([]);
@@ -46,10 +48,10 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
 
   // Initialize queue from missing fields with placeholders
   useEffect(() => {
-    const initialMissing = missingFields.map(key => ({
+    const initialMissing = missingFields.map((key) => ({
       key,
       label: humanizeFieldName(key),
-      placeholder: getFieldPlaceholder(key)
+      placeholder: getFieldPlaceholder(key),
     }));
     setQueue(initialMissing);
   }, [missingFields]);
@@ -58,7 +60,7 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
   function askNext() {
     const next = queue.slice(0, 3);
     setAsking(next);
-    setQueue(prev => prev.slice(next.length));
+    setQueue((prev) => prev.slice(next.length));
   }
 
   useEffect(() => {
@@ -95,10 +97,10 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
   // Save policy to database
   const handleSavePolicy = async () => {
     if (!generatedPolicy) return;
-    
+
     setIsSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke('save-policy', {
+      const { data, error } = await supabase.functions.invoke("save-policy", {
         body: {
           title: policyTitle,
           policyType: policyType,
@@ -106,24 +108,24 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
           templateUsed: templateUsed,
           metadata: {
             messageId: messageId,
-            savedAt: new Date().toISOString()
-          }
-        }
+            savedAt: new Date().toISOString(),
+          },
+        },
       });
 
       if (error) throw error;
-      
+
       setIsSaved(true);
       toast({
         title: "Policy saved",
-        description: "Policy has been saved to your organization's library"
+        description: "Policy has been saved to your organization's library",
       });
     } catch (error) {
-      console.error('Error saving policy:', error);
+      console.error("Error saving policy:", error);
       toast({
         title: "Save failed",
         description: "Could not save policy to database",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
@@ -131,53 +133,55 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
   };
 
   // Export functionality - create properly formatted documents
-  const handleExport = async (format: 'pdf' | 'docx') => {
+  const handleExport = async (format: "pdf" | "docx") => {
     if (!generatedPolicy) return;
 
     try {
       // Remove HTML tags and create clean content
       const cleanContent = generatedPolicy
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/<[^>]*>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
         .trim();
 
       const formattedContent = `${policyTitle}\n\n${cleanContent}`;
 
       let blob: Blob;
-      let extension: 'pdf' | 'docx';
+      let extension: "pdf" | "docx";
       const mimeType =
-        format === 'pdf'
-          ? 'application/pdf'
-          : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        format === "pdf"
+          ? "application/pdf"
+          : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-      if (format === 'pdf') {
-        const { jsPDF } = await import('jspdf');
+      if (format === "pdf") {
+        const { jsPDF } = await import("jspdf");
         const pdf = new jsPDF();
         const lines = pdf.splitTextToSize(formattedContent, 180);
         pdf.text(lines, 10, 10);
-        const arrayBuffer = pdf.output('arraybuffer');
+        const arrayBuffer = pdf.output("arraybuffer");
         blob = new Blob([arrayBuffer], { type: mimeType });
-        extension = 'pdf';
+        extension = "pdf";
       } else {
         const doc = new Document({
           sections: [
             {
               properties: {},
-              children: formattedContent.split('\n').map(line => new Paragraph(line))
-            }
-          ]
+              children: formattedContent
+                .split("\n")
+                .map((line) => new Paragraph(line)),
+            },
+          ],
         });
         blob = await Packer.toBlob(doc);
-        extension = 'docx';
+        extension = "docx";
       }
 
-      const element = document.createElement('a');
+      const element = document.createElement("a");
       element.href = URL.createObjectURL(blob);
-      element.download = `${policyType.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.${extension}`;
+      element.download = `${policyType.replace(/[^a-z0-9]/gi, "_")}_${new Date().toISOString().split("T")[0]}.${extension}`;
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
@@ -185,7 +189,7 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
 
       toast({
         title: "Export successful",
-        description: `Policy exported as ${extension.toUpperCase()} document`
+        description: `Policy exported as ${extension.toUpperCase()} document`,
       });
     } catch (error) {
       toast({
@@ -221,9 +225,14 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
         {generatedPolicy && generatedPolicy.trim() && (
           <div className="policy-wrapper" data-msg-id={messageId}>
             <div className="policy-body prose max-w-none text-sm">
-              <div dangerouslySetInnerHTML={createSafeHtml(sanitizePolicyContent(generatedPolicy), 'html')} />
+              <div
+                dangerouslySetInnerHTML={createSafeHtml(
+                  sanitizePolicyContent(generatedPolicy),
+                  "html",
+                )}
+              />
             </div>
-            
+
             {/* Action buttons outside markdown container */}
             <div className="action-row flex gap-3 mt-6 pt-4 border-t border-border max-sm:flex-col">
               {/* Save to database button */}
@@ -251,10 +260,10 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
                   </>
                 )}
               </Button>
-              
+
               {/* Export buttons */}
               <Button
-                onClick={() => handleExport('pdf')}
+                onClick={() => handleExport("pdf")}
                 variant="outline"
                 className="export-btn flex items-center gap-2 max-sm:w-full"
                 size="sm"
@@ -263,7 +272,7 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
                 Download PDF
               </Button>
               <Button
-                onClick={() => handleExport('docx')}
+                onClick={() => handleExport("docx")}
                 variant="outline"
                 className="export-btn flex items-center gap-2 max-sm:w-full"
                 size="sm"
@@ -278,7 +287,9 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
         {isGenerating && (
           <div className="text-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground mt-2">Generating policy...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Generating policy...
+            </p>
           </div>
         )}
       </CardContent>

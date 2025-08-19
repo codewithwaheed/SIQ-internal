@@ -1,17 +1,21 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import { ConsultantDashboardMain } from '@/components/consultant/ConsultantDashboardMain';
-import { UnifiedHeader } from '@/components/ui/unified-header';
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import { ConsultantDashboardMain } from "@/components/consultant/ConsultantDashboardMain";
+import { UnifiedHeader } from "@/components/ui/unified-header";
 
 const ConsultantDashboard = () => {
   const { userRole, loading } = useAuth();
 
   if (loading) {
-    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   // Redirect non-consultants to regular dashboard
-  if (userRole !== 'consultant' && userRole !== 'admin') {
+  if (userRole !== "consultant" && userRole !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
 

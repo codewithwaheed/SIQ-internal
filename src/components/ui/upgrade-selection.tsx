@@ -1,10 +1,21 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Crown, Zap } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Check, Crown, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UpgradeSelectionProps {
   open: boolean;
@@ -14,64 +25,71 @@ interface UpgradeSelectionProps {
 // Use the same pricing data as PricingSection for consistency
 const plans = [
   {
-    id: 'pro',
-    name: 'Pro',
-    price: '$49',
-    period: '/month',
-    description: 'For generating cybersecurity policies and receiving occasional expert guidance',
+    id: "pro",
+    name: "Pro",
+    price: "$49",
+    period: "/month",
+    description:
+      "For generating cybersecurity policies and receiving occasional expert guidance",
     icon: <Crown className="w-6 h-6 text-blue-500" />,
     features: [
-      'Everything in Basic',
-      'Upload up to 5 documents/month',
-      'Get AI-generated policies, templates, and framework mappings',
-      '1 escalation per month to a human consultant',
-      'Priority AI support with enhanced memory',
-      'Cancel anytime'
+      "Everything in Basic",
+      "Upload up to 5 documents/month",
+      "Get AI-generated policies, templates, and framework mappings",
+      "1 escalation per month to a human consultant",
+      "Priority AI support with enhanced memory",
+      "Cancel anytime",
     ],
     popular: true,
-    stripePriceId: 'price_pro_monthly'
+    stripePriceId: "price_pro_monthly",
   },
   {
-    id: 'executive',
-    name: 'Executive',
-    price: '$149',
-    period: '/month',
-    description: 'For ongoing advisory and access to a dedicated expert',
+    id: "executive",
+    name: "Executive",
+    price: "$149",
+    period: "/month",
+    description: "For ongoing advisory and access to a dedicated expert",
     icon: <Zap className="w-6 h-6 text-purple-500" />,
     features: [
-      'Everything in Pro',
-      'Upload unlimited documents',
-      '2 live consultation calls/month (up to 60 minutes total)',
-      'Escalations reviewed within 1 business day',
-      'Monthly compliance posture review',
-      'Consultant-reviewed documents with actionable comments',
-      'Cancel anytime'
+      "Everything in Pro",
+      "Upload unlimited documents",
+      "2 live consultation calls/month (up to 60 minutes total)",
+      "Escalations reviewed within 1 business day",
+      "Monthly compliance posture review",
+      "Consultant-reviewed documents with actionable comments",
+      "Cancel anytime",
     ],
     popular: false,
-    stripePriceId: 'price_executive_monthly'
-  }
+    stripePriceId: "price_executive_monthly",
+  },
 ];
 
-export function UpgradeSelection({ open, onOpenChange }: UpgradeSelectionProps) {
+export function UpgradeSelection({
+  open,
+  onOpenChange,
+}: UpgradeSelectionProps) {
   const [loading, setLoading] = React.useState<string | null>(null);
 
   const handleUpgrade = async (priceId: string, planName: string) => {
     setLoading(planName);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId }
-      });
-      
+      const { data, error } = await supabase.functions.invoke(
+        "create-checkout",
+        {
+          body: { priceId },
+        },
+      );
+
       if (error) throw error;
-      
+
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.open(data.url, "_blank");
         onOpenChange(false);
       } else {
-        throw new Error('No checkout URL received');
+        throw new Error("No checkout URL received");
       }
     } catch (error) {
-      console.error('Stripe checkout failed:', error);
+      console.error("Stripe checkout failed:", error);
       // You might want to show a toast error here
     } finally {
       setLoading(null);
@@ -86,15 +104,15 @@ export function UpgradeSelection({ open, onOpenChange }: UpgradeSelectionProps) 
             Choose Your Plan
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="grid md:grid-cols-2 gap-6 mt-6">
           {plans.map((plan) => (
-            <Card 
-              key={plan.id} 
+            <Card
+              key={plan.id}
               className={`relative ${
-                plan.popular 
-                  ? 'border-primary shadow-lg scale-105' 
-                  : 'border-border'
+                plan.popular
+                  ? "border-primary shadow-lg scale-105"
+                  : "border-border"
               }`}
             >
               {plan.popular && (
@@ -102,11 +120,9 @@ export function UpgradeSelection({ open, onOpenChange }: UpgradeSelectionProps) 
                   Most Popular
                 </Badge>
               )}
-              
+
               <CardHeader className="text-center pb-2">
-                <div className="flex justify-center mb-2">
-                  {plan.icon}
-                </div>
+                <div className="flex justify-center mb-2">{plan.icon}</div>
                 <CardTitle className="text-xl">{plan.name}</CardTitle>
                 <CardDescription>{plan.description}</CardDescription>
                 <div className="mt-4">
@@ -114,7 +130,7 @@ export function UpgradeSelection({ open, onOpenChange }: UpgradeSelectionProps) 
                   <span className="text-muted-foreground">{plan.period}</span>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="pt-2">
                 <ul className="space-y-2 mb-6">
                   {plan.features.map((feature, index) => (
@@ -124,9 +140,9 @@ export function UpgradeSelection({ open, onOpenChange }: UpgradeSelectionProps) 
                     </li>
                   ))}
                 </ul>
-                
-                <Button 
-                  className="w-full" 
+
+                <Button
+                  className="w-full"
                   onClick={() => handleUpgrade(plan.stripePriceId, plan.name)}
                   disabled={loading === plan.name}
                   variant={plan.popular ? "default" : "outline"}
