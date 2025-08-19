@@ -1,11 +1,8 @@
-import { useState, useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import {
-  validateSecurityThreats,
-  SecurityValidationResult,
-} from "@/lib/security-enhanced";
-import { sanitizeText } from "@/lib/sanitization";
+import { useState, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { validateSecurityThreats, SecurityValidationResult } from '@/lib/security-enhanced';
+import { sanitizeText } from '@/lib/sanitization';
 
 interface UseChatSecurityReturn {
   validateMessage: (content: string) => SecurityValidationResult;
@@ -19,7 +16,7 @@ export const useChatSecurity = (): UseChatSecurityReturn => {
   const { toast } = useToast();
 
   const sanitizeInput = useCallback((content: string): string => {
-    if (!content) return "";
+    if (!content) return '';
 
     // Use enhanced sanitization
     return sanitizeText(content);
@@ -30,8 +27,8 @@ export const useChatSecurity = (): UseChatSecurityReturn => {
       if (!content || !content.trim()) {
         return {
           isValid: false,
-          threats: ["Message cannot be empty"],
-          riskLevel: "medium",
+          threats: ['Message cannot be empty'],
+          riskLevel: 'medium',
         };
       }
 
@@ -50,22 +47,19 @@ export const useChatSecurity = (): UseChatSecurityReturn => {
       if (content.length > 10000) {
         return {
           isValid: false,
-          threats: [
-            "Message is too long. Please keep it under 10,000 characters.",
-          ],
-          riskLevel: "medium",
+          threats: ['Message is too long. Please keep it under 10,000 characters.'],
+          riskLevel: 'medium',
         };
       }
 
       // Check for excessive special characters (potential spam)
       const specialCharRatio =
-        (content.match(/[!@#$%^&*()_+={}\[\]|\\:";'<>?,.\/~`]/g) || []).length /
-        content.length;
+        (content.match(/[!@#$%^&*()_+={}\[\]|\\:";'<>?,.\/~`]/g) || []).length / content.length;
       if (specialCharRatio > 0.5) {
         return {
           isValid: false,
-          threats: ["Message contains too many special characters"],
-          riskLevel: "medium",
+          threats: ['Message contains too many special characters'],
+          riskLevel: 'medium',
         };
       }
 
@@ -76,7 +70,7 @@ export const useChatSecurity = (): UseChatSecurityReturn => {
         isValid: true,
         threats: [],
         sanitizedContent,
-        riskLevel: "low",
+        riskLevel: 'low',
       };
     },
     [sanitizeInput],
@@ -85,9 +79,9 @@ export const useChatSecurity = (): UseChatSecurityReturn => {
   const checkAuthentication = useCallback((): boolean => {
     if (!user || !session) {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to continue chatting.",
-        variant: "destructive",
+        title: 'Authentication Required',
+        description: 'Please sign in to continue chatting.',
+        variant: 'destructive',
       });
       return false;
     }
@@ -106,16 +100,16 @@ export const useChatSecurity = (): UseChatSecurityReturn => {
 
       if (expiresAt && now > expiresAt) {
         toast({
-          title: "Session Expired",
-          description: "Please sign in again to continue.",
-          variant: "destructive",
+          title: 'Session Expired',
+          description: 'Please sign in again to continue.',
+          variant: 'destructive',
         });
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error("Session validation error:", error);
+      console.error('Session validation error:', error);
       return false;
     }
   }, [session, toast]);

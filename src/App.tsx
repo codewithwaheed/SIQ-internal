@@ -1,45 +1,45 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ScrollToTop } from "@/components/ScrollToTop";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Features from "./pages/Features";
-import Users from "./pages/Users";
-import Analytics from "./pages/Analytics";
-import System from "./pages/System";
-import KnowledgeBase from "./pages/KnowledgeBase";
-import SecurityTest from "./pages/SecurityTest";
-import PolicyLibrary from "./pages/PolicyLibrary";
-import Chat from "./pages/Chat";
-import ConsultantDashboard from "./pages/ConsultantDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from 'next-themes';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ScrollToTop } from '@/components/ScrollToTop';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import Index from './pages/Index';
+import Auth from './pages/Auth';
+import Dashboard from './pages/Dashboard';
+import Features from './pages/Features';
+import Users from './pages/Users';
+import Analytics from './pages/Analytics';
+import System from './pages/System';
+import KnowledgeBase from './pages/KnowledgeBase';
+import SecurityTest from './pages/SecurityTest';
+import PolicyLibrary from './pages/PolicyLibrary';
+import Chat from './pages/Chat';
+import ConsultantDashboard from './pages/ConsultantDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
-import ConsultantSignup from "./pages/ConsultantSignup";
-import NDA from "./pages/NDA";
-import CodeOfConduct from "./pages/CodeOfConduct";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import EscalationQueue from "./pages/EscalationQueue";
-import NotFound from "./pages/NotFound";
+import About from './pages/About';
+import Contact from './pages/Contact';
+import FAQ from './pages/FAQ';
+import ConsultantSignup from './pages/ConsultantSignup';
+import NDA from './pages/NDA';
+import CodeOfConduct from './pages/CodeOfConduct';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import EscalationQueue from './pages/EscalationQueue';
+import NotFound from './pages/NotFound';
 
 // Compliance framework pages
-import NIST800171 from "./pages/NIST800171";
-import CMMC20 from "./pages/CMMC20";
-import FedRAMP from "./pages/FedRAMP";
-import ISO27001 from "./pages/ISO27001";
-import HIPAA from "./pages/HIPAA";
-import SOC2 from "./pages/SOC2";
-import { CVESecurityPage } from "./pages/CVESecurity";
+import NIST800171 from './pages/NIST800171';
+import CMMC20 from './pages/CMMC20';
+import FedRAMP from './pages/FedRAMP';
+import ISO27001 from './pages/ISO27001';
+import HIPAA from './pages/HIPAA';
+import SOC2 from './pages/SOC2';
+import { CVESecurityPage } from './pages/CVESecurity';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,7 +77,7 @@ const App = () => {
                 <Route
                   path="/consultant-dashboard"
                   element={
-                    <ProtectedRoute allowRoles={["consultant", "admin"]}>
+                    <ProtectedRoute allowRoles={['consultant', 'admin']}>
                       <ConsultantDashboard />
                     </ProtectedRoute>
                   }
@@ -173,7 +173,7 @@ const App = () => {
                 <Route
                   path="/dashboard/consultant"
                   element={
-                    <ProtectedRoute allowRoles={["consultant", "admin"]}>
+                    <ProtectedRoute allowRoles={['consultant', 'admin']}>
                       <Dashboard />
                     </ProtectedRoute>
                   }
@@ -181,7 +181,7 @@ const App = () => {
                 <Route
                   path="/dashboard/escalation-queue"
                   element={
-                    <ProtectedRoute allowRoles={["consultant", "admin"]}>
+                    <ProtectedRoute allowRoles={['consultant', 'admin']}>
                       <EscalationQueue />
                     </ProtectedRoute>
                   }
@@ -208,10 +208,7 @@ const App = () => {
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/faq" element={<FAQ />} />
-                <Route
-                  path="/consultant-signup"
-                  element={<ConsultantSignup />}
-                />
+                <Route path="/consultant-signup" element={<ConsultantSignup />} />
                 <Route path="/nda" element={<NDA />} />
                 <Route path="/code-of-conduct" element={<CodeOfConduct />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -275,10 +272,7 @@ const App = () => {
                   }
                 />
                 {/* Compliance framework pages */}
-                <Route
-                  path="/compliance/nist-800-171"
-                  element={<NIST800171 />}
-                />
+                <Route path="/compliance/nist-800-171" element={<NIST800171 />} />
                 <Route path="/compliance/cmmc-2-0" element={<CMMC20 />} />
                 <Route path="/compliance/fedramp" element={<FedRAMP />} />
                 <Route path="/compliance/iso-27001" element={<ISO27001 />} />

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseApiOptions {
   enabled?: boolean;
@@ -27,7 +27,7 @@ export function useApi<T = any>(endpoint: string, options: UseApiOptions = {}) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error("No authentication token");
+        throw new Error('No authentication token');
       }
 
       const response = await supabase.functions.invoke(endpoint, {
@@ -48,11 +48,11 @@ export function useApi<T = any>(endpoint: string, options: UseApiOptions = {}) {
       setError(error);
       options.onError?.(error);
 
-      if (error.message !== "No authentication token") {
+      if (error.message !== 'No authentication token') {
         toast({
-          title: "Error",
+          title: 'Error',
           description: error.message,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
     } finally {
@@ -82,7 +82,7 @@ export async function apiCall(
     data: { session },
   } = await supabase.auth.getSession();
   if (!session?.access_token) {
-    throw new Error("No authentication token");
+    throw new Error('No authentication token');
   }
 
   const response = await supabase.functions.invoke(endpoint, {

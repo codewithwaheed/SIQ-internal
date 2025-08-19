@@ -1,14 +1,14 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { MessageSquare, Star } from "lucide-react";
-import { AIFeedbackModal } from "./AIFeedbackModal";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { MessageSquare, Star } from 'lucide-react';
+import { AIFeedbackModal } from './AIFeedbackModal';
 
 interface FeedbackButtonProps {
   conversationId?: string;
   escalationId?: string;
   messageId?: string;
-  variant?: "default" | "outline" | "ghost";
-  size?: "sm" | "default" | "lg";
+  variant?: 'default' | 'outline' | 'ghost';
+  size?: 'sm' | 'default' | 'lg';
   context?: string;
   className?: string;
 }
@@ -17,10 +17,10 @@ export function FeedbackButton({
   conversationId,
   escalationId,
   messageId,
-  variant = "outline",
-  size = "sm",
+  variant = 'outline',
+  size = 'sm',
   context,
-  className = "",
+  className = '',
 }: FeedbackButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -32,7 +32,7 @@ export function FeedbackButton({
         onClick={() => setIsModalOpen(true)}
         className={className}
       >
-        <Star className="h-4 w-4 mr-2" />
+        <Star className="mr-2 h-4 w-4" />
         Rate AI
       </Button>
 

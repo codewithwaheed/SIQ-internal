@@ -32,17 +32,15 @@ export async function findMissingPlaceholders(
   // Filter out reserved tokens if requested
   if (excludeReserved) {
     // Dynamic import to avoid circular dependency
-    const { isReservedToken } = await import("@/config/defaults");
-    filteredPlaceholders = allPlaceholders.filter(
-      (placeholder) => !isReservedToken(placeholder),
-    );
+    const { isReservedToken } = await import('@/config/defaults');
+    filteredPlaceholders = allPlaceholders.filter((placeholder) => !isReservedToken(placeholder));
   }
 
   return filteredPlaceholders.filter(
     (placeholder) =>
       context[placeholder] === undefined ||
       context[placeholder] === null ||
-      context[placeholder] === "",
+      context[placeholder] === '',
   );
 }
 
@@ -66,9 +64,9 @@ export function groupMissingFields(missingFields: string[]): string[][] {
  */
 export function humanizeFieldName(fieldName: string): string {
   return fieldName
-    .split("_")
+    .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+    .join(' ');
 }
 
 /**
@@ -80,16 +78,16 @@ export function validateTemplateStructure(template: string): {
   extraHeadings: string[];
 } {
   const requiredHeadings = [
-    "Introduction",
-    "Purpose",
-    "Scope",
-    "Definitions",
-    "Policy Statement",
-    "Procedures",
-    "Responsibilities",
-    "Consequences of Non-Compliance",
-    "References",
-    "Revision History",
+    'Introduction',
+    'Purpose',
+    'Scope',
+    'Definitions',
+    'Policy Statement',
+    'Procedures',
+    'Responsibilities',
+    'Consequences of Non-Compliance',
+    'References',
+    'Revision History',
   ];
 
   const headingRegex = /^\*\*([^*]+)\*\*\s*$/gm;
@@ -100,12 +98,8 @@ export function validateTemplateStructure(template: string): {
     foundHeadings.push(match[1].trim());
   }
 
-  const missingHeadings = requiredHeadings.filter(
-    (h) => !foundHeadings.includes(h),
-  );
-  const extraHeadings = foundHeadings.filter(
-    (h) => !requiredHeadings.includes(h),
-  );
+  const missingHeadings = requiredHeadings.filter((h) => !foundHeadings.includes(h));
+  const extraHeadings = foundHeadings.filter((h) => !requiredHeadings.includes(h));
 
   return {
     isValid: missingHeadings.length === 0,

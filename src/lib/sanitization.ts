@@ -1,5 +1,5 @@
-import DOMPurify from "dompurify";
-import { marked } from "marked";
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 
 /**
  * Secure content sanitization utilities to prevent XSS attacks
@@ -8,41 +8,34 @@ import { marked } from "marked";
 // Configure DOMPurify with strict settings
 const purifyConfig = {
   ALLOWED_TAGS: [
-    "p",
-    "br",
-    "strong",
-    "em",
-    "ul",
-    "ol",
-    "li",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "blockquote",
-    "code",
-    "pre",
-    "a",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
+    'p',
+    'br',
+    'strong',
+    'em',
+    'ul',
+    'ol',
+    'li',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'blockquote',
+    'code',
+    'pre',
+    'a',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
   ],
-  ALLOWED_ATTR: ["href", "title", "target"],
+  ALLOWED_ATTR: ['href', 'title', 'target'],
   ALLOW_DATA_ATTR: false,
-  FORBID_TAGS: ["script", "object", "embed", "form", "input", "iframe"],
-  FORBID_ATTR: [
-    "onerror",
-    "onload",
-    "onclick",
-    "onmouseover",
-    "onfocus",
-    "onblur",
-  ],
+  FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe'],
+  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
 };
 
 /**
@@ -51,8 +44,8 @@ const purifyConfig = {
  * @returns Sanitized HTML safe for rendering
  */
 export function sanitizeHtml(html: string): string {
-  if (!html || typeof html !== "string") {
-    return "";
+  if (!html || typeof html !== 'string') {
+    return '';
   }
 
   return DOMPurify.sanitize(html, purifyConfig);
@@ -64,8 +57,8 @@ export function sanitizeHtml(html: string): string {
  * @returns Sanitized HTML from markdown
  */
 export function renderSafeMarkdown(markdown: string): string {
-  if (!markdown || typeof markdown !== "string") {
-    return "";
+  if (!markdown || typeof markdown !== 'string') {
+    return '';
   }
 
   // Configure marked for security
@@ -79,7 +72,7 @@ export function renderSafeMarkdown(markdown: string): string {
     const rawHtml = marked.parse(markdown);
     return sanitizeHtml(rawHtml as string);
   } catch (error) {
-    console.error("Markdown parsing error:", error);
+    console.error('Markdown parsing error:', error);
     // Fallback to escaped text
     return DOMPurify.sanitize(markdown, { ALLOWED_TAGS: [] });
   }
@@ -91,8 +84,8 @@ export function renderSafeMarkdown(markdown: string): string {
  * @returns Plain text with HTML removed
  */
 export function sanitizeText(text: string): string {
-  if (!text || typeof text !== "string") {
-    return "";
+  if (!text || typeof text !== 'string') {
+    return '';
   }
 
   return DOMPurify.sanitize(text, { ALLOWED_TAGS: [] });
@@ -104,21 +97,15 @@ export function sanitizeText(text: string): string {
  * @returns Sanitized content safe for rendering
  */
 export function sanitizePolicyContent(content: string): string {
-  if (!content || typeof content !== "string") {
-    return "";
+  if (!content || typeof content !== 'string') {
+    return '';
   }
 
   // Allow additional formatting tags for policy content
   const policyConfig = {
     ...purifyConfig,
-    ALLOWED_TAGS: [
-      ...purifyConfig.ALLOWED_TAGS,
-      "div",
-      "span",
-      "section",
-      "article",
-    ],
-    ALLOWED_ATTR: [...purifyConfig.ALLOWED_ATTR, "class", "id"],
+    ALLOWED_TAGS: [...purifyConfig.ALLOWED_TAGS, 'div', 'span', 'section', 'article'],
+    ALLOWED_ATTR: [...purifyConfig.ALLOWED_ATTR, 'class', 'id'],
   };
 
   return DOMPurify.sanitize(content, policyConfig);
@@ -130,20 +117,17 @@ export function sanitizePolicyContent(content: string): string {
  * @param type - Type of content ('markdown' | 'html' | 'text')
  * @returns Object with __html property for dangerouslySetInnerHTML
  */
-export function createSafeHtml(
-  content: string,
-  type: "markdown" | "html" | "text" = "html",
-) {
+export function createSafeHtml(content: string, type: 'markdown' | 'html' | 'text' = 'html') {
   let sanitizedContent: string;
 
   switch (type) {
-    case "markdown":
+    case 'markdown':
       sanitizedContent = renderSafeMarkdown(content);
       break;
-    case "text":
+    case 'text':
       sanitizedContent = sanitizeText(content);
       break;
-    case "html":
+    case 'html':
     default:
       sanitizedContent = sanitizeHtml(content);
       break;

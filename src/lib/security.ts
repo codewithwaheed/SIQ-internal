@@ -5,39 +5,39 @@
  */
 export const getSecurityHeaders = () => {
   return {
-    "Content-Security-Policy": [
+    'Content-Security-Policy': [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
       "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.openai.com wss://*.supabase.co",
-      "frame-src https://js.stripe.com https://hooks.stripe.com",
+      'frame-src https://js.stripe.com https://hooks.stripe.com',
       "object-src 'none'",
       "media-src 'self'",
       "worker-src 'self' blob:",
       "child-src 'self'",
       "form-action 'self'",
       "base-uri 'self'",
-      "upgrade-insecure-requests",
-    ].join("; "),
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
-    "X-XSS-Protection": "1; mode=block",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": [
-      "camera=()",
-      "microphone=()",
-      "geolocation=()",
-      "payment=()",
-      "usb=()",
-      "screen-wake-lock=()",
-      "web-share=()",
-    ].join(", "),
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-    "Cross-Origin-Embedder-Policy": "require-corp",
-    "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Resource-Policy": "same-origin",
+      'upgrade-insecure-requests',
+    ].join('; '),
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': [
+      'camera=()',
+      'microphone=()',
+      'geolocation=()',
+      'payment=()',
+      'usb=()',
+      'screen-wake-lock=()',
+      'web-share=()',
+    ].join(', '),
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Cross-Origin-Embedder-Policy': 'require-corp',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
   };
 };
 
@@ -51,11 +51,11 @@ export class InputSanitizer {
   static sanitizeHtml(input: string): string {
     return input.replace(/[<>'"&]/g, (char) => {
       const entityMap: { [key: string]: string } = {
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#x27;",
-        "&": "&amp;",
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        '&': '&amp;',
       };
       return entityMap[char];
     });
@@ -67,12 +67,12 @@ export class InputSanitizer {
   static sanitizeFilename(filename: string): string {
     return (
       filename
-        .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
-        .replace(/[^a-zA-Z0-9._-]/g, "_")
-        .replace(/\.{2,}/g, ".")
-        .replace(/^\.+|\.+$/g, "")
-        .replace(/_{2,}/g, "_")
-        .substring(0, 100) || "unknown"
+        .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .replace(/\.{2,}/g, '.')
+        .replace(/^\.+|\.+$/g, '')
+        .replace(/_{2,}/g, '_')
+        .substring(0, 100) || 'unknown'
     );
   }
 
@@ -88,8 +88,7 @@ export class InputSanitizer {
    * Validate UUID format
    */
   static validateUUID(uuid: string): boolean {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   }
 
@@ -103,38 +102,38 @@ export class InputSanitizer {
     const errors: string[] = [];
     const maxSize = 25 * 1024 * 1024; // 25MB
     const allowedTypes = [
-      "application/pdf",
-      "text/plain",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/msword",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      'application/pdf',
+      'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
 
     // Check file size
     if (file.size > maxSize) {
-      errors.push("File size must be less than 25MB");
+      errors.push('File size must be less than 25MB');
     }
 
     if (file.size === 0) {
-      errors.push("File cannot be empty");
+      errors.push('File cannot be empty');
     }
 
     // Check file type
     if (!allowedTypes.includes(file.type)) {
-      errors.push("File type not allowed");
+      errors.push('File type not allowed');
     }
 
     // Check filename
     const sanitizedName = this.sanitizeFilename(file.name);
-    if (sanitizedName === "unknown" || sanitizedName.length === 0) {
-      errors.push("Invalid filename");
+    if (sanitizedName === 'unknown' || sanitizedName.length === 0) {
+      errors.push('Invalid filename');
     }
 
     // Check for potentially dangerous extensions
     const dangerousExtensions = /\.(exe|bat|cmd|scr|vbs|js|jar|com|pif)$/i;
     if (dangerousExtensions.test(file.name)) {
-      errors.push("File extension not allowed for security reasons");
+      errors.push('File extension not allowed for security reasons');
     }
 
     return {
@@ -161,9 +160,7 @@ export class ClientRateLimiter {
     const attempts = this.attempts.get(key)!;
 
     // Remove attempts outside the window
-    const validAttempts = attempts.filter(
-      (timestamp) => timestamp > windowStart,
-    );
+    const validAttempts = attempts.filter((timestamp) => timestamp > windowStart);
     this.attempts.set(key, validAttempts);
 
     // Check if within limit
@@ -178,11 +175,7 @@ export class ClientRateLimiter {
     return true;
   }
 
-  getRemainingAttempts(
-    key: string,
-    maxAttempts: number,
-    windowMs: number,
-  ): number {
+  getRemainingAttempts(key: string, maxAttempts: number, windowMs: number): number {
     const now = Date.now();
     const windowStart = now - windowMs;
 
@@ -191,9 +184,7 @@ export class ClientRateLimiter {
     }
 
     const attempts = this.attempts.get(key)!;
-    const validAttempts = attempts.filter(
-      (timestamp) => timestamp > windowStart,
-    );
+    const validAttempts = attempts.filter((timestamp) => timestamp > windowStart);
 
     return Math.max(0, maxAttempts - validAttempts.length);
   }
@@ -216,12 +207,9 @@ export class SecurityLogger {
     });
   }
 
-  static logSuspiciousActivity(
-    activity: string,
-    details?: Record<string, any>,
-  ): void {
-    this.logSecurityEvent("SUSPICIOUS_ACTIVITY", activity, {
-      severity: "HIGH",
+  static logSuspiciousActivity(activity: string, details?: Record<string, any>): void {
+    this.logSecurityEvent('SUSPICIOUS_ACTIVITY', activity, {
+      severity: 'HIGH',
       ...details,
     });
   }
@@ -238,10 +226,10 @@ export class SecureStorage {
     try {
       if (sensitive) {
         // For sensitive data, warn if not HTTPS
-        if (!window.location.protocol.startsWith("https")) {
+        if (!window.location.protocol.startsWith('https')) {
           SecurityLogger.logSecurityEvent(
-            "INSECURE_STORAGE_WARNING",
-            "Sensitive data stored over non-HTTPS connection",
+            'INSECURE_STORAGE_WARNING',
+            'Sensitive data stored over non-HTTPS connection',
           );
         }
       }
@@ -254,11 +242,9 @@ export class SecureStorage {
 
       localStorage.setItem(key, serialized);
     } catch (error) {
-      SecurityLogger.logSecurityEvent(
-        "STORAGE_ERROR",
-        "Failed to store data securely",
-        { error: error instanceof Error ? error.message : "Unknown error" },
-      );
+      SecurityLogger.logSecurityEvent('STORAGE_ERROR', 'Failed to store data securely', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 
@@ -281,11 +267,9 @@ export class SecureStorage {
 
       return parsed.value;
     } catch (error) {
-      SecurityLogger.logSecurityEvent(
-        "STORAGE_READ_ERROR",
-        "Failed to read stored data",
-        { error: error instanceof Error ? error.message : "Unknown error" },
-      );
+      SecurityLogger.logSecurityEvent('STORAGE_READ_ERROR', 'Failed to read stored data', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       return null;
     }
   }
@@ -297,11 +281,9 @@ export class SecureStorage {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      SecurityLogger.logSecurityEvent(
-        "STORAGE_REMOVE_ERROR",
-        "Failed to remove stored data",
-        { error: error instanceof Error ? error.message : "Unknown error" },
-      );
+      SecurityLogger.logSecurityEvent('STORAGE_REMOVE_ERROR', 'Failed to remove stored data', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 }

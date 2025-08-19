@@ -322,27 +322,27 @@ POST /your-webhook-endpoint
 ### JavaScript/TypeScript
 
 ```typescript
-import { SentrIQClient } from "@sentriq/sdk";
+import { SentrIQClient } from '@sentriq/sdk';
 
 const client = new SentrIQClient({
-  apiKey: "your-api-key",
-  baseURL: "https://api.sentriq.com",
+  apiKey: 'your-api-key',
+  baseURL: 'https://api.sentriq.com',
 });
 
 // Get CVE details
-const cve = await client.cve.get("CVE-2021-44228");
+const cve = await client.cve.get('CVE-2021-44228');
 
 // Send chat message
 const response = await client.chat.send({
-  message: "How do I secure my API endpoints?",
-  context: { framework: "OWASP" },
+  message: 'How do I secure my API endpoints?',
+  context: { framework: 'OWASP' },
 });
 
 // Create escalation
 const escalation = await client.escalations.create({
-  conversationId: "uuid",
-  reason: "Need security architecture review",
-  priority: "high",
+  conversationId: 'uuid',
+  reason: 'Need security architecture review',
+  priority: 'high',
 });
 ```
 

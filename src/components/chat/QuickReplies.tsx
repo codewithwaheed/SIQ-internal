@@ -1,21 +1,16 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 interface QuickRepliesProps {
   suggestions: string[];
   onSuggestionClick: (suggestion: string) => void;
 }
 
-export const QuickReplies = ({
-  suggestions,
-  onSuggestionClick,
-}: QuickRepliesProps) => {
+export const QuickReplies = ({ suggestions, onSuggestionClick }: QuickRepliesProps) => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      <div className="text-sm text-muted-foreground font-medium">
-        Quick follow-ups:
-      </div>
+      <div className="text-sm font-medium text-muted-foreground">Quick follow-ups:</div>
       <div className="flex flex-wrap gap-2">
         {suggestions.map((suggestion, idx) => (
           <Button
@@ -23,7 +18,7 @@ export const QuickReplies = ({
             size="sm"
             variant="outline"
             onClick={() => onSuggestionClick(suggestion)}
-            className="h-9 text-sm rounded-full px-4 bg-muted/30 hover:bg-muted border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm"
+            className="h-9 rounded-full border-border/50 bg-muted/30 px-4 text-sm transition-all duration-200 hover:border-border hover:bg-muted hover:shadow-sm"
           >
             {suggestion}
           </Button>

@@ -1,30 +1,24 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { FileText, Search, Download, Calendar, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { sanitizePolicyContent, createSafeHtml } from "@/lib/sanitization";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { UnifiedHeader } from "@/components/ui/unified-header";
+} from '@/components/ui/select';
+import { FileText, Search, Download, Calendar, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { sanitizePolicyContent, createSafeHtml } from '@/lib/sanitization';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/dashboard/AppSidebar';
+import { UnifiedHeader } from '@/components/ui/unified-header';
 
 interface Policy {
   id: string;
@@ -42,8 +36,8 @@ interface Policy {
 export default function PolicyLibrary() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState<string>('all');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -54,42 +48,41 @@ export default function PolicyLibrary() {
 
   const loadPolicies = async () => {
     try {
-      const token = (await supabase.auth.getSession()).data.session
-        ?.access_token;
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
       const url = new URL(
-        "https://xfdqnmtzuuphxivsgmua.functions.supabase.co/functions/v1/get-policies",
+        'https://xfdqnmtzuuphxivsgmua.functions.supabase.co/functions/v1/get-policies',
       );
 
-      if (selectedType !== "all") {
-        url.searchParams.set("policy_type", selectedType);
+      if (selectedType !== 'all') {
+        url.searchParams.set('policy_type', selectedType);
       }
 
       const response = await fetch(url.toString(), {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           apikey:
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHFubXR6dXVwaHhpdnNnbXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjE2MDksImV4cCI6MjA2OTQ5NzYwOX0.op82w015Am91OghHdNauFrQbajQzeu4E0VKY_mqt5M0",
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHFubXR6dXVwaHhpdnNnbXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjE2MDksImV4cCI6MjA2OTQ5NzYwOX0.op82w015Am91OghHdNauFrQbajQzeu4E0VKY_mqt5M0',
         },
       });
 
-      if (!response.ok) throw new Error("Failed to load policies");
+      if (!response.ok) throw new Error('Failed to load policies');
 
       const result = await response.json();
       setPolicies(result.policies || []);
     } catch (error) {
-      console.error("Error loading policies:", error);
+      console.error('Error loading policies:', error);
       toast({
-        title: "Error",
-        description: "Failed to load policies",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load policies',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExportPolicy = async (policy: Policy, format: "pdf" | "docx") => {
+  const handleExportPolicy = async (policy: Policy, format: 'pdf' | 'docx') => {
     try {
       // Create a temporary HTML content for export
       const htmlContent = `
@@ -117,25 +110,25 @@ export default function PolicyLibrary() {
         </html>
       `;
 
-      const blob = new Blob([htmlContent], { type: "text/html" });
+      const blob = new Blob([htmlContent], { type: 'text/html' });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `${policy.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.html`;
+      a.download = `${policy.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
       toast({
-        title: "Export successful",
+        title: 'Export successful',
         description: `Policy exported as HTML file`,
       });
     } catch (error) {
       toast({
-        title: "Export failed",
-        description: "Could not export policy",
-        variant: "destructive",
+        title: 'Export failed',
+        description: 'Could not export policy',
+        variant: 'destructive',
       });
     }
   };
@@ -157,16 +150,16 @@ export default function PolicyLibrary() {
   if (loading) {
     return (
       <SidebarProvider>
-        <div className="min-h-screen bg-gradient-background flex w-full">
+        <div className="flex min-h-screen w-full bg-gradient-background">
           <AppSidebar />
 
-          <div className="flex-1 flex flex-col">
+          <div className="flex flex-1 flex-col">
             <UnifiedHeader context="dashboard" />
 
             <main className="flex-1 overflow-hidden">
               <div className="h-full p-6">
-                <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="flex h-64 items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                   <span className="ml-2">Loading policies...</span>
                 </div>
               </div>
@@ -179,19 +172,17 @@ export default function PolicyLibrary() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gradient-background flex w-full">
+      <div className="flex min-h-screen w-full bg-gradient-background">
         <AppSidebar />
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col">
           <UnifiedHeader context="dashboard" />
 
           <main className="flex-1 overflow-hidden">
             <div className="h-full p-6">
               <div className="page">
                 <div className="page-title">
-                  <h1 className="text-2xl font-bold tracking-tight">
-                    Policy Library
-                  </h1>
+                  <h1 className="text-2xl font-bold tracking-tight">Policy Library</h1>
                   <p className="text-muted-foreground">
                     View and manage your organization's saved policies
                   </p>
@@ -202,15 +193,14 @@ export default function PolicyLibrary() {
                     <FileText className="h-5 w-5" />
                     <h2 className="text-lg font-semibold">Policy Management</h2>
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    Search, filter, and export your generated compliance
-                    policies
+                  <p className="text-sm text-muted-foreground">
+                    Search, filter, and export your generated compliance policies
                   </p>
 
                   {/* Search and Filter Controls */}
                   <div className="flex-gap-4">
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
                       <Input
                         placeholder="Search policies..."
                         value={searchTerm}
@@ -218,10 +208,7 @@ export default function PolicyLibrary() {
                         className="pl-10"
                       />
                     </div>
-                    <Select
-                      value={selectedType}
-                      onValueChange={setSelectedType}
-                    >
+                    <Select value={selectedType} onValueChange={setSelectedType}>
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Filter by type" />
                       </SelectTrigger>
@@ -229,9 +216,7 @@ export default function PolicyLibrary() {
                         <SelectItem value="all">All Types</SelectItem>
                         {policyTypes.map((type) => (
                           <SelectItem key={type} value={type}>
-                            {type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            {type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -240,57 +225,53 @@ export default function PolicyLibrary() {
 
                   {/* Policies Grid */}
                   {filteredPolicies.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText className="h-12 w-12 text-muted-foreground mb-4 mx-auto" />
-                      <h3 className="text-lg font-semibold mb-2">
-                        No policies found
-                      </h3>
-                      <p className="text-muted-foreground text-center">
+                    <div className="py-12 text-center">
+                      <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                      <h3 className="mb-2 text-lg font-semibold">No policies found</h3>
+                      <p className="text-center text-muted-foreground">
                         {searchTerm
-                          ? "No policies match your search criteria."
-                          : "Start by generating a policy in the chat interface."}
+                          ? 'No policies match your search criteria.'
+                          : 'Start by generating a policy in the chat interface.'}
                       </p>
                     </div>
                   ) : (
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                       {filteredPolicies.map((policy) => (
                         <div key={policy.id} className="section-card-compact">
-                          <div className="flex items-start justify-between mb-3">
-                            <FileText className="h-5 w-5 text-primary mt-1" />
+                          <div className="mb-3 flex items-start justify-between">
+                            <FileText className="mt-1 h-5 w-5 text-primary" />
                             <Badge variant="secondary" className="text-xs">
-                              {policy.policy_type.replace(/_/g, " ")}
+                              {policy.policy_type.replace(/_/g, ' ')}
                             </Badge>
                           </div>
 
-                          <h3 className="text-lg font-semibold line-clamp-2 mb-2">
+                          <h3 className="mb-2 line-clamp-2 text-lg font-semibold">
                             {policy.title}
                           </h3>
 
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                          <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />
                             {new Date(policy.created_at).toLocaleDateString()}
                             <span>v{policy.version}</span>
                           </div>
 
-                          <ScrollArea className="h-24 mb-4">
+                          <ScrollArea className="mb-4 h-24">
                             <div
-                              className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                              className="prose prose-sm max-w-none text-sm text-muted-foreground"
                               dangerouslySetInnerHTML={createSafeHtml(
-                                sanitizePolicyContent(
-                                  policy.content.substring(0, 200) + "...",
-                                ),
-                                "html",
+                                sanitizePolicyContent(policy.content.substring(0, 200) + '...'),
+                                'html',
                               )}
                             />
                           </ScrollArea>
 
                           <Button
-                            onClick={() => handleExportPolicy(policy, "pdf")}
+                            onClick={() => handleExportPolicy(policy, 'pdf')}
                             variant="outline"
                             size="sm"
                             className="w-full"
                           >
-                            <Download className="h-4 w-4 mr-2" />
+                            <Download className="mr-2 h-4 w-4" />
                             Export
                           </Button>
                         </div>

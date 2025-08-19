@@ -1,12 +1,12 @@
 // Security Guard Component for Chat Interface
-import React from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, AlertTriangle } from "lucide-react";
+import React from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, AlertTriangle } from 'lucide-react';
 import {
   guardRequest,
   getComplianceTopicSuggestion,
   COMPLIANCE_TOPICS,
-} from "@/lib/security-guard";
+} from '@/lib/security-guard';
 
 interface SecurityGuardProps {
   userMessage: string;
@@ -31,19 +31,14 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({
 
   // Log the blocked attempt for audit purposes
   if (onMessageBlocked) {
-    onMessageBlocked(
-      userMessage,
-      "Security guard blocked unauthorized data request",
-    );
+    onMessageBlocked(userMessage, 'Security guard blocked unauthorized data request');
   }
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-background">
-      <Alert variant={guardResult.shouldRedirect ? "destructive" : "default"}>
+    <div className="space-y-4 rounded-lg border bg-background p-4">
+      <Alert variant={guardResult.shouldRedirect ? 'destructive' : 'default'}>
         <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="text-sm">
-          {guardResult.message}
-        </AlertDescription>
+        <AlertDescription className="text-sm">{guardResult.message}</AlertDescription>
       </Alert>
 
       {!guardResult.shouldRedirect && (
@@ -53,7 +48,7 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({
             Compliance Topics I Can Help With:
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {COMPLIANCE_TOPICS.slice(0, 6).map((topic, index) => (
               <button
                 key={index}
@@ -63,16 +58,14 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({
                     onContinue();
                   }
                 }}
-                className="text-xs p-2 border rounded hover:bg-accent text-left transition-colors"
+                className="rounded border p-2 text-left text-xs transition-colors hover:bg-accent"
               >
                 {topic}
               </button>
             ))}
           </div>
 
-          <p className="text-xs text-muted-foreground mt-3">
-            {getComplianceTopicSuggestion()}
-          </p>
+          <p className="mt-3 text-xs text-muted-foreground">{getComplianceTopicSuggestion()}</p>
         </div>
       )}
     </div>

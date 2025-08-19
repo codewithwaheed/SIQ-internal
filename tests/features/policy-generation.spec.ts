@@ -1,21 +1,19 @@
-import { test, expect } from "@playwright/test";
-import { TEST_CONFIG, TEST_POLICY_DATA } from "../config/test-config";
+import { test, expect } from '@playwright/test';
+import { TEST_CONFIG, TEST_POLICY_DATA } from '../config/test-config';
 
-test.describe("Policy Generation Flow", () => {
-  test.use({ storageState: "tests/auth-states/business-owner.json" });
+test.describe('Policy Generation Flow', () => {
+  test.use({ storageState: 'tests/auth-states/business-owner.json' });
 
-  test("should generate password management policy", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should generate password management policy', async ({ page }) => {
+    await page.goto('/dashboard');
 
     // Start a chat conversation
-    const chatInput = page.getByPlaceholder("Type your message...");
+    const chatInput = page.getByPlaceholder('Type your message...');
     await expect(chatInput).toBeVisible();
 
     // Request password policy generation
-    await chatInput.fill(
-      "Generate a password management policy for my company",
-    );
-    await page.getByRole("button", { name: /send/i }).click();
+    await chatInput.fill('Generate a password management policy for my company');
+    await page.getByRole('button', { name: /send/i }).click();
 
     // Wait for AI response
     await expect(page.getByText(/password/i)).toBeVisible({ timeout: 30000 });
@@ -31,7 +29,7 @@ test.describe("Policy Generation Flow", () => {
     }
 
     // Submit any required fields
-    const submitButton = page.getByRole("button", {
+    const submitButton = page.getByRole('button', {
       name: /submit|generate|continue/i,
     });
     if (await submitButton.isVisible()) {
@@ -46,12 +44,12 @@ test.describe("Policy Generation Flow", () => {
     await expect(policyContent).toBeVisible({ timeout: 15000 });
   });
 
-  test("should handle missing field collection", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should handle missing field collection', async ({ page }) => {
+    await page.goto('/dashboard');
 
-    const chatInput = page.getByPlaceholder("Type your message...");
-    await chatInput.fill("Create an incident response policy");
-    await page.getByRole("button", { name: /send/i }).click();
+    const chatInput = page.getByPlaceholder('Type your message...');
+    await chatInput.fill('Create an incident response policy');
+    await page.getByRole('button', { name: /send/i }).click();
 
     // Wait for missing fields prompt
     await expect(page.getByText(/details/i)).toBeVisible({ timeout: 30000 });
@@ -64,25 +62,25 @@ test.describe("Policy Generation Flow", () => {
         .getByLabel(/company/i)
         .first()
         .fill(TEST_POLICY_DATA.business_name);
-      await page.getByRole("button", { name: /submit/i }).click();
+      await page.getByRole('button', { name: /submit/i }).click();
     }
   });
 
-  test("should save generated policy", async ({ page }) => {
+  test('should save generated policy', async ({ page }) => {
     test.setTimeout(60000); // Extended timeout for this flow
 
-    await page.goto("/dashboard");
+    await page.goto('/dashboard');
 
     // Generate a simple policy first
-    const chatInput = page.getByPlaceholder("Type your message...");
-    await chatInput.fill("Generate a password policy");
-    await page.getByRole("button", { name: /send/i }).click();
+    const chatInput = page.getByPlaceholder('Type your message...');
+    await chatInput.fill('Generate a password policy');
+    await page.getByRole('button', { name: /send/i }).click();
 
     // Wait for policy generation
     await expect(page.getByText(/password/i)).toBeVisible({ timeout: 30000 });
 
     // Look for save button
-    const saveButton = page.getByRole("button", { name: /save policy/i });
+    const saveButton = page.getByRole('button', { name: /save policy/i });
     if (await saveButton.isVisible()) {
       await saveButton.click();
 
@@ -91,27 +89,27 @@ test.describe("Policy Generation Flow", () => {
     }
   });
 
-  test("should download generated policy", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should download generated policy', async ({ page }) => {
+    await page.goto('/dashboard');
 
     // Generate policy and look for download option
-    const chatInput = page.getByPlaceholder("Type your message...");
-    await chatInput.fill("Create a simple acceptable use policy");
-    await page.getByRole("button", { name: /send/i }).click();
+    const chatInput = page.getByPlaceholder('Type your message...');
+    await chatInput.fill('Create a simple acceptable use policy');
+    await page.getByRole('button', { name: /send/i }).click();
 
     // Wait for policy generation
     await expect(page.getByText(/policy/i)).toBeVisible({ timeout: 30000 });
 
     // Look for download button
-    const downloadButton = page.getByRole("button", { name: /download/i });
+    const downloadButton = page.getByRole('button', { name: /download/i });
     if (await downloadButton.isVisible()) {
       // Set up download handler
-      const downloadPromise = page.waitForEvent("download");
+      const downloadPromise = page.waitForEvent('download');
       await downloadButton.click();
 
       // Verify download starts
       const download = await downloadPromise;
-      expect(download.suggestedFilename()).toContain(".txt");
+      expect(download.suggestedFilename()).toContain('.txt');
     }
   });
 });

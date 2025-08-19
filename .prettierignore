@@ -1,0 +1,28 @@
+# Ignore artifacts
+node_modules
+dist
+.build
+.vite
+.vscode-test
+coverage
+test-results
+pnpm-lock.yaml
+bun.lockb
+# Images and large assets
+public/**/*.png
+public/**/*.jpg
+public/**/*.jpeg
+public/**/*.gif
+public/**/*.webp
+# Supabase migrations
+supabase/migrations
+# Commit hooks / editor config
+.vscode/
+.idea/
+*.min.*
+# Lock files
+package-lock.json
+
+# Optional: ignore compiled files
+**/*.map
+**/*.log

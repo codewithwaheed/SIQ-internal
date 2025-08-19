@@ -1,28 +1,21 @@
-import { useState } from "react";
-import {
-  Upload,
-  File,
-  X,
-  CheckCircle,
-  AlertCircle,
-  MessageCircle,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from 'react';
+import { Upload, File, X, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/contexts/AuthContext";
-import { AuditLogger } from "@/lib/audit-logger";
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuditLogger } from '@/lib/audit-logger';
 
 interface Document {
   id: string;
@@ -38,15 +31,12 @@ interface DocumentUploadProps {
   trigger?: React.ReactNode;
 }
 
-export const DocumentUpload = ({
-  onDocumentUploaded,
-  trigger,
-}: DocumentUploadProps) => {
+export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -57,20 +47,19 @@ export const DocumentUpload = ({
 
     // Validate file type
     const allowedTypes = [
-      "application/pdf",
-      "text/plain",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/csv",
-      "application/csv",
+      'application/pdf',
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/csv',
+      'application/csv',
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: "Invalid file type",
-        description:
-          "Please upload PDF, TXT, Word documents, or CSV files only.",
-        variant: "destructive",
+        title: 'Invalid file type',
+        description: 'Please upload PDF, TXT, Word documents, or CSV files only.',
+        variant: 'destructive',
       });
       return;
     }
@@ -78,9 +67,9 @@ export const DocumentUpload = ({
     // Check file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please upload files smaller than 10MB.",
-        variant: "destructive",
+        title: 'File too large',
+        description: 'Please upload files smaller than 10MB.',
+        variant: 'destructive',
       });
       return;
     }
@@ -102,17 +91,14 @@ export const DocumentUpload = ({
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
       if (description) {
-        formData.append("description", description);
+        formData.append('description', description);
       }
 
-      const { data, error } = await supabase.functions.invoke(
-        "upload-document",
-        {
-          body: formData,
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('upload-document', {
+        body: formData,
+      });
 
       if (error) {
         throw error;
@@ -124,45 +110,36 @@ export const DocumentUpload = ({
 
         // Log successful upload
         if (user) {
-          AuditLogger.logFileOperation(
-            user.id,
-            "FILE_UPLOADED",
-            file.name,
-            data.document?.id,
-            {
-              size: file.size,
-              type: file.type,
-              description: description || "No description provided",
-            },
-          );
+          AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, data.document?.id, {
+            size: file.size,
+            type: file.type,
+            description: description || 'No description provided',
+          });
         }
 
         if (onDocumentUploaded) {
           onDocumentUploaded(data.document);
         }
       } else {
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || 'Upload failed');
       }
     } catch (error: any) {
-      console.error("Upload error:", error);
+      console.error('Upload error:', error);
       clearInterval(progressInterval);
 
       // Log failed upload
       if (user) {
-        AuditLogger.logFileOperation(
-          user.id,
-          "FILE_UPLOADED",
-          file.name,
-          undefined,
-          { error: error.message, size: file.size, status: "failed" },
-        );
+        AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, undefined, {
+          error: error.message,
+          size: file.size,
+          status: 'failed',
+        });
       }
 
       toast({
-        title: "Upload failed",
-        description:
-          error.message || "Failed to upload document. Please try again.",
-        variant: "destructive",
+        title: 'Upload failed',
+        description: error.message || 'Failed to upload document. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setUploading(false);
@@ -173,9 +150,9 @@ export const DocumentUpload = ({
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -198,7 +175,7 @@ export const DocumentUpload = ({
 
   const resetModal = () => {
     setUploadedFile(null);
-    setDescription("");
+    setDescription('');
     setUploadProgress(0);
     setUploadSuccess(false);
     setUploading(false);
@@ -232,10 +209,10 @@ export const DocumentUpload = ({
             <>
               {/* Drag and Drop Area */}
               <div
-                className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
                   dragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50 hover:bg-muted/50"
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -245,16 +222,16 @@ export const DocumentUpload = ({
                 <input
                   type="file"
                   id="document-upload"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   accept=".pdf,.txt,.doc,.docx,.csv"
                   onChange={handleInputChange}
                   disabled={uploading}
                 />
 
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                     {uploading ? (
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                     ) : (
                       <Upload className="h-8 w-8 text-primary" />
                     )}
@@ -262,18 +239,16 @@ export const DocumentUpload = ({
 
                   <div>
                     <p className="text-lg font-medium text-foreground">
-                      {uploading
-                        ? "Uploading..."
-                        : "Drop your document here or click to browse"}
+                      {uploading ? 'Uploading...' : 'Drop your document here or click to browse'}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       Supports PDF, TXT, DOC, DOCX, CSV (max 10MB)
                     </p>
                   </div>
 
                   {!uploading && (
                     <Button variant="outline" size="lg" className="mt-4">
-                      <File className="h-5 w-5 mr-2" />
+                      <File className="mr-2 h-5 w-5" />
                       Choose File
                     </Button>
                   )}
@@ -284,12 +259,8 @@ export const DocumentUpload = ({
               {uploading && uploadedFile && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {uploadedFile.name}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {uploadProgress}%
-                    </span>
+                    <span className="text-sm font-medium">{uploadedFile.name}</span>
+                    <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
                 </div>
@@ -310,21 +281,19 @@ export const DocumentUpload = ({
             </>
           ) : (
             /* Success State */
-            <div className="text-center space-y-6 py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <div className="space-y-6 py-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  Upload Successful!
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-lg font-semibold text-foreground">Upload Successful!</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {uploadedFile?.name} has been uploaded and processed.
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-col justify-center gap-3 sm:flex-row">
                 <Button
                   className="gap-2"
                   onClick={() => {

@@ -1,21 +1,16 @@
-import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import {
   Star,
   MessageSquare,
@@ -23,9 +18,9 @@ import {
   ThumbsDown,
   AlertTriangle,
   CheckCircle,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface AIFeedbackModalProps {
   isOpen: boolean;
@@ -47,67 +42,67 @@ interface FeedbackForm {
 
 const feedbackTypes = [
   {
-    value: "ai_correct",
-    label: "AI Response was Correct",
+    value: 'ai_correct',
+    label: 'AI Response was Correct',
     icon: CheckCircle,
-    color: "text-green-600",
+    color: 'text-green-600',
   },
   {
-    value: "ai_incorrect",
-    label: "AI Response was Incorrect",
+    value: 'ai_incorrect',
+    label: 'AI Response was Incorrect',
     icon: ThumbsDown,
-    color: "text-red-600",
+    color: 'text-red-600',
   },
   {
-    value: "ai_incomplete",
-    label: "AI Response was Incomplete",
+    value: 'ai_incomplete',
+    label: 'AI Response was Incomplete',
     icon: AlertTriangle,
-    color: "text-yellow-600",
+    color: 'text-yellow-600',
   },
   {
-    value: "ai_unhelpful",
-    label: "AI Response was Unhelpful",
+    value: 'ai_unhelpful',
+    label: 'AI Response was Unhelpful',
     icon: ThumbsDown,
-    color: "text-orange-600",
+    color: 'text-orange-600',
   },
   {
-    value: "escalation_unnecessary",
-    label: "Escalation was Unnecessary",
+    value: 'escalation_unnecessary',
+    label: 'Escalation was Unnecessary',
     icon: ThumbsUp,
-    color: "text-blue-600",
+    color: 'text-blue-600',
   },
   {
-    value: "escalation_justified",
-    label: "Escalation was Justified",
+    value: 'escalation_justified',
+    label: 'Escalation was Justified',
     icon: CheckCircle,
-    color: "text-green-600",
+    color: 'text-green-600',
   },
   {
-    value: "other",
-    label: "Other",
+    value: 'other',
+    label: 'Other',
     icon: MessageSquare,
-    color: "text-gray-600",
+    color: 'text-gray-600',
   },
 ];
 
 const qualityOptions = [
-  { value: "excellent", label: "Excellent" },
-  { value: "good", label: "Good" },
-  { value: "average", label: "Average" },
-  { value: "poor", label: "Poor" },
-  { value: "very_poor", label: "Very Poor" },
+  { value: 'excellent', label: 'Excellent' },
+  { value: 'good', label: 'Good' },
+  { value: 'average', label: 'Average' },
+  { value: 'poor', label: 'Poor' },
+  { value: 'very_poor', label: 'Very Poor' },
 ];
 
 const commonTags = [
-  "compliance",
-  "technical",
-  "policy",
-  "security",
-  "implementation",
-  "documentation",
-  "training",
-  "assessment",
-  "incident-response",
+  'compliance',
+  'technical',
+  'policy',
+  'security',
+  'implementation',
+  'documentation',
+  'training',
+  'assessment',
+  'incident-response',
 ];
 
 export function AIFeedbackModal({
@@ -119,11 +114,11 @@ export function AIFeedbackModal({
   initialContext,
 }: AIFeedbackModalProps) {
   const [form, setForm] = useState<FeedbackForm>({
-    feedback_type: "",
+    feedback_type: '',
     rating: 0,
-    comments: "",
-    ai_response_quality: "",
-    suggested_improvement: "",
+    comments: '',
+    ai_response_quality: '',
+    suggested_improvement: '',
     category_tags: [],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -133,9 +128,9 @@ export function AIFeedbackModal({
 
     if (!form.feedback_type) {
       toast({
-        title: "Error",
-        description: "Please select a feedback type",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Please select a feedback type',
+        variant: 'destructive',
       });
       return;
     }
@@ -143,47 +138,43 @@ export function AIFeedbackModal({
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "submit-ai-feedback",
-        {
-          body: {
-            conversation_id: conversationId,
-            escalation_id: escalationId,
-            message_id: messageId,
-            feedback_type: form.feedback_type,
-            rating: form.rating || undefined,
-            comments: form.comments || undefined,
-            ai_response_quality: form.ai_response_quality || undefined,
-            suggested_improvement: form.suggested_improvement || undefined,
-            category_tags:
-              form.category_tags.length > 0 ? form.category_tags : undefined,
-          },
+      const { data, error } = await supabase.functions.invoke('submit-ai-feedback', {
+        body: {
+          conversation_id: conversationId,
+          escalation_id: escalationId,
+          message_id: messageId,
+          feedback_type: form.feedback_type,
+          rating: form.rating || undefined,
+          comments: form.comments || undefined,
+          ai_response_quality: form.ai_response_quality || undefined,
+          suggested_improvement: form.suggested_improvement || undefined,
+          category_tags: form.category_tags.length > 0 ? form.category_tags : undefined,
         },
-      );
+      });
 
       if (error) throw error;
 
       toast({
-        title: "Feedback Submitted",
-        description: "Thank you for helping improve our AI system!",
+        title: 'Feedback Submitted',
+        description: 'Thank you for helping improve our AI system!',
       });
 
       // Reset form and close modal
       setForm({
-        feedback_type: "",
+        feedback_type: '',
         rating: 0,
-        comments: "",
-        ai_response_quality: "",
-        suggested_improvement: "",
+        comments: '',
+        ai_response_quality: '',
+        suggested_improvement: '',
         category_tags: [],
       });
       onClose();
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error('Error submitting feedback:', error);
       toast({
-        title: "Error",
-        description: "Failed to submit feedback. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to submit feedback. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -201,7 +192,7 @@ export function AIFeedbackModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
@@ -212,11 +203,9 @@ export function AIFeedbackModal({
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Context Display */}
           {initialContext && (
-            <div className="bg-muted p-4 rounded-lg">
+            <div className="rounded-lg bg-muted p-4">
               <Label className="text-sm font-medium">Context</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                {initialContext}
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{initialContext}</p>
             </div>
           )}
 
@@ -230,10 +219,8 @@ export function AIFeedbackModal({
                   <Button
                     key={type.value}
                     type="button"
-                    variant={
-                      form.feedback_type === type.value ? "default" : "outline"
-                    }
-                    className="justify-start h-auto p-3"
+                    variant={form.feedback_type === type.value ? 'default' : 'outline'}
+                    className="h-auto justify-start p-3"
                     onClick={() =>
                       setForm((prev) => ({
                         ...prev,
@@ -241,7 +228,7 @@ export function AIFeedbackModal({
                       }))
                     }
                   >
-                    <Icon className={`h-4 w-4 mr-2 ${type.color}`} />
+                    <Icon className={`mr-2 h-4 w-4 ${type.color}`} />
                     {type.label}
                   </Button>
                 );
@@ -264,9 +251,7 @@ export function AIFeedbackModal({
                 >
                   <Star
                     className={`h-6 w-6 ${
-                      star <= form.rating
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
+                      star <= form.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
                     }`}
                   />
                 </Button>
@@ -303,9 +288,7 @@ export function AIFeedbackModal({
               {commonTags.map((tag) => (
                 <Badge
                   key={tag}
-                  variant={
-                    form.category_tags.includes(tag) ? "default" : "outline"
-                  }
+                  variant={form.category_tags.includes(tag) ? 'default' : 'outline'}
                   className="cursor-pointer"
                   onClick={() => handleTagToggle(tag)}
                 >
@@ -324,9 +307,7 @@ export function AIFeedbackModal({
               id="comments"
               placeholder="Share your thoughts on the AI's performance..."
               value={form.comments}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, comments: e.target.value }))
-              }
+              onChange={(e) => setForm((prev) => ({ ...prev, comments: e.target.value }))}
               rows={3}
             />
           </div>
@@ -355,11 +336,8 @@ export function AIFeedbackModal({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !form.feedback_type}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Feedback"}
+            <Button type="submit" disabled={isSubmitting || !form.feedback_type}>
+              {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
             </Button>
           </div>
         </form>

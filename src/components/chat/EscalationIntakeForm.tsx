@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   X,
@@ -9,26 +9,26 @@ import {
   AlertTriangle,
   Info,
   Edit3,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 interface Message {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   timestamp: string;
   id?: string;
@@ -40,66 +40,66 @@ interface EscalationIntakeFormProps {
 }
 const TOPIC_TAGS = [
   {
-    id: "cmmc",
-    label: "CMMC",
+    id: 'cmmc',
+    label: 'CMMC',
     icon: Shield,
   },
   {
-    id: "nist-800-171",
-    label: "NIST 800-171",
+    id: 'nist-800-171',
+    label: 'NIST 800-171',
     icon: Shield,
   },
   {
-    id: "soc2",
-    label: "SOC 2",
+    id: 'soc2',
+    label: 'SOC 2',
     icon: Shield,
   },
   {
-    id: "fedramp",
-    label: "FedRAMP",
+    id: 'fedramp',
+    label: 'FedRAMP',
     icon: Shield,
   },
   {
-    id: "iso27001",
-    label: "ISO 27001",
+    id: 'iso27001',
+    label: 'ISO 27001',
     icon: Shield,
   },
   {
-    id: "gdpr",
-    label: "GDPR",
+    id: 'gdpr',
+    label: 'GDPR',
     icon: Shield,
   },
   {
-    id: "incident-response",
-    label: "Incident Response",
+    id: 'incident-response',
+    label: 'Incident Response',
     icon: AlertTriangle,
   },
   {
-    id: "risk-assessment",
-    label: "Risk Assessment",
+    id: 'risk-assessment',
+    label: 'Risk Assessment',
     icon: AlertTriangle,
   },
 ];
 const URGENCY_LEVELS = [
   {
-    value: "low",
-    label: "Low - General guidance",
-    color: "bg-green-100 text-green-800",
+    value: 'low',
+    label: 'Low - General guidance',
+    color: 'bg-green-100 text-green-800',
   },
   {
-    value: "medium",
-    label: "Medium - Active project",
-    color: "bg-yellow-100 text-yellow-800",
+    value: 'medium',
+    label: 'Medium - Active project',
+    color: 'bg-yellow-100 text-yellow-800',
   },
   {
-    value: "high",
-    label: "High - Blocking issue",
-    color: "bg-orange-100 text-orange-800",
+    value: 'high',
+    label: 'High - Blocking issue',
+    color: 'bg-orange-100 text-orange-800',
   },
   {
-    value: "urgent",
-    label: "Urgent - Critical deadline",
-    color: "bg-red-100 text-red-800",
+    value: 'urgent',
+    label: 'Urgent - Critical deadline',
+    color: 'bg-red-100 text-red-800',
   },
 ];
 export const EscalationIntakeForm = ({
@@ -113,10 +113,10 @@ export const EscalationIntakeForm = ({
   const summaryRef = useRef<HTMLTextAreaElement>(null);
   const [formData, setFormData] = useState({
     topics: [] as string[],
-    urgency: "medium",
-    responseType: "async",
-    summary: "",
-    contactEmail: user?.email || "",
+    urgency: 'medium',
+    responseType: 'async',
+    summary: '',
+    contactEmail: user?.email || '',
     attachChatContext: true,
   });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -127,18 +127,14 @@ export const EscalationIntakeForm = ({
   // Auto-generate summary from recent messages
   const generateSummary = () => {
     const recentMessages = messages.slice(-20);
-    const userMessages = recentMessages.filter((m) => m.role === "user");
-    const assistantMessages = recentMessages.filter(
-      (m) => m.role === "assistant",
-    );
-    if (userMessages.length === 0) return "";
+    const userMessages = recentMessages.filter((m) => m.role === 'user');
+    const assistantMessages = recentMessages.filter((m) => m.role === 'assistant');
+    if (userMessages.length === 0) return '';
 
     // Create a concise summary
-    const lastUserMessage =
-      userMessages[userMessages.length - 1]?.content || "";
-    const context =
-      assistantMessages.length > 0 ? "cybersecurity guidance" : "assistance";
-    return `I need help with ${lastUserMessage.slice(0, 100)}${lastUserMessage.length > 100 ? "..." : ""}. We've been discussing ${context} and I'd like expert consultation.`.slice(
+    const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
+    const context = assistantMessages.length > 0 ? 'cybersecurity guidance' : 'assistance';
+    return `I need help with ${lastUserMessage.slice(0, 100)}${lastUserMessage.length > 100 ? '...' : ''}. We've been discussing ${context} and I'd like expert consultation.`.slice(
       0,
       300,
     );
@@ -148,11 +144,11 @@ export const EscalationIntakeForm = ({
   const detectTopicsFromMessages = () => {
     const content = messages
       .map((m) => m.content)
-      .join(" ")
+      .join(' ')
       .toLowerCase();
     const detectedTopics: string[] = [];
     TOPIC_TAGS.forEach((tag) => {
-      const keywords = tag.id.split("-");
+      const keywords = tag.id.split('-');
       if (keywords.some((keyword) => content.includes(keyword.toLowerCase()))) {
         detectedTopics.push(tag.id);
       }
@@ -189,9 +185,9 @@ export const EscalationIntakeForm = ({
       // Validate file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
         toast({
-          title: "File too large",
-          description: "Please select a file smaller than 5MB.",
-          variant: "destructive",
+          title: 'File too large',
+          description: 'Please select a file smaller than 5MB.',
+          variant: 'destructive',
         });
         return;
       }
@@ -201,17 +197,17 @@ export const EscalationIntakeForm = ({
   const handleSubmit = async () => {
     if (!formData.summary.trim()) {
       toast({
-        title: "Summary required",
-        description: "Please provide a brief summary of your issue.",
-        variant: "destructive",
+        title: 'Summary required',
+        description: 'Please provide a brief summary of your issue.',
+        variant: 'destructive',
       });
       return;
     }
     if (formData.topics.length === 0) {
       toast({
-        title: "Topic required",
-        description: "Please select at least one relevant topic.",
-        variant: "destructive",
+        title: 'Topic required',
+        description: 'Please select at least one relevant topic.',
+        variant: 'destructive',
       });
       return;
     }
@@ -220,8 +216,9 @@ export const EscalationIntakeForm = ({
 
     try {
       // Create escalation with correct data structure
-      const { data: escalationResult, error: createError } =
-        await supabase.functions.invoke("create-escalation", {
+      const { data: escalationResult, error: createError } = await supabase.functions.invoke(
+        'create-escalation',
+        {
           body: {
             summary: formData.summary,
             priority: formData.urgency,
@@ -229,40 +226,41 @@ export const EscalationIntakeForm = ({
             response_type: formData.responseType,
             contact_email: formData.contactEmail,
             messageLog: formData.attachChatContext ? messages.slice(-25) : null,
-            escalation_state: "submitted",
+            escalation_state: 'submitted',
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            language_preference: "en",
+            language_preference: 'en',
           },
-        });
+        },
+      );
 
       if (createError) {
-        console.error("Create escalation error:", createError);
-        throw new Error(createError.message || "Failed to create escalation");
+        console.error('Create escalation error:', createError);
+        throw new Error(createError.message || 'Failed to create escalation');
       }
 
-      console.log("Escalation created:", escalationResult);
+      console.log('Escalation created:', escalationResult);
 
       // Send confirmation email
       try {
-        await supabase.functions.invoke("send-escalation-notification", {
+        await supabase.functions.invoke('send-escalation-notification', {
           body: {
-            escalationId: escalationResult.escalation?.id || "Unknown",
+            escalationId: escalationResult.escalation?.id || 'Unknown',
             userEmail: formData.contactEmail,
-            userName: user?.user_metadata?.first_name || "User",
+            userName: user?.user_metadata?.first_name || 'User',
             summary: formData.summary,
             priority: formData.urgency,
             estimatedResponseTime: getEstimatedResponseTime(),
           },
         });
-        console.log("Confirmation email sent");
+        console.log('Confirmation email sent');
       } catch (emailError) {
-        console.warn("Failed to send confirmation email:", emailError);
+        console.warn('Failed to send confirmation email:', emailError);
         // Don't fail the whole process if email fails
       }
 
       // Show success message
       toast({
-        title: "Request Submitted Successfully! ✅",
+        title: 'Request Submitted Successfully! ✅',
         description: `Your escalation has been submitted and a confirmation email sent to ${formData.contactEmail}. Expected response within ${getEstimatedResponseTime()}.`,
       });
 
@@ -271,16 +269,15 @@ export const EscalationIntakeForm = ({
         onSubmit?.();
       }, 1500);
     } catch (error: any) {
-      console.error("Escalation submission error:", error);
+      console.error('Escalation submission error:', error);
 
       // Show more specific error messages
-      const errorMessage =
-        error?.message || "Unable to submit your escalation request";
+      const errorMessage = error?.message || 'Unable to submit your escalation request';
 
       toast({
-        title: "Submission Failed",
+        title: 'Submission Failed',
         description: errorMessage,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -292,25 +289,23 @@ export const EscalationIntakeForm = ({
   // Calculate ETA based on urgency
   const getEstimatedResponseTime = () => {
     switch (formData.urgency) {
-      case "urgent":
-        return "2 hours";
-      case "high":
-        return "4 hours";
-      case "medium":
-        return "24 hours";
-      case "low":
-        return "72 hours";
+      case 'urgent':
+        return '2 hours';
+      case 'high':
+        return '4 hours';
+      case 'medium':
+        return '24 hours';
+      case 'low':
+        return '72 hours';
       default:
-        return "24 hours";
+        return '24 hours';
     }
   };
   return (
-    <div className="relative flex flex-col max-h-[90vh] overflow-hidden rounded-lg bg-background shadow-lg">
+    <div className="relative flex max-h-[90vh] flex-col overflow-hidden rounded-lg bg-background shadow-lg">
       {/* Header */}
-      <div className="px-5 py-4 border-b">
-        <h2 className="text-lg font-semibold">
-          Talk to a Cybersecurity Expert
-        </h2>
+      <div className="border-b px-5 py-4">
+        <h2 className="text-lg font-semibold">Talk to a Cybersecurity Expert</h2>
       </div>
 
       {/* Scrollable Content */}
@@ -320,7 +315,7 @@ export const EscalationIntakeForm = ({
           <Label htmlFor="summary" className="text-sm font-medium">
             Summary
           </Label>
-          <p className="text-xs text-muted-foreground mt-1 mb-2">
+          <p className="mb-2 mt-1 text-xs text-muted-foreground">
             We summarized your recent chat. Edit if needed.
           </p>
           <Textarea
@@ -335,25 +330,23 @@ export const EscalationIntakeForm = ({
             }
             placeholder="Briefly describe your cybersecurity challenge or question..."
             className={cn(
-              "min-h-[80px] resize-none",
-              isOverLimit && "border-destructive focus:border-destructive",
+              'min-h-[80px] resize-none',
+              isOverLimit && 'border-destructive focus:border-destructive',
             )}
             maxLength={300}
             aria-describedby="summary-helper"
           />
-          <div className="flex justify-between mt-1">
+          <div className="mt-1 flex justify-between">
             <span id="summary-helper" className="text-xs text-muted-foreground">
               {characterCount}/300 characters
             </span>
-            {isOverLimit && (
-              <span className="text-xs text-destructive">Too long</span>
-            )}
+            {isOverLimit && <span className="text-xs text-destructive">Too long</span>}
           </div>
         </div>
 
         {/* Urgency and Response Type */}
-        <div className="px-5 py-4 border-t border-border/50">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="border-t border-border/50 px-5 py-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="urgency" className="text-sm font-medium">
                 Urgency
@@ -404,20 +397,13 @@ export const EscalationIntakeForm = ({
         </div>
 
         {/* Relevant Topics */}
-        <div className="px-5 py-4 border-t border-border/50">
-          <div className="flex items-center justify-between mb-2">
+        <div className="border-t border-border/50 px-5 py-4">
+          <div className="mb-2 flex items-center justify-between">
             <Label className="text-sm font-medium">Relevant topics</Label>
-            <Dialog
-              open={showTopicSelector}
-              onOpenChange={setShowTopicSelector}
-            >
+            <Dialog open={showTopicSelector} onOpenChange={setShowTopicSelector}>
               <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-primary h-auto p-1"
-                >
-                  <Edit3 className="h-3 w-3 mr-1" />
+                <Button variant="ghost" size="sm" className="h-auto p-1 text-xs text-primary">
+                  <Edit3 className="mr-1 h-3 w-3" />
                   Edit topics
                 </Button>
               </DialogTrigger>
@@ -431,21 +417,18 @@ export const EscalationIntakeForm = ({
                       return (
                         <Button
                           key={topic.id}
-                          variant={isSelected ? "default" : "outline"}
+                          variant={isSelected ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => toggleTopic(topic.id)}
-                          className="justify-start h-auto p-2"
+                          className="h-auto justify-start p-2"
                         >
-                          <Icon className="h-3 w-3 mr-2" />
+                          <Icon className="mr-2 h-3 w-3" />
                           {topic.label}
                         </Button>
                       );
                     })}
                   </div>
-                  <Button
-                    onClick={() => setShowTopicSelector(false)}
-                    className="w-full"
-                  >
+                  <Button onClick={() => setShowTopicSelector(false)} className="w-full">
                     Done
                   </Button>
                 </div>
@@ -459,21 +442,19 @@ export const EscalationIntakeForm = ({
               const Icon = topic.icon;
               return (
                 <Badge key={topicId} variant="secondary" className="text-xs">
-                  <Icon className="h-3 w-3 mr-1" />
+                  <Icon className="mr-1 h-3 w-3" />
                   {topic.label}
                 </Badge>
               );
             })}
             {formData.topics.length === 0 && (
-              <span className="text-sm text-muted-foreground">
-                No topics selected
-              </span>
+              <span className="text-sm text-muted-foreground">No topics selected</span>
             )}
           </div>
         </div>
 
         {/* Contact Email */}
-        <div className="px-5 py-4 border-t border-border/50">
+        <div className="border-t border-border/50 px-5 py-4">
           <Label htmlFor="email" className="text-sm font-medium">
             Contact email
           </Label>
@@ -488,20 +469,18 @@ export const EscalationIntakeForm = ({
               }))
             }
             placeholder="your.email@company.com"
-            className="min-h-[48px] mt-2"
+            className="mt-2 min-h-[48px]"
           />
         </div>
 
         {/* File Upload */}
-        <div className="px-5 py-4 border-t border-border/50">
+        <div className="border-t border-border/50 px-5 py-4">
           <Label className="text-sm font-medium">Optional attachment</Label>
           <div className="mt-2">
             {uploadedFile ? (
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+              <div className="flex items-center gap-2 rounded-md bg-muted p-3">
                 <Upload className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm flex-1 truncate">
-                  {uploadedFile.name}
-                </span>
+                <span className="flex-1 truncate text-sm">{uploadedFile.name}</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -516,10 +495,10 @@ export const EscalationIntakeForm = ({
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full min-h-[48px] border-dashed justify-center"
+                className="min-h-[48px] w-full justify-center border-dashed"
                 type="button"
               >
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="mr-2 h-4 w-4" />
                 Choose file
               </Button>
             )}
@@ -530,7 +509,7 @@ export const EscalationIntakeForm = ({
               onChange={handleFileUpload}
               className="hidden"
             />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="mt-2 text-xs text-muted-foreground">
               PDF, Word, or image files up to 5 MB
             </p>
           </div>
@@ -542,17 +521,13 @@ export const EscalationIntakeForm = ({
       </div>
 
       {/* Sticky Footer */}
-      <div className="sticky bottom-0 bg-background border-t px-5 py-4">
+      <div className="sticky bottom-0 border-t bg-background px-5 py-4">
         <div className="flex items-center justify-between gap-4">
           <span className="text-sm text-muted-foreground">
             First reply in ~{getEstimatedResponseTime()}
           </span>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={onCancel}
-              className="min-h-[48px]"
-            >
+            <Button variant="outline" onClick={onCancel} className="min-h-[48px]">
               Cancel
             </Button>
             <Button
@@ -567,11 +542,11 @@ export const EscalationIntakeForm = ({
             >
               {isSubmitting ? (
                 <>
-                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  <Clock className="mr-2 h-4 w-4 animate-spin" />
                   Submitting...
                 </>
               ) : (
-                "Submit Request"
+                'Submit Request'
               )}
             </Button>
           </div>

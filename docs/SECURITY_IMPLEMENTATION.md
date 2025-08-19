@@ -139,15 +139,15 @@ All responses include comprehensive security headers:
 All edge functions should use the security wrapper:
 
 ```typescript
-import { withSecurity } from "../_shared/security-hardening.ts";
+import { withSecurity } from '../_shared/security-hardening.ts';
 
 serve(async (req) => {
   return withSecurity(
     req,
     {
       requireAuth: true,
-      rateLimitKey: "endpoint-name",
-      validateInput: "schemaName",
+      rateLimitKey: 'endpoint-name',
+      validateInput: 'schemaName',
       logActivity: true,
     },
     async (request: Request, context: SecurityContext) => {
@@ -178,15 +178,15 @@ Automatic removal of sensitive fields:
 
 ```typescript
 const sensitiveFields = [
-  "password",
-  "secret",
-  "key",
-  "token",
-  "credentials",
-  "internal_notes",
-  "admin_notes",
-  "ip_address",
-  "user_agent",
+  'password',
+  'secret',
+  'key',
+  'token',
+  'credentials',
+  'internal_notes',
+  'admin_notes',
+  'ip_address',
+  'user_agent',
 ];
 ```
 

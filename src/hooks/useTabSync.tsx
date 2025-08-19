@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseTabSyncReturn {
   isActiveTab: boolean;
@@ -20,13 +20,13 @@ export const useTabSync = (conversationId: string | null): UseTabSyncReturn => {
     if (conversationId) {
       const tabId = generateTabId();
       localStorage.setItem(`activeTab_${conversationId}`, tabId);
-      sessionStorage.setItem("currentTabId", tabId);
+      sessionStorage.setItem('currentTabId', tabId);
       setIsActiveTab(true);
       setConflictWarning(false);
 
       toast({
-        title: "Active Session",
-        description: "This tab is now the active chat session.",
+        title: 'Active Session',
+        description: 'This tab is now the active chat session.',
       });
     }
   }, [conversationId, generateTabId, toast]);
@@ -34,12 +34,12 @@ export const useTabSync = (conversationId: string | null): UseTabSyncReturn => {
   useEffect(() => {
     if (!conversationId) return;
 
-    const tabId = sessionStorage.getItem("currentTabId") || generateTabId();
-    sessionStorage.setItem("currentTabId", tabId);
+    const tabId = sessionStorage.getItem('currentTabId') || generateTabId();
+    sessionStorage.setItem('currentTabId', tabId);
 
     const checkActiveTab = () => {
       const activeTabId = localStorage.getItem(`activeTab_${conversationId}`);
-      const currentTabId = sessionStorage.getItem("currentTabId");
+      const currentTabId = sessionStorage.getItem('currentTabId');
 
       if (!activeTabId) {
         // No active tab, this becomes the active one
@@ -67,29 +67,24 @@ export const useTabSync = (conversationId: string | null): UseTabSyncReturn => {
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener('storage', handleStorageChange);
 
     // Periodic check (in case storage events are missed)
     const interval = setInterval(checkActiveTab, 2000);
 
     // Update active tab timestamp periodically
     const heartbeatInterval = setInterval(() => {
-      const currentTabId = sessionStorage.getItem("currentTabId");
+      const currentTabId = sessionStorage.getItem('currentTabId');
       const activeTabId = localStorage.getItem(`activeTab_${conversationId}`);
 
       if (activeTabId === currentTabId) {
-        localStorage.setItem(
-          `activeTabHeartbeat_${conversationId}`,
-          Date.now().toString(),
-        );
+        localStorage.setItem(`activeTabHeartbeat_${conversationId}`, Date.now().toString());
       }
     }, 5000);
 
     // Cleanup old active tabs (if no heartbeat for 30 seconds)
     const cleanupInterval = setInterval(() => {
-      const lastHeartbeat = localStorage.getItem(
-        `activeTabHeartbeat_${conversationId}`,
-      );
+      const lastHeartbeat = localStorage.getItem(`activeTabHeartbeat_${conversationId}`);
       if (lastHeartbeat) {
         const heartbeatTime = parseInt(lastHeartbeat);
         const now = Date.now();
@@ -104,7 +99,7 @@ export const useTabSync = (conversationId: string | null): UseTabSyncReturn => {
     }, 10000);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
       clearInterval(heartbeatInterval);
       clearInterval(cleanupInterval);
@@ -114,7 +109,7 @@ export const useTabSync = (conversationId: string | null): UseTabSyncReturn => {
   // Handle page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
-      const currentTabId = sessionStorage.getItem("currentTabId");
+      const currentTabId = sessionStorage.getItem('currentTabId');
       const activeTabId = localStorage.getItem(`activeTab_${conversationId}`);
 
       if (conversationId && activeTabId === currentTabId) {
@@ -123,8 +118,8 @@ export const useTabSync = (conversationId: string | null): UseTabSyncReturn => {
       }
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [conversationId]);
 
   return {

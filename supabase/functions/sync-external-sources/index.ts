@@ -1,64 +1,63 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts";
+import 'https://deno.land/x/xhr@0.1.0/mod.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { DOMParser } from 'https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
 
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error("No authorization header");
+      throw new Error('No authorization header');
     }
 
     // Verify admin role
-    const jwt = authHeader.replace("Bearer ", "");
+    const jwt = authHeader.replace('Bearer ', '');
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser(jwt);
 
     if (authError || !user) {
-      throw new Error("Invalid authentication");
+      throw new Error('Invalid authentication');
     }
 
     const { data: userRole, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
       .single();
 
-    if (roleError || userRole?.role !== "admin") {
-      throw new Error("Admin access required");
+    if (roleError || userRole?.role !== 'admin') {
+      throw new Error('Admin access required');
     }
 
     const url = new URL(req.url);
-    const sourceId = url.searchParams.get("sourceId");
-    const action = url.searchParams.get("action") || "sync";
+    const sourceId = url.searchParams.get('sourceId');
+    const action = url.searchParams.get('action') || 'sync';
 
     // Handle different actions
-    if (action === "list-sources") {
+    if (action === 'list-sources') {
       const { data: sources, error } = await supabase
-        .from("external_sources")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('external_sources')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -68,21 +67,21 @@ serve(async (req) => {
           sources: sources || [],
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         },
       );
     }
 
-    if (action === "sync-logs") {
+    if (action === 'sync-logs') {
       const { data: logs, error } = await supabase
-        .from("sync_logs")
+        .from('sync_logs')
         .select(
           `
           *,
           external_sources!inner(name, source_type)
         `,
         )
-        .order("sync_started_at", { ascending: false })
+        .order('sync_started_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
@@ -93,35 +92,33 @@ serve(async (req) => {
           logs: logs || [],
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         },
       );
     }
 
-    if (action === "sync") {
+    if (action === 'sync') {
       // Get sources to sync
       let sourcesToSync = [];
 
       if (sourceId) {
         // Sync specific source
         const { data: source, error } = await supabase
-          .from("external_sources")
-          .select("*")
-          .eq("id", sourceId)
-          .eq("is_active", true)
+          .from('external_sources')
+          .select('*')
+          .eq('id', sourceId)
+          .eq('is_active', true)
           .single();
 
-        if (error) throw new Error("Source not found");
+        if (error) throw new Error('Source not found');
         sourcesToSync = [source];
       } else {
         // Sync all due sources
         const { data: sources, error } = await supabase
-          .from("external_sources")
-          .select("*")
-          .eq("is_active", true)
-          .or(
-            "next_sync_at.is.null,next_sync_at.lte." + new Date().toISOString(),
-          );
+          .from('external_sources')
+          .select('*')
+          .eq('is_active', true)
+          .or('next_sync_at.is.null,next_sync_at.lte.' + new Date().toISOString());
 
         if (error) throw error;
         sourcesToSync = sources || [];
@@ -152,14 +149,14 @@ serve(async (req) => {
           results,
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         },
       );
     }
 
-    throw new Error("Invalid action");
+    throw new Error('Invalid action');
   } catch (error) {
-    console.error("Error in sync-external-sources function:", error);
+    console.error('Error in sync-external-sources function:', error);
     return new Response(
       JSON.stringify({
         success: false,
@@ -167,7 +164,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
   }
@@ -178,10 +175,10 @@ async function syncExternalSource(source: any) {
 
   // Create sync log entry
   const { data: syncLog, error: logError } = await supabase
-    .from("sync_logs")
+    .from('sync_logs')
     .insert({
       source_id: source.id,
-      status: "running",
+      status: 'running',
     })
     .select()
     .single();
@@ -193,27 +190,27 @@ async function syncExternalSource(source: any) {
   try {
     // Update source status
     await supabase
-      .from("external_sources")
+      .from('external_sources')
       .update({
-        sync_status: "running",
+        sync_status: 'running',
         last_sync_at: new Date().toISOString(),
       })
-      .eq("id", source.id);
+      .eq('id', source.id);
 
     let documents = [];
 
     // Handle different source types
     switch (source.source_type) {
-      case "nist":
+      case 'nist':
         documents = await scrapeNISTContent(source);
         break;
-      case "mitre":
+      case 'mitre':
         documents = await scrapeMITREContent(source);
         break;
-      case "cve":
+      case 'cve':
         documents = await scrapeCVEContent(source);
         break;
-      case "rss":
+      case 'rss':
         documents = await scrapeRSSFeed(source);
         break;
       default:
@@ -237,9 +234,9 @@ async function syncExternalSource(source: any) {
 
         // Check if document already exists
         const { data: existing } = await supabase
-          .from("master_knowledge_base")
-          .select("id, content_hash, version_number")
-          .eq("source_id", doc.sourceId)
+          .from('master_knowledge_base')
+          .select('id, content_hash, version_number')
+          .eq('source_id', doc.sourceId)
           .single();
 
         if (existing) {
@@ -272,24 +269,24 @@ async function syncExternalSource(source: any) {
 
     // Update source and sync log
     await supabase
-      .from("external_sources")
+      .from('external_sources')
       .update({
-        sync_status: "completed",
+        sync_status: 'completed',
         next_sync_at: nextSyncAt,
       })
-      .eq("id", source.id);
+      .eq('id', source.id);
 
     await supabase
-      .from("sync_logs")
+      .from('sync_logs')
       .update({
-        status: "completed",
+        status: 'completed',
         sync_completed_at: new Date().toISOString(),
         documents_processed: processedCount,
         documents_added: addedCount,
         documents_updated: updatedCount,
         documents_skipped: skippedCount,
       })
-      .eq("id", syncLog.id);
+      .eq('id', syncLog.id);
 
     return {
       success: true,
@@ -302,108 +299,99 @@ async function syncExternalSource(source: any) {
     console.error(`Sync failed for source ${source.id}:`, error);
 
     // Update source and sync log with error
-    await supabase
-      .from("external_sources")
-      .update({ sync_status: "failed" })
-      .eq("id", source.id);
+    await supabase.from('external_sources').update({ sync_status: 'failed' }).eq('id', source.id);
 
     await supabase
-      .from("sync_logs")
+      .from('sync_logs')
       .update({
-        status: "failed",
+        status: 'failed',
         sync_completed_at: new Date().toISOString(),
         error_message: error.message,
       })
-      .eq("id", syncLog.id);
+      .eq('id', syncLog.id);
 
     throw error;
   }
 }
 
 async function scrapeNISTContent(source: any) {
-  console.log("Scraping NIST content...");
+  console.log('Scraping NIST content...');
 
   try {
     // For NIST, we'll scrape their cybersecurity framework pages
     const response = await fetch(source.base_url);
     const html = await response.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    const doc = new DOMParser().parseFromString(html, 'text/html');
 
     const documents = [];
 
     // Look for publication links and content
-    const links = doc.querySelectorAll(
-      'a[href*="/publications/"], a[href*="csrc.nist.gov"]',
-    );
+    const links = doc.querySelectorAll('a[href*="/publications/"], a[href*="csrc.nist.gov"]');
 
     for (const link of links) {
-      const href = link.getAttribute("href");
+      const href = link.getAttribute('href');
       const title = link.textContent?.trim();
 
       if (title && href && title.length > 10) {
         documents.push({
           title: `NIST: ${title}`,
           content: await fetchPageContent(
-            href.startsWith("http") ? href : `https://www.nist.gov${href}`,
+            href.startsWith('http') ? href : `https://www.nist.gov${href}`,
           ),
           sourceId: `nist-${generateId(href)}`,
-          sourceUrl: href.startsWith("http")
-            ? href
-            : `https://www.nist.gov${href}`,
-          tags: ["nist", "cybersecurity", "framework"],
+          sourceUrl: href.startsWith('http') ? href : `https://www.nist.gov${href}`,
+          tags: ['nist', 'cybersecurity', 'framework'],
         });
       }
     }
 
     return documents.slice(0, 10); // Limit to 10 documents per sync
   } catch (error) {
-    console.error("Error scraping NIST:", error);
+    console.error('Error scraping NIST:', error);
     return [];
   }
 }
 
 async function scrapeMITREContent(source: any) {
-  console.log("Scraping MITRE ATT&CK content...");
+  console.log('Scraping MITRE ATT&CK content...');
 
   try {
     // MITRE ATT&CK has a structured API we can use
     const response = await fetch(
-      "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json",
+      'https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json',
     );
     const attackData = await response.json();
 
     const documents = [];
 
     // Process techniques
-    const techniques = attackData.objects.filter(
-      (obj: any) => obj.type === "attack-pattern",
-    );
+    const techniques = attackData.objects.filter((obj: any) => obj.type === 'attack-pattern');
 
     for (const technique of techniques.slice(0, 20)) {
       // Limit to 20 techniques
       documents.push({
         title: `MITRE ATT&CK: ${technique.name}`,
-        content: `${technique.description}\n\nTactic: ${technique.kill_chain_phases?.map((p: any) => p.phase_name).join(", ")}\n\nExternal ID: ${technique.external_references?.find((r: any) => r.source_name === "mitre-attack")?.external_id}`,
-        sourceId: `mitre-${technique.external_references?.find((r: any) => r.source_name === "mitre-attack")?.external_id}`,
+        content: `${technique.description}\n\nTactic: ${technique.kill_chain_phases?.map((p: any) => p.phase_name).join(', ')}\n\nExternal ID: ${technique.external_references?.find((r: any) => r.source_name === 'mitre-attack')?.external_id}`,
+        sourceId: `mitre-${technique.external_references?.find((r: any) => r.source_name === 'mitre-attack')?.external_id}`,
         sourceUrl: technique.external_references?.find((r: any) => r.url)?.url,
-        tags: ["mitre", "attack", "tactics", "techniques"],
+        tags: ['mitre', 'attack', 'tactics', 'techniques'],
       });
     }
 
     return documents;
   } catch (error) {
-    console.error("Error scraping MITRE:", error);
+    console.error('Error scraping MITRE:', error);
     return [];
   }
 }
 
 async function scrapeCVEContent(source: any) {
-  console.log("Scraping CVE content...");
+  console.log('Scraping CVE content...');
 
   try {
     // Use NVD API for recent CVEs
     const response = await fetch(
-      "https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=20",
+      'https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=20',
     );
     const cveData = await response.json();
 
@@ -413,22 +401,22 @@ async function scrapeCVEContent(source: any) {
       const cveItem = cve.cve;
       documents.push({
         title: `CVE: ${cveItem.id}`,
-        content: `${cveItem.descriptions?.find((d: any) => d.lang === "en")?.value}\n\nSeverity: ${cve.impact?.baseMetricV3?.cvssV3?.baseSeverity}\nScore: ${cve.impact?.baseMetricV3?.cvssV3?.baseScore}`,
+        content: `${cveItem.descriptions?.find((d: any) => d.lang === 'en')?.value}\n\nSeverity: ${cve.impact?.baseMetricV3?.cvssV3?.baseSeverity}\nScore: ${cve.impact?.baseMetricV3?.cvssV3?.baseScore}`,
         sourceId: `cve-${cveItem.id}`,
         sourceUrl: `https://nvd.nist.gov/vuln/detail/${cveItem.id}`,
-        tags: ["cve", "vulnerability", "security"],
+        tags: ['cve', 'vulnerability', 'security'],
       });
     }
 
     return documents;
   } catch (error) {
-    console.error("Error scraping CVE:", error);
+    console.error('Error scraping CVE:', error);
     return [];
   }
 }
 
 async function scrapeRSSFeed(source: any) {
-  console.log("Scraping RSS feed...");
+  console.log('Scraping RSS feed...');
 
   try {
     const response = await fetch(source.base_url);
@@ -440,9 +428,7 @@ async function scrapeRSSFeed(source: any) {
 
     for (const item of items.slice(0, 10)) {
       const title = item.match(/<title>(.*?)<\/title>/s)?.[1]?.trim();
-      const description = item
-        .match(/<description>(.*?)<\/description>/s)?.[1]
-        ?.trim();
+      const description = item.match(/<description>(.*?)<\/description>/s)?.[1]?.trim();
       const link = item.match(/<link>(.*?)<\/link>/s)?.[1]?.trim();
 
       if (title && description) {
@@ -451,20 +437,20 @@ async function scrapeRSSFeed(source: any) {
           content: description,
           sourceId: `rss-${generateId(link || title)}`,
           sourceUrl: link,
-          tags: ["rss", "news", "updates"],
+          tags: ['rss', 'news', 'updates'],
         });
       }
     }
 
     return documents;
   } catch (error) {
-    console.error("Error scraping RSS:", error);
+    console.error('Error scraping RSS:', error);
     return [];
   }
 }
 
 async function scrapeGenericContent(source: any) {
-  console.log("Scraping generic content...");
+  console.log('Scraping generic content...');
 
   try {
     const content = await fetchPageContent(source.base_url);
@@ -475,11 +461,11 @@ async function scrapeGenericContent(source: any) {
         content: content,
         sourceId: `generic-${source.id}`,
         sourceUrl: source.base_url,
-        tags: ["generic", "scraped"],
+        tags: ['generic', 'scraped'],
       },
     ];
   } catch (error) {
-    console.error("Error scraping generic content:", error);
+    console.error('Error scraping generic content:', error);
     return [];
   }
 }
@@ -488,54 +474,52 @@ async function fetchPageContent(url: string): Promise<string> {
   try {
     const response = await fetch(url);
     const html = await response.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    const doc = new DOMParser().parseFromString(html, 'text/html');
 
     // Extract main content (remove scripts, styles, nav, footer)
     const elementsToRemove = doc.querySelectorAll(
-      "script, style, nav, footer, header, .navigation",
+      'script, style, nav, footer, header, .navigation',
     );
     elementsToRemove.forEach((el) => el.remove());
 
     const mainContent =
-      doc.querySelector("main") ||
-      doc.querySelector("article") ||
-      doc.querySelector("body");
-    return mainContent?.textContent?.trim() || "No content found";
+      doc.querySelector('main') || doc.querySelector('article') || doc.querySelector('body');
+    return mainContent?.textContent?.trim() || 'No content found';
   } catch (error) {
-    console.error("Error fetching page content:", error);
-    return "Error fetching content";
+    console.error('Error fetching page content:', error);
+    return 'Error fetching content';
   }
 }
 
 async function generateContentHash(content: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(content);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function insertNewDocument(doc: any, source: any, contentHash: string) {
   const { data: docRecord, error } = await supabase
-    .from("master_knowledge_base")
+    .from('master_knowledge_base')
     .insert({
       title: doc.title,
       description: `Auto-imported from ${source.name}`,
       content_type: source.content_type,
       framework_category: source.framework_category,
       file_name: `${doc.sourceId}.txt`,
-      file_path: "", // No physical file for scraped content
-      file_type: "text/plain",
+      file_path: '', // No physical file for scraped content
+      file_type: 'text/plain',
       file_size: doc.content.length,
       tags: doc.tags || [],
       content_extracted: doc.content,
-      source_type: "external",
+      source_type: 'external',
       source_url: doc.sourceUrl,
       source_id: doc.sourceId,
       content_hash: contentHash,
       version_number: 1,
       last_synced_at: new Date().toISOString(),
-      processing_status: "completed",
+      processing_status: 'completed',
       processed_at: new Date().toISOString(),
     })
     .select()
@@ -547,9 +531,7 @@ async function insertNewDocument(doc: any, source: any, contentHash: string) {
 
   // Generate embeddings for the new document
   if (openAIApiKey) {
-    EdgeRuntime.waitUntil(
-      generateEmbeddingsForDocument(docRecord.id, doc.content),
-    );
+    EdgeRuntime.waitUntil(generateEmbeddingsForDocument(docRecord.id, doc.content));
   }
 }
 
@@ -560,61 +542,55 @@ async function updateExistingDocument(
   newVersion: number,
 ) {
   const { error } = await supabase
-    .from("master_knowledge_base")
+    .from('master_knowledge_base')
     .update({
       content_extracted: doc.content,
       content_hash: contentHash,
       version_number: newVersion,
       last_synced_at: new Date().toISOString(),
-      processing_status: "completed",
+      processing_status: 'completed',
       processed_at: new Date().toISOString(),
     })
-    .eq("id", docId);
+    .eq('id', docId);
 
   if (error) {
     throw new Error(`Failed to update document: ${error.message}`);
   }
 
   // Clear old embeddings and generate new ones
-  await supabase
-    .from("master_knowledge_embeddings")
-    .delete()
-    .eq("master_document_id", docId);
+  await supabase.from('master_knowledge_embeddings').delete().eq('master_document_id', docId);
 
   if (openAIApiKey) {
     EdgeRuntime.waitUntil(generateEmbeddingsForDocument(docId, doc.content));
   }
 }
 
-async function generateEmbeddingsForDocument(
-  documentId: string,
-  content: string,
-) {
+async function generateEmbeddingsForDocument(documentId: string, content: string) {
   try {
-    const { error } = await supabase.functions.invoke("generate-embeddings", {
+    const { error } = await supabase.functions.invoke('generate-embeddings', {
       body: {
         documentId,
         text: content,
-        tableType: "master_knowledge_base",
+        tableType: 'master_knowledge_base',
       },
     });
 
     if (error) {
-      console.error("Error generating embeddings:", error);
+      console.error('Error generating embeddings:', error);
     }
   } catch (error) {
-    console.error("Error calling generate-embeddings function:", error);
+    console.error('Error calling generate-embeddings function:', error);
   }
 }
 
 function calculateNextSyncTime(frequency: string): string {
   const now = new Date();
   switch (frequency) {
-    case "hourly":
+    case 'hourly':
       return new Date(now.getTime() + 60 * 60 * 1000).toISOString();
-    case "daily":
+    case 'daily':
       return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    case "weekly":
+    case 'weekly':
       return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
     default:
       return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
@@ -624,7 +600,7 @@ function calculateNextSyncTime(frequency: string): string {
 function generateId(input: string): string {
   return input
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-")
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
     .substring(0, 50);
 }

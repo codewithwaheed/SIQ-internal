@@ -1,32 +1,32 @@
-import { useState, useRef, useEffect } from "react";
-import { ArrowRight, Sparkles, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Textarea } from "@/components/ui/textarea";
-import { AiAvatar } from "@/components/ui/ai-avatar";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
+import { useState, useRef, useEffect } from 'react';
+import { ArrowRight, Sparkles, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Textarea } from '@/components/ui/textarea';
+import { AiAvatar } from '@/components/ui/ai-avatar';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 interface Message {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   timestamp: string;
 }
 export const HomepageChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const renderFormattedText = (content: string) => {
     // Simple text formatting without markdown dependency
-    return content.split("\n").map((line, index) => {
+    return content.split('\n').map((line, index) => {
       // Handle bold text
-      if (line.includes("**")) {
-        const parts = line.split("**");
+      if (line.includes('**')) {
+        const parts = line.split('**');
         return (
           <p key={index} className="mb-3 leading-relaxed">
             {parts.map((part, i) =>
@@ -43,16 +43,16 @@ export const HomepageChat = () => {
       }
 
       // Handle bullet points
-      if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
+      if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
         return (
           <li key={index} className="mb-1 ml-4 leading-relaxed">
-            {line.replace(/^[•\-]\s*/, "")}
+            {line.replace(/^[•\-]\s*/, '')}
           </li>
         );
       }
 
       // Handle empty lines
-      if (line.trim() === "") {
+      if (line.trim() === '') {
         return <br key={index} />;
       }
 
@@ -66,8 +66,8 @@ export const HomepageChat = () => {
   };
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
+      behavior: 'smooth',
+      block: 'nearest',
     });
   };
   useEffect(() => {
@@ -77,43 +77,40 @@ export const HomepageChat = () => {
   }, [messages]);
   useEffect(() => {
     if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-      inputRef.current.style.height =
-        Math.min(inputRef.current.scrollHeight, 100) + "px";
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 100) + 'px';
     }
   }, [input]);
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
 
     // Count user messages to limit demo interactions
-    const userMessageCount = messages.filter(
-      (msg) => msg.role === "user",
-    ).length;
+    const userMessageCount = messages.filter((msg) => msg.role === 'user').length;
     if (userMessageCount >= 3) {
       return; // Prevent sending more messages
     }
 
     const userMessage: Message = {
-      role: "user",
+      role: 'user',
       content: input,
       timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
+        hour: '2-digit',
+        minute: '2-digit',
       }),
     };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     const messageToSend = input;
-    setInput("");
+    setInput('');
     setLoading(true);
 
     // Create streaming message placeholder
     const streamingMessage: Message = {
-      role: "assistant",
-      content: "",
+      role: 'assistant',
+      content: '',
       timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
+        hour: '2-digit',
+        minute: '2-digit',
       }),
     };
     setMessages((prev) => [...prev, streamingMessage]);
@@ -242,17 +239,17 @@ Would you like help developing any specific phase of your incident response plan
       };
 
       // Determine response based on input content and conversation context
-      let responseContent = "";
+      let responseContent = '';
       const inputLower = messageToSend.toLowerCase();
 
       // Check for specific framework questions
-      if (inputLower.includes("soc")) {
+      if (inputLower.includes('soc')) {
         responseContent = demoResponses.soc;
-      } else if (inputLower.includes("cmmc")) {
+      } else if (inputLower.includes('cmmc')) {
         responseContent = demoResponses.cmmc;
-      } else if (inputLower.includes("hipaa")) {
+      } else if (inputLower.includes('hipaa')) {
         responseContent = demoResponses.hipaa;
-      } else if (inputLower.includes("incident")) {
+      } else if (inputLower.includes('incident')) {
         responseContent = demoResponses.incident;
       }
       // Handle confirmations and follow-ups by looking at previous context
@@ -262,10 +259,8 @@ Would you like help developing any specific phase of your incident response plan
         )
       ) {
         // Look at the last assistant message to understand context
-        const lastAssistantMessage = messages
-          .filter((m) => m.role === "assistant")
-          .pop();
-        if (lastAssistantMessage?.content.includes("implementation strategy")) {
+        const lastAssistantMessage = messages.filter((m) => m.role === 'assistant').pop();
+        if (lastAssistantMessage?.content.includes('implementation strategy')) {
           responseContent = `**SOC 2 Implementation Roadmap**
 
 Here's your step-by-step implementation strategy:
@@ -297,9 +292,7 @@ Here's your step-by-step implementation strategy:
 **Estimated Timeline:** 3-4 months for Type I, 6-12 months for Type II
 
 Would you like me to break down any specific phase in more detail?`;
-        } else if (
-          lastAssistantMessage?.content.includes("specific CMMC level")
-        ) {
+        } else if (lastAssistantMessage?.content.includes('specific CMMC level')) {
           responseContent = `**CMMC Level 2 Deep Dive**
 
 Most contractors need Level 2 (110 practices across 17 domains):
@@ -332,7 +325,7 @@ Most contractors need Level 2 (110 practices across 17 domains):
 - Secure remote access solutions
 
 Need help with implementation planning for any of these domains?`;
-        } else if (lastAssistantMessage?.content.includes("dive deeper")) {
+        } else if (lastAssistantMessage?.content.includes('dive deeper')) {
           responseContent = `**HIPAA Risk Assessment Framework**
 
 Let's focus on conducting effective HIPAA risk assessments:
@@ -390,10 +383,7 @@ What specific compliance challenge or security question can I help you with?`;
       let currentIndex = 0;
       const streamInterval = setInterval(() => {
         const chunkSize = Math.floor(Math.random() * 20) + 10; // Random chunk size
-        const chunk = responseContent.slice(
-          currentIndex,
-          currentIndex + chunkSize,
-        );
+        const chunk = responseContent.slice(currentIndex, currentIndex + chunkSize);
 
         if (chunk) {
           currentIndex += chunkSize;
@@ -411,52 +401,50 @@ What specific compliance challenge or security question can I help you with?`;
         }
       }, 50);
     } catch (error) {
-      console.error("Chat error:", error);
+      console.error('Chat error:', error);
       // Remove the streaming message on error
       setMessages((prev) => prev.slice(0, -1));
       toast({
-        title: "Error",
-        description: "Failed to get AI response. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to get AI response. Please try again.',
+        variant: 'destructive',
       });
       setLoading(false);
     }
   };
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       handleSendMessage();
-    } else if (e.key === "Enter" && !e.shiftKey) {
+    } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
   const demoQuestions = [
-    "SOC 2 Type I vs Type II differences?",
-    "Getting started with CMMC compliance",
-    "Key HIPAA compliance requirements",
-    "Create an incident response plan",
+    'SOC 2 Type I vs Type II differences?',
+    'Getting started with CMMC compliance',
+    'Key HIPAA compliance requirements',
+    'Create an incident response plan',
   ];
   if (messages.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="mx-auto max-w-4xl">
         {/* Welcome Message */}
-        <Card className="bg-gradient-to-r from-background/80 to-muted/20 backdrop-blur-sm border-border/50 shadow-lg mb-8">
+        <Card className="mb-8 border-border/50 bg-gradient-to-r from-background/80 to-muted/20 shadow-lg backdrop-blur-sm">
           <CardContent className="p-8">
             <div className="flex items-start gap-4">
               <AiAvatar />
               <div className="flex-1">
-                <div className="bg-muted/30 rounded-2xl p-6 border border-border/30">
-                  <p className="text-foreground leading-relaxed mb-4">
-                    👋 Hello! I'm your virtual CISO, powered by years of
-                    cybersecurity compliance expertise. I can help you navigate
-                    frameworks like <strong>SOC 2</strong>,{" "}
-                    <strong>NIST</strong>, <strong>HIPAA</strong>,{" "}
-                    <strong>CMMC</strong>, and more.
+                <div className="rounded-2xl border border-border/30 bg-muted/30 p-6">
+                  <p className="mb-4 leading-relaxed text-foreground">
+                    👋 Hello! I'm your virtual CISO, powered by years of cybersecurity compliance
+                    expertise. I can help you navigate frameworks like <strong>SOC 2</strong>,{' '}
+                    <strong>NIST</strong>, <strong>HIPAA</strong>, <strong>CMMC</strong>, and more.
                   </p>
-                  <p className="text-muted-foreground text-sm">
-                    Ask me anything about cybersecurity compliance, risk
-                    assessment, or security strategy.
+                  <p className="text-sm text-muted-foreground">
+                    Ask me anything about cybersecurity compliance, risk assessment, or security
+                    strategy.
                   </p>
                 </div>
               </div>
@@ -466,28 +454,26 @@ What specific compliance challenge or security question can I help you with?`;
 
         {/* Quick Start Questions */}
         <div className="mb-6 sm:mb-8">
-          <p className="text-center text-muted-foreground mb-4 font-medium">
-            Try asking about:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+          <p className="mb-4 text-center font-medium text-muted-foreground">Try asking about:</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
             {demoQuestions.map((question, idx) => (
               <Button
                 key={idx}
                 variant="outline"
                 onClick={() => setInput(question)}
-                className="h-auto p-3 sm:p-4 text-left bg-background/50 hover:bg-muted/50 border-border/50 hover:border-accent/30 transition-all touch-manipulation"
+                className="h-auto touch-manipulation border-border/50 bg-background/50 p-3 text-left transition-all hover:border-accent/30 hover:bg-muted/50 sm:p-4"
               >
-                <div className="text-sm break-words">{question}</div>
+                <div className="break-words text-sm">{question}</div>
               </Button>
             ))}
           </div>
         </div>
 
         {/* Input Area */}
-        <Card className="bg-card/80 backdrop-blur-sm border-border/50 shadow-lg">
+        <Card className="border-border/50 bg-card/80 shadow-lg backdrop-blur-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-end gap-2 sm:gap-3">
-              <div className="flex-1 relative min-w-0">
+              <div className="relative min-w-0 flex-1">
                 <Textarea
                   ref={inputRef}
                   placeholder="Ask your virtual CISO anything about cybersecurity compliance..."
@@ -495,17 +481,17 @@ What specific compliance challenge or security question can I help you with?`;
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
                   disabled={loading}
-                  className="min-h-[48px] max-h-[100px] resize-none border border-border/30 bg-background/50 text-base placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-accent focus-visible:border-accent px-3 sm:px-4 py-3 rounded-xl transition-all touch-manipulation"
+                  className="max-h-[100px] min-h-[48px] touch-manipulation resize-none rounded-xl border border-border/30 bg-background/50 px-3 py-3 text-base transition-all placeholder:text-muted-foreground/70 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent sm:px-4"
                 />
               </div>
               <Button
                 size="icon"
                 onClick={handleSendMessage}
                 disabled={loading || !input.trim()}
-                className={`h-12 w-12 sm:h-12 sm:w-12 rounded-xl transition-all duration-200 touch-manipulation ${loading ? "bg-muted text-muted-foreground cursor-not-allowed" : input.trim() ? "bg-accent hover:bg-accent/90 text-white shadow-md hover:shadow-lg hover:scale-105" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                className={`h-12 w-12 touch-manipulation rounded-xl transition-all duration-200 sm:h-12 sm:w-12 ${loading ? 'cursor-not-allowed bg-muted text-muted-foreground' : input.trim() ? 'bg-accent text-white shadow-md hover:scale-105 hover:bg-accent/90 hover:shadow-lg' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
               >
                 {loading ? (
-                  <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 ) : (
                   <ArrowRight className="h-5 w-5" />
                 )}
@@ -516,44 +502,42 @@ What specific compliance challenge or security question can I help you with?`;
       </div>
     );
   }
-  const userMessageCount = messages.filter((msg) => msg.role === "user").length;
+  const userMessageCount = messages.filter((msg) => msg.role === 'user').length;
   const hasReachedLimit = userMessageCount >= 3;
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl">
       {/* Messages Container */}
-      <Card className="bg-background/80 backdrop-blur-sm border-border/50 shadow-lg mb-6">
+      <Card className="mb-6 border-border/50 bg-background/80 shadow-lg backdrop-blur-sm">
         <CardContent className="p-4 sm:p-6">
-          <div className="space-y-4 sm:space-y-6 max-h-[400px] sm:max-h-[500px] overflow-y-auto">
+          <div className="max-h-[400px] space-y-4 overflow-y-auto sm:max-h-[500px] sm:space-y-6">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex gap-3 sm:gap-4 ${message.role === "user" ? "flex-row-reverse" : ""}`}
+                className={`flex gap-3 sm:gap-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
               >
-                {message.role === "assistant" && <AiAvatar />}
-                {message.role === "user" && (
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-accent text-white">
+                {message.role === 'assistant' && <AiAvatar />}
+                {message.role === 'user' && (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white">
                     <div className="h-4 w-4 rounded-full bg-current" />
                   </div>
                 )}
                 <div
-                  className={`flex flex-col max-w-[85%] sm:max-w-[80%] min-w-0 ${message.role === "user" ? "items-end" : ""}`}
+                  className={`flex min-w-0 max-w-[85%] flex-col sm:max-w-[80%] ${message.role === 'user' ? 'items-end' : ''}`}
                 >
                   <div
-                    className={`p-3 sm:p-4 rounded-2xl ${message.role === "user" ? "bg-accent text-white" : "bg-muted/30 border border-border/30 text-foreground"}`}
+                    className={`rounded-2xl p-3 sm:p-4 ${message.role === 'user' ? 'bg-accent text-white' : 'border border-border/30 bg-muted/30 text-foreground'}`}
                   >
-                    {message.role === "user" ? (
-                      <p className="whitespace-pre-wrap leading-relaxed text-sm break-words">
+                    {message.role === 'user' ? (
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
                         {message.content}
                       </p>
                     ) : (
-                      <div className="text-foreground space-y-1">
+                      <div className="space-y-1 text-foreground">
                         {renderFormattedText(message.content)}
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 px-1">
-                    {message.timestamp}
-                  </p>
+                  <p className="mt-2 px-1 text-xs text-muted-foreground">{message.timestamp}</p>
                 </div>
               </div>
             ))}
@@ -561,19 +545,19 @@ What specific compliance challenge or security question can I help you with?`;
             {loading && (
               <div className="flex gap-4">
                 <AiAvatar />
-                <div className="bg-muted/30 border border-border/30 rounded-2xl p-4">
+                <div className="rounded-2xl border border-border/30 bg-muted/30 p-4">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"></div>
                     <div
-                      className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                      className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
                       style={{
-                        animationDelay: "0.1s",
+                        animationDelay: '0.1s',
                       }}
                     ></div>
                     <div
-                      className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                      className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
                       style={{
-                        animationDelay: "0.2s",
+                        animationDelay: '0.2s',
                       }}
                     ></div>
                   </div>
@@ -588,25 +572,19 @@ What specific compliance challenge or security question can I help you with?`;
 
       {/* Input Area or Signup Prompt */}
       {hasReachedLimit ? (
-        <Card className="bg-gradient-to-r from-accent/10 to-primary/10 backdrop-blur-sm border-accent/30 shadow-lg">
+        <Card className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/10 shadow-lg backdrop-blur-sm">
           <CardContent className="p-6 text-center">
             <div className="space-y-4">
-              <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="mb-2 flex items-center justify-center gap-2">
                 <Sparkles className="h-5 w-5 text-accent" />
-                <h3 className="text-lg font-semibold text-foreground">
-                  Demo limit reached
-                </h3>
+                <h3 className="text-lg font-semibold text-foreground">Demo limit reached</h3>
               </div>
               <p className="text-muted-foreground">
-                You've experienced a taste of our AI-powered compliance
-                assistance. Sign up to continue conversations with unlimited
-                messages and access to expert escalation.
+                You've experienced a taste of our AI-powered compliance assistance. Sign up to
+                continue conversations with unlimited messages and access to expert escalation.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2">
-                <Button
-                  asChild
-                  className="bg-accent hover:bg-accent/90 text-white"
-                >
+              <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row sm:gap-4">
+                <Button asChild className="bg-accent text-white hover:bg-accent/90">
                   <a href="/auth">Get Started Free</a>
                 </Button>
               </div>
@@ -614,10 +592,10 @@ What specific compliance challenge or security question can I help you with?`;
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-card/80 backdrop-blur-sm border-border/50 shadow-lg">
+        <Card className="border-border/50 bg-card/80 shadow-lg backdrop-blur-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-end gap-2 sm:gap-3">
-              <div className="flex-1 relative min-w-0">
+              <div className="relative min-w-0 flex-1">
                 <Textarea
                   ref={inputRef}
                   placeholder="Continue the conversation..."
@@ -625,17 +603,17 @@ What specific compliance challenge or security question can I help you with?`;
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
                   disabled={loading}
-                  className="min-h-[48px] max-h-[100px] resize-none border border-border/30 bg-background/50 text-base placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-accent focus-visible:border-accent px-3 sm:px-4 py-3 rounded-xl transition-all touch-manipulation"
+                  className="max-h-[100px] min-h-[48px] touch-manipulation resize-none rounded-xl border border-border/30 bg-background/50 px-3 py-3 text-base transition-all placeholder:text-muted-foreground/70 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent sm:px-4"
                 />
               </div>
               <Button
                 size="icon"
                 onClick={handleSendMessage}
                 disabled={loading || !input.trim()}
-                className={`h-12 w-12 sm:h-12 sm:w-12 rounded-xl transition-all duration-200 touch-manipulation ${loading ? "bg-muted text-muted-foreground cursor-not-allowed" : input.trim() ? "bg-accent hover:bg-accent/90 text-white shadow-md hover:shadow-lg hover:scale-105" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                className={`h-12 w-12 touch-manipulation rounded-xl transition-all duration-200 sm:h-12 sm:w-12 ${loading ? 'cursor-not-allowed bg-muted text-muted-foreground' : input.trim() ? 'bg-accent text-white shadow-md hover:scale-105 hover:bg-accent/90 hover:shadow-lg' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
               >
                 {loading ? (
-                  <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 ) : (
                   <ArrowRight className="h-5 w-5" />
                 )}

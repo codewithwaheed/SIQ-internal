@@ -1,46 +1,30 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  MessageSquare,
-  Search,
-  Filter,
-  Plus,
-  ArrowLeft,
-  Edit3,
-  Check,
-  X,
-  Tag,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MessageSquare, Search, Filter, Plus, ArrowLeft, Edit3, Check, X, Tag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 interface Conversation {
   id: string;
   title: string;
@@ -53,14 +37,12 @@ export const ChatHistoryPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [editingConversation, setEditingConversation] = useState<string | null>(
-    null,
-  );
-  const [editTitle, setEditTitle] = useState("");
-  const [editTags, setEditTags] = useState("");
+  const [editingConversation, setEditingConversation] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editTags, setEditTags] = useState('');
   const [updating, setUpdating] = useState(false);
   useEffect(() => {
     if (user) {
@@ -70,27 +52,27 @@ export const ChatHistoryPage = () => {
   const loadConversations = async () => {
     try {
       const { data, error } = await supabase
-        .from("chat_conversations")
-        .select("*")
-        .order("updated_at", {
+        .from('chat_conversations')
+        .select('*')
+        .order('updated_at', {
           ascending: false,
         });
       if (error) {
-        console.error("Error loading conversations:", error);
+        console.error('Error loading conversations:', error);
         toast({
-          title: "Error",
-          description: "Failed to load chat history.",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to load chat history.',
+          variant: 'destructive',
         });
       } else {
         setConversations(data || []);
       }
     } catch (error) {
-      console.error("Error loading conversations:", error);
+      console.error('Error loading conversations:', error);
       toast({
-        title: "Error",
-        description: "Failed to load chat history.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load chat history.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -98,22 +80,19 @@ export const ChatHistoryPage = () => {
   };
   const deleteConversation = async (conversationId: string) => {
     try {
-      const { error } = await supabase
-        .from("chat_conversations")
-        .delete()
-        .eq("id", conversationId);
+      const { error } = await supabase.from('chat_conversations').delete().eq('id', conversationId);
       if (error) throw error;
       loadConversations();
       toast({
-        title: "Conversation deleted",
-        description: "The conversation has been removed.",
+        title: 'Conversation deleted',
+        description: 'The conversation has been removed.',
       });
     } catch (error) {
-      console.error("Error deleting conversation:", error);
+      console.error('Error deleting conversation:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete conversation.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete conversation.',
+        variant: 'destructive',
       });
     }
   };
@@ -124,16 +103,13 @@ export const ChatHistoryPage = () => {
   ) => {
     setUpdating(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "update-chat-title",
-        {
-          body: {
-            conversationId,
-            title: newTitle,
-            tags: newTags,
-          },
+      const { data, error } = await supabase.functions.invoke('update-chat-title', {
+        body: {
+          conversationId,
+          title: newTitle,
+          tags: newTags,
         },
-      );
+      });
       if (error) throw error;
 
       // Update local state
@@ -149,16 +125,16 @@ export const ChatHistoryPage = () => {
         ),
       );
       toast({
-        title: "Title updated",
-        description: "Conversation title has been updated successfully.",
+        title: 'Title updated',
+        description: 'Conversation title has been updated successfully.',
       });
       setEditingConversation(null);
     } catch (error) {
-      console.error("Error updating title:", error);
+      console.error('Error updating title:', error);
       toast({
-        title: "Error",
-        description: "Failed to update conversation title.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update conversation title.',
+        variant: 'destructive',
       });
     } finally {
       setUpdating(false);
@@ -167,17 +143,17 @@ export const ChatHistoryPage = () => {
   const startEditing = (conversation: Conversation) => {
     setEditingConversation(conversation.id);
     setEditTitle(conversation.title);
-    setEditTags(conversation.tags.join(", "));
+    setEditTags(conversation.tags.join(', '));
   };
   const cancelEditing = () => {
     setEditingConversation(null);
-    setEditTitle("");
-    setEditTags("");
+    setEditTitle('');
+    setEditTags('');
   };
   const saveTitle = () => {
     if (!editTitle.trim()) return;
     const tags = editTags
-      .split(",")
+      .split(',')
       .map((tag) => tag.trim().toLowerCase())
       .filter((tag) => tag.length > 0);
     updateConversationTitle(editingConversation!, editTitle.trim(), tags);
@@ -186,28 +162,24 @@ export const ChatHistoryPage = () => {
   // Filter conversations based on search and tag
   const filteredConversations = conversations.filter((conv) => {
     const matchesSearch =
-      searchTerm === "" ||
+      searchTerm === '' ||
       conv.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conv.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-    const matchesTag = selectedTag === "all" || conv.tags.includes(selectedTag);
+      conv.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesTag = selectedTag === 'all' || conv.tags.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
 
   // Get all unique tags
   const allTags = [...new Set(conversations.flatMap((conv) => conv.tags))];
   const startNewChat = () => {
-    navigate("/dashboard");
+    navigate('/dashboard');
   };
   return (
     <div className="page">
-      <div className="flex items-start justify-between page-title">
+      <div className="page-title flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Chat History</h1>
-          <p className="text-muted-foreground">
-            View and search your previous AI conversations
-          </p>
+          <p className="text-muted-foreground">View and search your previous AI conversations</p>
         </div>
         <Button onClick={startNewChat} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -220,14 +192,14 @@ export const ChatHistoryPage = () => {
           <MessageSquare className="h-5 w-5" />
           <h2 className="text-lg font-semibold">Previous Conversations</h2>
         </div>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           Search and review your chat history with the AI assistant
         </p>
 
         {/* Search and filter */}
         <div className="flex-gap-4">
           <div className="relative flex-1">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search conversations..."
               value={searchTerm}
@@ -253,34 +225,30 @@ export const ChatHistoryPage = () => {
         <ScrollArea className="h-[600px]">
           <div className="space-y-4">
             {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="py-8 text-center">
+                <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                 <p className="text-muted-foreground">Loading chat history...</p>
               </div>
             ) : filteredConversations.length === 0 ? (
-              <div className="text-center py-12">
-                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {conversations.length === 0
-                    ? "No chat history yet"
-                    : "No conversations found"}
+              <div className="py-12 text-center">
+                <MessageSquare className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold">
+                  {conversations.length === 0 ? 'No chat history yet' : 'No conversations found'}
                 </h3>
-                <p className="text-muted-foreground mb-4">
+                <p className="mb-4 text-muted-foreground">
                   {conversations.length === 0
-                    ? "Start a conversation to see your chat history here"
-                    : "Try adjusting your search or filter criteria"}
+                    ? 'Start a conversation to see your chat history here'
+                    : 'Try adjusting your search or filter criteria'}
                 </p>
                 <Button onClick={startNewChat}>
-                  {conversations.length === 0
-                    ? "Start New Conversation"
-                    : "Start New Chat"}
+                  {conversations.length === 0 ? 'Start New Conversation' : 'Start New Chat'}
                 </Button>
               </div>
             ) : (
               filteredConversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className="section-card-compact group hover:bg-muted/50 transition-colors"
+                  className="section-card-compact group transition-colors hover:bg-muted/50"
                 >
                   {editingConversation === conv.id ? (
                     <div className="space-y-3">
@@ -295,9 +263,7 @@ export const ChatHistoryPage = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-tags">
-                          Tags (comma-separated)
-                        </Label>
+                        <Label htmlFor="edit-tags">Tags (comma-separated)</Label>
                         <Input
                           id="edit-tags"
                           value={editTags}
@@ -312,7 +278,7 @@ export const ChatHistoryPage = () => {
                           disabled={updating || !editTitle.trim()}
                           className="animate-fade-in"
                         >
-                          <Check className="h-4 w-4 mr-1" />
+                          <Check className="mr-1 h-4 w-4" />
                           Save
                         </Button>
                         <Button
@@ -321,7 +287,7 @@ export const ChatHistoryPage = () => {
                           onClick={cancelEditing}
                           disabled={updating}
                         >
-                          <X className="h-4 w-4 mr-1" />
+                          <X className="mr-1 h-4 w-4" />
                           Cancel
                         </Button>
                       </div>
@@ -329,39 +295,33 @@ export const ChatHistoryPage = () => {
                   ) : (
                     <div className="flex items-start justify-between">
                       <div
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() =>
-                          navigate(`/dashboard?conversation=${conv.id}`)
-                        }
+                        className="min-w-0 flex-1 cursor-pointer"
+                        onClick={() => navigate(`/dashboard?conversation=${conv.id}`)}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium truncate">{conv.title}</h3>
+                        <div className="mb-1 flex items-center gap-2">
+                          <h3 className="truncate font-medium">{conv.title}</h3>
                           {conv.tags.length > 0 && (
                             <Tag className="h-3 w-3 text-muted-foreground" />
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(conv.updated_at).toLocaleDateString()} at{" "}
+                          {new Date(conv.updated_at).toLocaleDateString()} at{' '}
                           {new Date(conv.updated_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
+                            hour: '2-digit',
+                            minute: '2-digit',
                           })}
                         </p>
                         {conv.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
+                          <div className="mt-2 flex flex-wrap gap-1">
                             {conv.tags.map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="secondary"
-                                className="text-xs"
-                              >
+                              <Badge key={tag} variant="secondary" className="text-xs">
                                 {tag}
                               </Badge>
                             ))}
                           </div>
                         )}
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <Button
                           variant="ghost"
                           size="sm"

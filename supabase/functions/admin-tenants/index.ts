@@ -1,10 +1,9 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface TenantData {
@@ -20,22 +19,22 @@ interface TenantData {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
     // Verify user is admin
-    const authHeader = req.headers.get("Authorization")?.replace("Bearer ", "");
+    const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -44,32 +43,29 @@ serve(async (req) => {
       error: authError,
     } = await supabase.auth.getUser(authHeader);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Check if user is admin
     const { data: userRole } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
       .single();
 
     if (!userRole) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - Admin access required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: 'Unauthorized - Admin access required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Get tenant data with subscription info and document counts
-    const { data: tenants, error } = await supabase.from("profiles").select(`
+    const { data: tenants, error } = await supabase.from('profiles').select(`
         id,
         email,
         company_name,
@@ -78,18 +74,15 @@ serve(async (req) => {
       `);
 
     if (error) {
-      console.error("Error fetching tenants:", error);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch tenants" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      console.error('Error fetching tenants:', error);
+      return new Response(JSON.stringify({ error: 'Failed to fetch tenants' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Get subscription data
-    const { data: subscriptions } = await supabase.from("subscribers").select(`
+    const { data: subscriptions } = await supabase.from('subscribers').select(`
         email,
         subscription_tier,
         subscribed,
@@ -98,9 +91,7 @@ serve(async (req) => {
       `);
 
     // Get document counts
-    const { data: documentCounts } = await supabase
-      .from("documents")
-      .select("user_id");
+    const { data: documentCounts } = await supabase.from('documents').select('user_id');
 
     // Create document count map
     const docCountMap =
@@ -129,8 +120,8 @@ serve(async (req) => {
         return {
           id: tenant.id,
           email: tenant.email,
-          company_name: tenant.company_name || "N/A",
-          subscription_tier: subscription.subscription_tier || "Basic",
+          company_name: tenant.company_name || 'N/A',
+          subscription_tier: subscription.subscription_tier || 'Basic',
           subscribed: subscription.subscribed || false,
           created_at: tenant.created_at,
           total_documents: docCountMap[tenant.user_id] || 0,
@@ -141,13 +132,13 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ tenants: tenantsData }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error("Error in admin-tenants function:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    console.error('Error in admin-tenants function:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

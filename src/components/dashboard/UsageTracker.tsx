@@ -1,24 +1,12 @@
-import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  FileText,
-  MessageSquare,
-  RefreshCw,
-  TrendingUp,
-  Zap,
-} from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { FileText, MessageSquare, RefreshCw, TrendingUp, Zap } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UsageData {
   subscription: {
@@ -64,14 +52,11 @@ interface UsageData {
 }
 
 interface UsageTrackerProps {
-  variant?: "card" | "sidebar" | "compact";
+  variant?: 'card' | 'sidebar' | 'compact';
   className?: string;
 }
 
-export function UsageTracker({
-  variant = "card",
-  className = "",
-}: UsageTrackerProps) {
+export function UsageTracker({ variant = 'card', className = '' }: UsageTrackerProps) {
   const { user, session } = useAuth();
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +67,7 @@ export function UsageTracker({
 
     try {
       setRefreshing(true);
-      const { data, error } = await supabase.functions.invoke("check-usage", {
+      const { data, error } = await supabase.functions.invoke('check-usage', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -91,8 +76,8 @@ export function UsageTracker({
       if (error) throw error;
       setUsageData(data);
     } catch (error: any) {
-      console.error("Error fetching usage data:", error);
-      toast.error("Failed to load usage data");
+      console.error('Error fetching usage data:', error);
+      toast.error('Failed to load usage data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,15 +86,14 @@ export function UsageTracker({
 
   const handleUpgrade = async () => {
     try {
-      const { data, error } =
-        await supabase.functions.invoke("create-checkout");
+      const { data, error } = await supabase.functions.invoke('create-checkout');
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.open(data.url, '_blank');
       }
     } catch (error) {
-      console.error("Error creating checkout:", error);
-      toast.error("Failed to start upgrade process");
+      console.error('Error creating checkout:', error);
+      toast.error('Failed to start upgrade process');
     }
   };
 
@@ -131,11 +115,9 @@ export function UsageTracker({
     return `${used} / ${limit} used`;
   };
 
-  const isApproachingLimit = (used: number, limit: number) =>
-    limit !== -1 && used / limit >= 0.8;
+  const isApproachingLimit = (used: number, limit: number) => limit !== -1 && used / limit >= 0.8;
 
-  const isAtLimit = (used: number, limit: number) =>
-    limit !== -1 && used >= limit;
+  const isAtLimit = (used: number, limit: number) => limit !== -1 && used >= limit;
 
   const shouldShowUpgrade = () => {
     if (!usageData) return false;
@@ -151,7 +133,7 @@ export function UsageTracker({
   if (loading) {
     return (
       <div className={`animate-pulse ${className}`}>
-        <div className="h-24 bg-muted rounded-lg"></div>
+        <div className="h-24 rounded-lg bg-muted"></div>
       </div>
     );
   }
@@ -163,7 +145,7 @@ export function UsageTracker({
   const { subscription, usage } = usageData;
 
   // Compact variant for tight spaces
-  if (variant === "compact") {
+  if (variant === 'compact') {
     return (
       <div className={`space-y-2 ${className}`}>
         <div className="flex items-center justify-between text-xs">
@@ -179,20 +161,14 @@ export function UsageTracker({
               <span>Uploads</span>
               <span
                 className={
-                  isAtLimit(usage.uploads.used, usage.uploads.limit)
-                    ? "text-destructive"
-                    : ""
+                  isAtLimit(usage.uploads.used, usage.uploads.limit) ? 'text-destructive' : ''
                 }
               >
-                {usage.uploads.used}/
-                {usage.uploads.limit === -1 ? "∞" : usage.uploads.limit}
+                {usage.uploads.used}/{usage.uploads.limit === -1 ? '∞' : usage.uploads.limit}
               </span>
             </div>
             <Progress
-              value={getUsagePercentage(
-                usage.uploads.used,
-                usage.uploads.limit,
-              )}
+              value={getUsagePercentage(usage.uploads.used, usage.uploads.limit)}
               className="h-1"
             />
           </div>
@@ -205,31 +181,24 @@ export function UsageTracker({
               <span
                 className={
                   isAtLimit(usage.escalations.used, usage.escalations.limit)
-                    ? "text-destructive"
-                    : ""
+                    ? 'text-destructive'
+                    : ''
                 }
               >
                 {usage.escalations.used}/
-                {usage.escalations.limit === -1 ? "∞" : usage.escalations.limit}
+                {usage.escalations.limit === -1 ? '∞' : usage.escalations.limit}
               </span>
             </div>
             <Progress
-              value={getUsagePercentage(
-                usage.escalations.used,
-                usage.escalations.limit,
-              )}
+              value={getUsagePercentage(usage.escalations.used, usage.escalations.limit)}
               className="h-1"
             />
           </div>
         )}
 
         {shouldShowUpgrade() && (
-          <Button
-            size="sm"
-            className="w-full text-xs h-6"
-            onClick={handleUpgrade}
-          >
-            <TrendingUp className="h-3 w-3 mr-1" />
+          <Button size="sm" className="h-6 w-full text-xs" onClick={handleUpgrade}>
+            <TrendingUp className="mr-1 h-3 w-3" />
             Upgrade
           </Button>
         )}
@@ -238,13 +207,11 @@ export function UsageTracker({
   }
 
   // Sidebar variant for navigation areas
-  if (variant === "sidebar") {
+  if (variant === 'sidebar') {
     return (
-      <div
-        className={`space-y-3 p-3 bg-muted/20 border border-border/50 rounded-lg ${className}`}
-      >
+      <div className={`space-y-3 rounded-lg border border-border/50 bg-muted/20 p-3 ${className}`}>
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-sm">Usage This Month</h4>
+          <h4 className="text-sm font-medium">Usage This Month</h4>
           <Badge variant="outline" className="text-xs">
             {subscription.tier}
           </Badge>
@@ -257,20 +224,13 @@ export function UsageTracker({
               <span>Document Uploads</span>
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>
-                {formatUsage(usage.uploads.used, usage.uploads.limit)}
-              </span>
+              <span>{formatUsage(usage.uploads.used, usage.uploads.limit)}</span>
               {isAtLimit(usage.uploads.used, usage.uploads.limit) && (
-                <span className="text-destructive font-medium">
-                  Limit reached
-                </span>
+                <span className="font-medium text-destructive">Limit reached</span>
               )}
             </div>
             <Progress
-              value={getUsagePercentage(
-                usage.uploads.used,
-                usage.uploads.limit,
-              )}
+              value={getUsagePercentage(usage.uploads.used, usage.uploads.limit)}
               className="h-2"
             />
           </div>
@@ -283,20 +243,13 @@ export function UsageTracker({
               <span>Expert Escalations</span>
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>
-                {formatUsage(usage.escalations.used, usage.escalations.limit)}
-              </span>
+              <span>{formatUsage(usage.escalations.used, usage.escalations.limit)}</span>
               {isAtLimit(usage.escalations.used, usage.escalations.limit) && (
-                <span className="text-destructive font-medium">
-                  Limit reached
-                </span>
+                <span className="font-medium text-destructive">Limit reached</span>
               )}
             </div>
             <Progress
-              value={getUsagePercentage(
-                usage.escalations.used,
-                usage.escalations.limit,
-              )}
+              value={getUsagePercentage(usage.escalations.used, usage.escalations.limit)}
               className="h-2"
             />
           </div>
@@ -304,7 +257,7 @@ export function UsageTracker({
 
         {shouldShowUpgrade() && (
           <Button size="sm" className="w-full" onClick={handleUpgrade}>
-            <Zap className="h-4 w-4 mr-2" />
+            <Zap className="mr-2 h-4 w-4" />
             Upgrade for More
           </Button>
         )}
@@ -320,19 +273,11 @@ export function UsageTracker({
           <div>
             <CardTitle>Usage Overview</CardTitle>
             <CardDescription>
-              Current plan:{" "}
-              <Badge variant="secondary">{subscription.tier}</Badge>
+              Current plan: <Badge variant="secondary">{subscription.tier}</Badge>
             </CardDescription>
           </div>
-          <Button
-            onClick={fetchUsageData}
-            variant="outline"
-            size="sm"
-            disabled={refreshing}
-          >
-            <RefreshCw
-              className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
-            />
+          <Button onClick={fetchUsageData} variant="outline" size="sm" disabled={refreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </CardHeader>
@@ -341,7 +286,7 @@ export function UsageTracker({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
+                <FileText className="h-4 w-4" />
                 <span className="font-medium">Document Uploads</span>
               </div>
               <span className="text-sm text-muted-foreground">
@@ -351,17 +296,12 @@ export function UsageTracker({
             {usage.uploads.limit > 0 ? (
               <div className="space-y-1">
                 <Progress
-                  value={getUsagePercentage(
-                    usage.uploads.used,
-                    usage.uploads.limit,
-                  )}
+                  value={getUsagePercentage(usage.uploads.used, usage.uploads.limit)}
                   className="h-2"
                 />
                 {!usage.uploads.can_upload && usage.uploads.limit !== -1 && (
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-red-600">
-                      Upload limit reached.
-                    </p>
+                    <p className="text-sm text-red-600">Upload limit reached.</p>
                     <Button size="sm" variant="outline" onClick={handleUpgrade}>
                       Upgrade Plan
                     </Button>
@@ -371,10 +311,7 @@ export function UsageTracker({
                   !isAtLimit(usage.uploads.used, usage.uploads.limit) && (
                     <p className="text-sm text-orange-600">
                       Approaching upload limit (
-                      {Math.round(
-                        (usage.uploads.used / usage.uploads.limit) * 100,
-                      )}
-                      % used)
+                      {Math.round((usage.uploads.used / usage.uploads.limit) * 100)}% used)
                     </p>
                   )}
               </div>
@@ -394,7 +331,7 @@ export function UsageTracker({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="h-4 w-4" />
                 <span className="font-medium">Consultant Escalations</span>
               </div>
               <span className="text-sm text-muted-foreground">
@@ -404,42 +341,22 @@ export function UsageTracker({
             {usage.escalations.limit > 0 ? (
               <div className="space-y-1">
                 <Progress
-                  value={getUsagePercentage(
-                    usage.escalations.used,
-                    usage.escalations.limit,
-                  )}
+                  value={getUsagePercentage(usage.escalations.used, usage.escalations.limit)}
                   className="h-2"
                 />
-                {!usage.escalations.can_escalate &&
-                  usage.escalations.limit !== -1 && (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-red-600">
-                        Escalation limit reached.
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleUpgrade}
-                      >
-                        Upgrade Plan
-                      </Button>
-                    </div>
-                  )}
-                {isApproachingLimit(
-                  usage.escalations.used,
-                  usage.escalations.limit,
-                ) &&
-                  !isAtLimit(
-                    usage.escalations.used,
-                    usage.escalations.limit,
-                  ) && (
+                {!usage.escalations.can_escalate && usage.escalations.limit !== -1 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-red-600">Escalation limit reached.</p>
+                    <Button size="sm" variant="outline" onClick={handleUpgrade}>
+                      Upgrade Plan
+                    </Button>
+                  </div>
+                )}
+                {isApproachingLimit(usage.escalations.used, usage.escalations.limit) &&
+                  !isAtLimit(usage.escalations.used, usage.escalations.limit) && (
                     <p className="text-sm text-orange-600">
                       Approaching escalation limit (
-                      {Math.round(
-                        (usage.escalations.used / usage.escalations.limit) *
-                          100,
-                      )}
-                      % used)
+                      {Math.round((usage.escalations.used / usage.escalations.limit) * 100)}% used)
                     </p>
                   )}
               </div>
@@ -457,19 +374,18 @@ export function UsageTracker({
 
           {/* Billing Cycle Info */}
           {subscription.subscription_end && (
-            <div className="pt-4 border-t">
+            <div className="border-t pt-4">
               <p className="text-sm text-muted-foreground">
-                Usage resets on{" "}
-                {new Date(subscription.subscription_end).toLocaleDateString()}
+                Usage resets on {new Date(subscription.subscription_end).toLocaleDateString()}
               </p>
             </div>
           )}
 
           {/* Main upgrade CTA for limits hit */}
           {shouldShowUpgrade() && (
-            <div className="pt-4 border-t">
+            <div className="border-t pt-4">
               <Button className="w-full" onClick={handleUpgrade}>
-                <TrendingUp className="h-4 w-4 mr-2" />
+                <TrendingUp className="mr-2 h-4 w-4" />
                 Upgrade Your Plan for More Usage
               </Button>
             </div>

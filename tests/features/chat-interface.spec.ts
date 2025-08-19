@@ -1,47 +1,45 @@
-import { test, expect } from "@playwright/test";
-import { TEST_CONFIG } from "../config/test-config";
+import { test, expect } from '@playwright/test';
+import { TEST_CONFIG } from '../config/test-config';
 
-test.describe("AI Chat Interface", () => {
-  test.use({ storageState: "tests/auth-states/business-owner.json" });
+test.describe('AI Chat Interface', () => {
+  test.use({ storageState: 'tests/auth-states/business-owner.json' });
 
-  test("should load chat interface correctly", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should load chat interface correctly', async ({ page }) => {
+    await page.goto('/dashboard');
 
     // Verify chat interface elements are present
-    await expect(page.getByPlaceholder("Type your message...")).toBeVisible();
-    await expect(page.getByRole("button", { name: /send/i })).toBeVisible();
+    await expect(page.getByPlaceholder('Type your message...')).toBeVisible();
+    await expect(page.getByRole('button', { name: /send/i })).toBeVisible();
 
     // Check for chat container
     const chatContainer = page.locator('[data-testid="chat-container"]');
     await expect(chatContainer).toBeVisible();
   });
 
-  test("should send and receive messages", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should send and receive messages', async ({ page }) => {
+    await page.goto('/dashboard');
 
-    const chatInput = page.getByPlaceholder("Type your message...");
-    const sendButton = page.getByRole("button", { name: /send/i });
+    const chatInput = page.getByPlaceholder('Type your message...');
+    const sendButton = page.getByRole('button', { name: /send/i });
 
     // Send a test message
-    await chatInput.fill("Hello, I need help with cybersecurity");
+    await chatInput.fill('Hello, I need help with cybersecurity');
     await sendButton.click();
 
     // Verify message appears in chat
-    await expect(
-      page.getByText("Hello, I need help with cybersecurity"),
-    ).toBeVisible();
+    await expect(page.getByText('Hello, I need help with cybersecurity')).toBeVisible();
 
     // Wait for AI response
     await expect(page.getByText(/help/i)).toBeVisible({ timeout: 30000 });
 
     // Verify input is cleared
-    await expect(chatInput).toHaveValue("");
+    await expect(chatInput).toHaveValue('');
   });
 
-  test("should handle empty messages gracefully", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should handle empty messages gracefully', async ({ page }) => {
+    await page.goto('/dashboard');
 
-    const sendButton = page.getByRole("button", { name: /send/i });
+    const sendButton = page.getByRole('button', { name: /send/i });
 
     // Try to send empty message
     await sendButton.click();
@@ -55,12 +53,12 @@ test.describe("AI Chat Interface", () => {
     expect(messageCount).toBe(0);
   });
 
-  test("should show loading state during AI response", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should show loading state during AI response', async ({ page }) => {
+    await page.goto('/dashboard');
 
-    const chatInput = page.getByPlaceholder("Type your message...");
-    await chatInput.fill("Tell me about NIST cybersecurity framework");
-    await page.getByRole("button", { name: /send/i }).click();
+    const chatInput = page.getByPlaceholder('Type your message...');
+    await chatInput.fill('Tell me about NIST cybersecurity framework');
+    await page.getByRole('button', { name: /send/i }).click();
 
     // Look for loading indicator
     const loadingIndicator = page.locator('[data-testid="ai-thinking"]');
@@ -72,34 +70,34 @@ test.describe("AI Chat Interface", () => {
     await expect(page.getByText(/NIST/i)).toBeVisible({ timeout: 30000 });
   });
 
-  test("should maintain chat history", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should maintain chat history', async ({ page }) => {
+    await page.goto('/dashboard');
 
-    const chatInput = page.getByPlaceholder("Type your message...");
+    const chatInput = page.getByPlaceholder('Type your message...');
 
     // Send first message
-    await chatInput.fill("First message");
-    await page.getByRole("button", { name: /send/i }).click();
-    await expect(page.getByText("First message")).toBeVisible();
+    await chatInput.fill('First message');
+    await page.getByRole('button', { name: /send/i }).click();
+    await expect(page.getByText('First message')).toBeVisible();
 
     // Wait for response
     await page.waitForTimeout(2000);
 
     // Send second message
-    await chatInput.fill("Second message");
-    await page.getByRole("button", { name: /send/i }).click();
+    await chatInput.fill('Second message');
+    await page.getByRole('button', { name: /send/i }).click();
 
     // Both messages should be visible
-    await expect(page.getByText("First message")).toBeVisible();
-    await expect(page.getByText("Second message")).toBeVisible();
+    await expect(page.getByText('First message')).toBeVisible();
+    await expect(page.getByText('Second message')).toBeVisible();
   });
 });
 
-test.describe("Document Upload", () => {
-  test.use({ storageState: "tests/auth-states/business-owner.json" });
+test.describe('Document Upload', () => {
+  test.use({ storageState: 'tests/auth-states/business-owner.json' });
 
-  test("should show document upload interface", async ({ page }) => {
-    await page.goto("/dashboard");
+  test('should show document upload interface', async ({ page }) => {
+    await page.goto('/dashboard');
 
     // Look for document upload button or area
     const uploadArea = page.locator('[data-testid="document-upload"]');
@@ -107,29 +105,28 @@ test.describe("Document Upload", () => {
       await expect(uploadArea).toBeVisible();
     } else {
       // Alternative: look for upload button in UI
-      const uploadButton = page.getByRole("button", { name: /upload/i });
+      const uploadButton = page.getByRole('button', { name: /upload/i });
       if (await uploadButton.isVisible()) {
         await expect(uploadButton).toBeVisible();
       }
     }
   });
 
-  test("should handle file upload flow", async ({ page }) => {
+  test('should handle file upload flow', async ({ page }) => {
     test.setTimeout(45000);
 
-    await page.goto("/dashboard");
+    await page.goto('/dashboard');
 
     // Create a test file
-    const testFileContent =
-      "This is a test document for cybersecurity policy review.";
+    const testFileContent = 'This is a test document for cybersecurity policy review.';
 
     // Look for file input
     const fileInput = page.locator('input[type="file"]');
     if (await fileInput.isVisible()) {
       // Create and upload test file
       await fileInput.setInputFiles({
-        name: "test-document.txt",
-        mimeType: "text/plain",
+        name: 'test-document.txt',
+        mimeType: 'text/plain',
         buffer: Buffer.from(testFileContent),
       });
 

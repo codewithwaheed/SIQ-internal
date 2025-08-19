@@ -1,11 +1,10 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
-import { Resend } from "npm:resend@2.0.0";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { Resend } from 'npm:resend@2.0.0';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface ConsultantApplication {
@@ -34,32 +33,32 @@ interface ConsultantApplication {
 }
 
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
   try {
     const applicationData: ConsultantApplication = await req.json();
 
-    console.log("Submitting consultant application:", applicationData.email);
+    console.log('Submitting consultant application:', applicationData.email);
 
     // Insert application into database
     const { data: application, error: dbError } = await supabase
-      .from("consultant_applications")
+      .from('consultant_applications')
       .insert({
         full_name: applicationData.fullName,
         email: applicationData.email,
@@ -83,25 +82,25 @@ serve(async (req: Request) => {
         background_check_consent: applicationData.backgroundCheckConsent,
         nda_agreement: applicationData.ndaAgreement,
         additional_info: applicationData.additionalInfo,
-        status: "pending",
+        status: 'pending',
       })
       .select()
       .single();
 
     if (dbError) {
-      console.error("Database error:", dbError);
+      console.error('Database error:', dbError);
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    console.log("Application saved successfully:", application.id);
+    console.log('Application saved successfully:', application.id);
 
     // Send confirmation email to applicant
     if (resend) {
       try {
         await resend.emails.send({
-          from: "SentrIQ <noreply@sentriq.com>",
+          from: 'SentrIQ <noreply@sentriq.com>',
           to: [applicationData.email],
-          subject: "SentrIQ Consultant Application Received",
+          subject: 'SentrIQ Consultant Application Received',
           html: `
             <h1>Thank you for your application, ${applicationData.fullName}!</h1>
             <p>We have received your consultant application and will review it carefully.</p>
@@ -111,9 +110,9 @@ serve(async (req: Request) => {
             <p>Best regards,<br>The SentrIQ Team</p>
           `,
         });
-        console.log("Confirmation email sent successfully");
+        console.log('Confirmation email sent successfully');
       } catch (emailError) {
-        console.error("Email error:", emailError);
+        console.error('Email error:', emailError);
         // Don't fail the request if email fails
       }
     }
@@ -122,24 +121,24 @@ serve(async (req: Request) => {
     if (resend) {
       try {
         await resend.emails.send({
-          from: "SentrIQ <noreply@sentriq.com>",
-          to: ["eric@sentriq.io"],
-          subject: "New Consultant Application Submitted",
+          from: 'SentrIQ <noreply@sentriq.com>',
+          to: ['eric@sentriq.io'],
+          subject: 'New Consultant Application Submitted',
           html: `
             <h1>New Consultant Application</h1>
             <p><strong>Name:</strong> ${applicationData.fullName}</p>
             <p><strong>Email:</strong> ${applicationData.email}</p>
             <p><strong>Experience:</strong> ${applicationData.experienceYears} years</p>
-            <p><strong>Expertise:</strong> ${applicationData.expertiseAreas.join(", ")}</p>
+            <p><strong>Expertise:</strong> ${applicationData.expertiseAreas.join(', ')}</p>
             <p><strong>Timezone:</strong> ${applicationData.timezone}</p>
             <p><strong>Availability:</strong> ${applicationData.availabilityHours}</p>
             <br>
             <p>Please review the application in the admin dashboard.</p>
           `,
         });
-        console.log("Admin notification email sent successfully");
+        console.log('Admin notification email sent successfully');
       } catch (emailError) {
-        console.error("Admin notification email error:", emailError);
+        console.error('Admin notification email error:', emailError);
         // Don't fail the request if email fails
       }
     }
@@ -148,23 +147,23 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         applicationId: application.id,
-        message: "Application submitted successfully",
+        message: 'Application submitted successfully',
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
   } catch (error) {
-    console.error("Error submitting application:", error);
+    console.error('Error submitting application:', error);
     return new Response(
       JSON.stringify({
-        error: "Failed to submit application",
+        error: 'Failed to submit application',
         details: error.message,
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
   }

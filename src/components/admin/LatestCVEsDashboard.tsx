@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Shield, RefreshCw, Calendar, TrendingUp } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Shield, RefreshCw, Calendar, TrendingUp } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CVEListItem {
   cve_id: string;
@@ -33,12 +27,9 @@ export const LatestCVEsDashboard = () => {
     setError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "fetch-latest-cves",
-        {
-          body: { days, limit },
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('fetch-latest-cves', {
+        body: { days, limit },
+      });
 
       if (error) throw error;
 
@@ -46,10 +37,10 @@ export const LatestCVEsDashboard = () => {
         setCves(data.cves);
         setLastFetch(new Date());
       } else {
-        setError(data.error || "Failed to fetch latest CVEs");
+        setError(data.error || 'Failed to fetch latest CVEs');
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while fetching CVEs");
+      setError(err.message || 'An error occurred while fetching CVEs');
     } finally {
       setLoading(false);
     }
@@ -61,36 +52,35 @@ export const LatestCVEsDashboard = () => {
 
   const getSeverityColor = (
     severity?: string,
-  ): "outline" | "destructive" | "default" | "secondary" => {
-    if (!severity) return "outline";
+  ): 'outline' | 'destructive' | 'default' | 'secondary' => {
+    if (!severity) return 'outline';
     switch (severity.toLowerCase()) {
-      case "critical":
-        return "destructive";
-      case "high":
-        return "destructive";
-      case "medium":
-        return "default";
-      case "low":
-        return "secondary";
+      case 'critical':
+        return 'destructive';
+      case 'high':
+        return 'destructive';
+      case 'medium':
+        return 'default';
+      case 'low':
+        return 'secondary';
       default:
-        return "outline";
+        return 'outline';
     }
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
   const getSeverityStats = () => {
     const stats = cves.reduce(
       (acc, cve) => {
-        const severity =
-          cve.cvss_v3_severity || cve.cvss_v2_severity || "unknown";
+        const severity = cve.cvss_v3_severity || cve.cvss_v2_severity || 'unknown';
         acc[severity.toLowerCase()] = (acc[severity.toLowerCase()] || 0) + 1;
         return acc;
       },
@@ -132,21 +122,17 @@ export const LatestCVEsDashboard = () => {
         </CardHeader>
         <CardContent>
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
             <div className="text-center">
               <div className="text-2xl font-bold">{cves.length}</div>
               <div className="text-xs text-muted-foreground">Total</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-destructive">
-                {stats.critical || 0}
-              </div>
+              <div className="text-2xl font-bold text-destructive">{stats.critical || 0}</div>
               <div className="text-xs text-muted-foreground">Critical</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-destructive">
-                {stats.high || 0}
-              </div>
+              <div className="text-2xl font-bold text-destructive">{stats.high || 0}</div>
               <div className="text-xs text-muted-foreground">High</div>
             </div>
             <div className="text-center">
@@ -154,15 +140,13 @@ export const LatestCVEsDashboard = () => {
               <div className="text-xs text-muted-foreground">Medium</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-secondary">
-                {stats.low || 0}
-              </div>
+              <div className="text-2xl font-bold text-secondary">{stats.low || 0}</div>
               <div className="text-xs text-muted-foreground">Low</div>
             </div>
           </div>
 
           {lastFetch && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+            <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3" />
               Last updated: {lastFetch.toLocaleString()}
             </div>
@@ -179,32 +163,26 @@ export const LatestCVEsDashboard = () => {
       {/* CVE List */}
       <div className="space-y-3">
         {cves.map((cve) => (
-          <Card key={cve.cve_id} className="hover:shadow-md transition-shadow">
+          <Card key={cve.cve_id} className="transition-shadow hover:shadow-md">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="mb-2 flex items-center gap-2">
                     <span className="font-mono font-medium">{cve.cve_id}</span>
                     <div className="flex gap-1">
                       {cve.cvss_v3_severity && (
-                        <Badge
-                          variant={getSeverityColor(cve.cvss_v3_severity)}
-                          className="text-xs"
-                        >
+                        <Badge variant={getSeverityColor(cve.cvss_v3_severity)} className="text-xs">
                           {cve.cvss_v3_score} {cve.cvss_v3_severity}
                         </Badge>
                       )}
                       {!cve.cvss_v3_severity && cve.cvss_v2_severity && (
-                        <Badge
-                          variant={getSeverityColor(cve.cvss_v2_severity)}
-                          className="text-xs"
-                        >
+                        <Badge variant={getSeverityColor(cve.cvss_v2_severity)} className="text-xs">
                           {cve.cvss_v2_score} {cve.cvss_v2_severity}
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                  <p className="mb-2 line-clamp-2 text-sm text-muted-foreground">
                     {cve.description}
                   </p>
                   <div className="text-xs text-muted-foreground">
@@ -212,8 +190,7 @@ export const LatestCVEsDashboard = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {(cve.cvss_v3_severity === "CRITICAL" ||
-                    cve.cvss_v3_severity === "HIGH") && (
+                  {(cve.cvss_v3_severity === 'CRITICAL' || cve.cvss_v3_severity === 'HIGH') && (
                     <TrendingUp className="h-4 w-4 text-destructive" />
                   )}
                 </div>
@@ -225,7 +202,7 @@ export const LatestCVEsDashboard = () => {
         {!loading && cves.length === 0 && (
           <Card>
             <CardContent className="p-8 text-center">
-              <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <Shield className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
               <p className="text-muted-foreground">No recent CVEs found</p>
             </CardContent>
           </Card>
@@ -234,10 +211,8 @@ export const LatestCVEsDashboard = () => {
         {loading && (
           <Card>
             <CardContent className="p-8 text-center">
-              <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                Fetching latest vulnerabilities...
-              </p>
+              <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-muted-foreground">Fetching latest vulnerabilities...</p>
             </CardContent>
           </Card>
         )}

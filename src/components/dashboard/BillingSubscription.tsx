@@ -1,19 +1,13 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { Check, CreditCard, Download, Shield, Zap, Star } from "lucide-react";
-import { format } from "date-fns";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Check, CreditCard, Download, Shield, Zap, Star } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface Invoice {
   id: string;
@@ -26,55 +20,50 @@ interface Invoice {
 
 const plans = [
   {
-    id: "basic",
-    name: "Basic",
+    id: 'basic',
+    name: 'Basic',
     price: 0,
-    description: "For exploring cybersecurity guidance using AI",
+    description: 'For exploring cybersecurity guidance using AI',
     priceId: null, // Free plan
     features: [
-      "Ask the AI cybersecurity questions",
-      "Access compliance frameworks (NIST, CMMC, etc.) via AI",
-      "Free forever",
+      'Ask the AI cybersecurity questions',
+      'Access compliance frameworks (NIST, CMMC, etc.) via AI',
+      'Free forever',
     ],
-    excludedFeatures: [
-      "Document uploads",
-      "Access to human consultants",
-      "Escalation features",
-    ],
+    excludedFeatures: ['Document uploads', 'Access to human consultants', 'Escalation features'],
     popular: false,
   },
   {
-    id: "pro",
-    name: "Pro",
+    id: 'pro',
+    name: 'Pro',
     price: 49,
-    description:
-      "For generating cybersecurity policies and receiving occasional expert guidance",
-    priceId: "price_pro_monthly", // Replace with actual Stripe price ID
+    description: 'For generating cybersecurity policies and receiving occasional expert guidance',
+    priceId: 'price_pro_monthly', // Replace with actual Stripe price ID
     features: [
-      "Everything in Basic",
-      "Upload up to 5 documents/month",
-      "Get AI-generated policies, templates, and framework mappings",
-      "1 escalation per month to a human consultant",
-      "Priority AI support with enhanced memory",
-      "Cancel anytime",
+      'Everything in Basic',
+      'Upload up to 5 documents/month',
+      'Get AI-generated policies, templates, and framework mappings',
+      '1 escalation per month to a human consultant',
+      'Priority AI support with enhanced memory',
+      'Cancel anytime',
     ],
-    excludedFeatures: ["Live calls"],
+    excludedFeatures: ['Live calls'],
     popular: true,
   },
   {
-    id: "executive",
-    name: "Executive",
+    id: 'executive',
+    name: 'Executive',
     price: 149,
-    description: "For ongoing advisory and access to a dedicated expert",
-    priceId: "price_executive_monthly", // Replace with actual Stripe price ID
+    description: 'For ongoing advisory and access to a dedicated expert',
+    priceId: 'price_executive_monthly', // Replace with actual Stripe price ID
     features: [
-      "Everything in Pro",
-      "Upload unlimited documents",
-      "2 live consultation calls/month (up to 60 minutes total)",
-      "Escalations reviewed within 1 business day",
-      "Monthly compliance posture review",
-      "Consultant-reviewed documents with actionable comments",
-      "Cancel anytime",
+      'Everything in Pro',
+      'Upload unlimited documents',
+      '2 live consultation calls/month (up to 60 minutes total)',
+      'Escalations reviewed within 1 business day',
+      'Monthly compliance posture review',
+      'Consultant-reviewed documents with actionable comments',
+      'Cancel anytime',
     ],
     excludedFeatures: [],
     popular: false,
@@ -97,20 +86,20 @@ export function BillingSubscription() {
     // Mock invoice data - in a real app, this would come from your backend
     const mockInvoices: Invoice[] = [
       {
-        id: "inv_001",
+        id: 'inv_001',
         amount: 4900,
-        currency: "usd",
-        status: "paid",
-        created_at: "2024-01-15T10:00:00Z",
-        pdf_url: "#",
+        currency: 'usd',
+        status: 'paid',
+        created_at: '2024-01-15T10:00:00Z',
+        pdf_url: '#',
       },
       {
-        id: "inv_002",
+        id: 'inv_002',
         amount: 4900,
-        currency: "usd",
-        status: "paid",
-        created_at: "2023-12-15T10:00:00Z",
-        pdf_url: "#",
+        currency: 'usd',
+        status: 'paid',
+        created_at: '2023-12-15T10:00:00Z',
+        pdf_url: '#',
       },
     ];
 
@@ -122,28 +111,25 @@ export function BillingSubscription() {
 
   const handleUpgrade = async (priceId: string | null) => {
     if (!priceId) {
-      toast.info("You are already on the Basic plan");
+      toast.info('You are already on the Basic plan');
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "create-checkout",
-        {
-          body: { priceId },
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId },
+      });
 
       if (error) throw error;
 
       if (data?.url) {
         // Open Stripe checkout in a new tab
-        window.open(data.url, "_blank");
+        window.open(data.url, '_blank');
       }
     } catch (error: any) {
-      console.error("Error creating checkout:", error);
-      toast.error(error.message || "Failed to create checkout session");
+      console.error('Error creating checkout:', error);
+      toast.error(error.message || 'Failed to create checkout session');
     } finally {
       setLoading(false);
     }
@@ -152,32 +138,31 @@ export function BillingSubscription() {
   const handleManageSubscription = async () => {
     setLoading(true);
     try {
-      const { data, error } =
-        await supabase.functions.invoke("customer-portal");
+      const { data, error } = await supabase.functions.invoke('customer-portal');
 
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.open(data.url, '_blank');
       }
     } catch (error) {
-      console.error("Error opening customer portal:", error);
+      console.error('Error opening customer portal:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const getCurrentPlan = () => {
-    return subscriptionInfo?.subscription_tier || "Basic";
+    return subscriptionInfo?.subscription_tier || 'Basic';
   };
 
   const isCurrentPlan = (planId: string) => {
-    if (!subscriptionInfo) return planId === "basic";
+    if (!subscriptionInfo) return planId === 'basic';
 
     const tierMap = {
-      Basic: "basic",
-      Pro: "pro",
-      Premium: "executive",
+      Basic: 'basic',
+      Pro: 'pro',
+      Premium: 'executive',
     };
 
     return tierMap[subscriptionInfo.subscription_tier] === planId;
@@ -186,50 +171,36 @@ export function BillingSubscription() {
   return (
     <div className="page">
       <div className="page-title">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Billing & Subscription
-        </h1>
-        <p className="text-muted-foreground">
-          Manage your subscription and billing information
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">Billing & Subscription</h1>
+        <p className="text-muted-foreground">Manage your subscription and billing information</p>
       </div>
 
       {/* Current Plan Status */}
       <div className="section-card">
-        <h2 className="text-xl font-semibold flex items-center gap-space-2 mb-space-4">
+        <h2 className="mb-space-4 flex items-center gap-space-2 text-xl font-semibold">
           <CreditCard className="h-5 w-5" />
           Current Plan
         </h2>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Badge
-                variant={subscriptionInfo?.subscribed ? "default" : "secondary"}
-              >
+              <Badge variant={subscriptionInfo?.subscribed ? 'default' : 'secondary'}>
                 {getCurrentPlan()}
               </Badge>
               {subscriptionInfo?.subscription_end && (
                 <span className="text-sm text-muted-foreground">
-                  Renews{" "}
-                  {format(
-                    new Date(subscriptionInfo.subscription_end),
-                    "MMM dd, yyyy",
-                  )}
+                  Renews {format(new Date(subscriptionInfo.subscription_end), 'MMM dd, yyyy')}
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm text-muted-foreground">
               {subscriptionInfo?.subscribed
-                ? "Your subscription is active"
-                : "Upgrade to unlock premium features"}
+                ? 'Your subscription is active'
+                : 'Upgrade to unlock premium features'}
             </p>
           </div>
           {subscriptionInfo?.subscribed && (
-            <Button
-              variant="outline"
-              onClick={handleManageSubscription}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={handleManageSubscription} disabled={loading}>
               Manage Subscription
             </Button>
           )}
@@ -238,18 +209,18 @@ export function BillingSubscription() {
 
       {/* Plan Comparison */}
       <div>
-        <h2 className="text-xl font-semibold mb-space-4">Choose Your Plan</h2>
-        <div className="grid-2 lg:grid-cols-3 gap-space-6">
+        <h2 className="mb-space-4 text-xl font-semibold">Choose Your Plan</h2>
+        <div className="grid-2 gap-space-6 lg:grid-cols-3">
           {plans.map((plan) => (
             <Card
               key={plan.id}
-              className={`relative flex flex-col h-full ${
-                plan.popular ? "border-primary scale-105" : ""
-              } ${isCurrentPlan(plan.id) ? "ring-2 ring-primary" : ""}`}
+              className={`relative flex h-full flex-col ${
+                plan.popular ? 'scale-105 border-primary' : ''
+              } ${isCurrentPlan(plan.id) ? 'ring-2 ring-primary' : ''}`}
             >
               {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground">
-                  <Star className="w-3 h-3 mr-1" />
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 transform bg-primary text-primary-foreground">
+                  <Star className="mr-1 h-3 w-3" />
                   Most Popular
                 </Badge>
               )}
@@ -260,36 +231,27 @@ export function BillingSubscription() {
                 </Badge>
               )}
 
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-2xl font-bold">
-                  {plan.name}
-                </CardTitle>
+              <CardHeader className="pb-4 text-center">
+                <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-4xl font-bold">${plan.price}</span>
-                  <span className="text-muted-foreground">
-                    {plan.price === 0 ? "" : "/mo"}
-                  </span>
+                  <span className="text-muted-foreground">{plan.price === 0 ? '' : '/mo'}</span>
                 </div>
-                <CardDescription className="mt-2">
-                  {plan.description}
-                </CardDescription>
+                <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-4 flex-grow">
+              <CardContent className="flex-grow space-y-4">
                 <ul className="space-y-3">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" />
                       <span className="text-sm leading-relaxed">{feature}</span>
                     </li>
                   ))}
                   {plan.excludedFeatures?.map((feature, index) => (
-                    <li
-                      key={`excluded-${index}`}
-                      className="flex items-start gap-3"
-                    >
-                      <div className="w-5 h-5 mt-0.5 flex-shrink-0 flex items-center justify-center">
-                        <div className="w-3 h-0.5 bg-red-500 rounded"></div>
+                    <li key={`excluded-${index}`} className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center">
+                        <div className="h-0.5 w-3 rounded bg-red-500"></div>
                       </div>
                       <span className="text-sm leading-relaxed text-muted-foreground line-through">
                         {feature}
@@ -303,23 +265,21 @@ export function BillingSubscription() {
                 {plan.price === 0 ? (
                   <Button
                     className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
+                    variant={plan.popular ? 'default' : 'outline'}
                     disabled={isCurrentPlan(plan.id) || loading}
                   >
                     {isCurrentPlan(plan.id)
-                      ? "Current Plan"
-                      : "Start Free — No Credit Card Required"}
+                      ? 'Current Plan'
+                      : 'Start Free — No Credit Card Required'}
                   </Button>
                 ) : (
                   <Button
                     className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
+                    variant={plan.popular ? 'default' : 'outline'}
                     onClick={() => handleUpgrade(plan.priceId)}
                     disabled={isCurrentPlan(plan.id) || loading}
                   >
-                    {isCurrentPlan(plan.id)
-                      ? "Current Plan"
-                      : "Start — Cancel Anytime"}
+                    {isCurrentPlan(plan.id) ? 'Current Plan' : 'Start — Cancel Anytime'}
                   </Button>
                 )}
               </CardContent>
@@ -329,17 +289,14 @@ export function BillingSubscription() {
       </div>
 
       {/* Security Badge */}
-      <div className="section-card bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+      <div className="section-card border-green-200 bg-gradient-to-r from-green-50 to-blue-50">
         <div className="flex items-center gap-space-3">
           <Shield className="h-8 w-8 text-green-600" />
           <div>
-            <h3 className="font-semibold text-green-800">
-              Secure Payment Processing
-            </h3>
+            <h3 className="font-semibold text-green-800">Secure Payment Processing</h3>
             <p className="text-sm text-green-700">
-              Your payment information is encrypted and secured by Stripe, a
-              PCI-compliant payment processor trusted by millions of businesses
-              worldwide.
+              Your payment information is encrypted and secured by Stripe, a PCI-compliant payment
+              processor trusted by millions of businesses worldwide.
             </p>
           </div>
         </div>
@@ -347,17 +304,15 @@ export function BillingSubscription() {
 
       {/* Invoice History */}
       <div className="section-card">
-        <h2 className="text-xl font-semibold flex items-center gap-space-2 mb-space-2">
+        <h2 className="mb-space-2 flex items-center gap-space-2 text-xl font-semibold">
           <Download className="h-5 w-5" />
           Invoice History
         </h2>
-        <p className="text-muted-foreground mb-space-4">
-          Download your past invoices
-        </p>
+        <p className="mb-space-4 text-muted-foreground">Download your past invoices</p>
         {invoicesLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+              <div key={i} className="h-16 animate-pulse rounded bg-muted" />
             ))}
           </div>
         ) : invoices.length > 0 ? (
@@ -365,21 +320,17 @@ export function BillingSubscription() {
             {invoices.map((invoice) => (
               <div
                 key={invoice.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
+                className="flex items-center justify-between rounded-lg border p-3"
               >
                 <div>
                   <p className="font-medium">Invoice #{invoice.id}</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(invoice.created_at), "MMM dd, yyyy")} • $
+                    {format(new Date(invoice.created_at), 'MMM dd, yyyy')} • $
                     {(invoice.amount / 100).toFixed(2)} USD
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge
-                    variant={
-                      invoice.status === "paid" ? "default" : "secondary"
-                    }
-                  >
+                  <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
                     {invoice.status}
                   </Badge>
                   <Button variant="ghost" size="sm">

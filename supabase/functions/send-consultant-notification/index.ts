@@ -1,11 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Resend } from 'npm:resend@2.0.0';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface NotificationRequest {
@@ -17,17 +16,17 @@ interface NotificationRequest {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
     const {
       escalationId,
@@ -39,18 +38,18 @@ serve(async (req) => {
 
     // Get consultant details
     const { data: consultant, error: consultantError } = await supabase
-      .from("consultant_profiles")
+      .from('consultant_profiles')
       .select(
         `
         user_id,
         profiles!inner(email, first_name, last_name)
       `,
       )
-      .eq("user_id", consultantId)
+      .eq('user_id', consultantId)
       .single();
 
     if (consultantError || !consultant) {
-      throw new Error("Consultant not found");
+      throw new Error('Consultant not found');
     }
 
     const consultantEmail = consultant.profiles.email;
@@ -59,7 +58,7 @@ serve(async (req) => {
 
     // Send email notification
     const emailResponse = await resend.emails.send({
-      from: "CyberSec Platform <notifications@yourdomain.com>",
+      from: 'CyberSec Platform <notifications@yourdomain.com>',
       to: [consultantEmail],
       subject: `🚨 New ${priority.toUpperCase()} Priority Escalation Assigned`,
       html: `
@@ -81,8 +80,8 @@ serve(async (req) => {
             
             <p>You have been assigned a new escalation that requires your expertise:</p>
             
-            <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${priority === "urgent" ? "#dc3545" : priority === "high" ? "#fd7e14" : "#28a745"}; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: ${priority === "urgent" ? "#dc3545" : priority === "high" ? "#fd7e14" : "#28a745"};">
+            <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${priority === 'urgent' ? '#dc3545' : priority === 'high' ? '#fd7e14' : '#28a745'}; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: ${priority === 'urgent' ? '#dc3545' : priority === 'high' ? '#fd7e14' : '#28a745'};">
                 ${priority.toUpperCase()} Priority Escalation
               </h3>
               <p><strong>From:</strong> ${userEmail}</p>
@@ -91,7 +90,7 @@ serve(async (req) => {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${Deno.env.get("SUPABASE_URL")?.replace("//", "//").split("/")[0] + "//" + Deno.env.get("SUPABASE_URL")?.replace("//", "//").split("/")[2]}/consultant-dashboard" 
+              <a href="${Deno.env.get('SUPABASE_URL')?.replace('//', '//').split('/')[0] + '//' + Deno.env.get('SUPABASE_URL')?.replace('//', '//').split('/')[2]}/consultant-dashboard" 
                  style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
                 🚀 View Escalation
               </a>
@@ -126,30 +125,28 @@ serve(async (req) => {
     }
 
     // Create in-app notification
-    const { error: notificationError } = await supabase
-      .from("notifications")
-      .insert({
-        user_id: consultantId,
-        title: `New ${priority} priority escalation assigned`,
-        message: `Escalation from ${userEmail}: ${escalationReason}`,
-        notification_type: "escalation_assigned",
-        priority: priority,
+    const { error: notificationError } = await supabase.from('notifications').insert({
+      user_id: consultantId,
+      title: `New ${priority} priority escalation assigned`,
+      message: `Escalation from ${userEmail}: ${escalationReason}`,
+      notification_type: 'escalation_assigned',
+      priority: priority,
+      escalation_id: escalationId,
+      metadata: {
         escalation_id: escalationId,
-        metadata: {
-          escalation_id: escalationId,
-          user_email: userEmail,
-          email_sent: true,
-          email_id: emailResponse.data?.id,
-        },
-      });
+        user_email: userEmail,
+        email_sent: true,
+        email_id: emailResponse.data?.id,
+      },
+    });
 
     if (notificationError) {
-      console.error("Failed to create in-app notification:", notificationError);
+      console.error('Failed to create in-app notification:', notificationError);
     }
 
     // Log the notification for admin tracking
-    const { error: logError } = await supabase.from("audit_logs").insert({
-      action: "CONSULTANT_NOTIFICATION_SENT",
+    const { error: logError } = await supabase.from('audit_logs').insert({
+      action: 'CONSULTANT_NOTIFICATION_SENT',
       description: `Email notification sent to consultant for escalation ${escalationId}`,
       user_id: consultantId,
       metadata: {
@@ -165,23 +162,23 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         emailId: emailResponse.data?.id,
-        message: "Notification sent successfully",
+        message: 'Notification sent successfully',
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
   } catch (error) {
-    console.error("Error sending consultant notification:", error);
+    console.error('Error sending consultant notification:', error);
     return new Response(
       JSON.stringify({
-        error: "Failed to send notification",
+        error: 'Failed to send notification',
         details: error.message,
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
   }

@@ -1,16 +1,15 @@
-import React from "react";
-import { CVELookupInterface } from "@/components/chat/CVELookupInterface";
-import { LatestCVEsDashboard } from "@/components/admin/LatestCVEsDashboard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React from 'react';
+import { CVELookupInterface } from '@/components/chat/CVELookupInterface';
+import { LatestCVEsDashboard } from '@/components/admin/LatestCVEsDashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export const CVESecurityPage = () => {
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">CVE Security Intelligence</h1>
         <p className="text-muted-foreground">
-          Real-time vulnerability monitoring and analysis using the National
-          Vulnerability Database
+          Real-time vulnerability monitoring and analysis using the National Vulnerability Database
         </p>
       </div>
 

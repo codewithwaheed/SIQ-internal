@@ -75,7 +75,7 @@ Tests use stored authentication states to avoid login on every test:
 
 ```typescript
 // Use pre-authenticated state
-test.use({ storageState: "tests/auth-states/business-owner.json" });
+test.use({ storageState: 'tests/auth-states/business-owner.json' });
 ```
 
 ## 🧪 Test Categories
@@ -120,9 +120,9 @@ test.use({ storageState: "tests/auth-states/business-owner.json" });
 // tests/config/test-config.ts
 export const TEST_CONFIG = {
   BUSINESS_OWNER: {
-    email: "test-business@sentriq.test",
-    password: "TestPassword123!",
-    role: "business_owner",
+    email: 'test-business@sentriq.test',
+    password: 'TestPassword123!',
+    role: 'business_owner',
   },
   // ... other test users
 };
@@ -132,9 +132,9 @@ export const TEST_CONFIG = {
 
 ```typescript
 export const TEST_POLICY_DATA = {
-  business_name: "Test Corporation Inc",
-  contact_email: "contact@testcorp.com",
-  min_password_length: "12",
+  business_name: 'Test Corporation Inc',
+  contact_email: 'contact@testcorp.com',
+  min_password_length: '12',
   // ... other policy fields
 };
 ```
@@ -144,15 +144,15 @@ export const TEST_POLICY_DATA = {
 Reusable page objects for common workflows:
 
 ```typescript
-import { AuthPage, DashboardPage } from "../utils/page-objects";
+import { AuthPage, DashboardPage } from '../utils/page-objects';
 
-test("user can generate policy", async ({ page }) => {
+test('user can generate policy', async ({ page }) => {
   const authPage = new AuthPage(page);
   const dashboardPage = new DashboardPage(page);
 
   await authPage.goto();
-  await authPage.signIn("user@test.com", "password");
-  await dashboardPage.sendChatMessage("Create password policy");
+  await authPage.signIn('user@test.com', 'password');
+  await dashboardPage.sendChatMessage('Create password policy');
 });
 ```
 

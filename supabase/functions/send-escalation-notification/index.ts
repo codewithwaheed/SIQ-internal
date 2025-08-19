@@ -1,12 +1,11 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { Resend } from 'npm:resend@2.0.0';
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface NotificationRequest {
@@ -20,7 +19,7 @@ interface NotificationRequest {
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -34,13 +33,13 @@ serve(async (req) => {
       estimatedResponseTime,
     }: NotificationRequest = await req.json();
 
-    console.log("Sending escalation notification to:", userEmail);
+    console.log('Sending escalation notification to:', userEmail);
 
     // Send confirmation email to user
     const emailResponse = await resend.emails.send({
-      from: "CyberSec Experts <noreply@yourdomain.com>",
+      from: 'CyberSec Experts <noreply@yourdomain.com>',
       to: [userEmail],
-      subject: "Your Cybersecurity Expert Request Has Been Submitted",
+      subject: 'Your Cybersecurity Expert Request Has Been Submitted',
       html: `
         <!DOCTYPE html>
         <html>
@@ -63,7 +62,7 @@ serve(async (req) => {
           <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
             <h3 style="color: #1e293b; margin: 0 0 12px 0; font-size: 16px;">Request Details</h3>
             <p style="margin: 0 0 8px 0;"><strong>Request ID:</strong> ${escalationId}</p>
-            <p style="margin: 0 0 8px 0;"><strong>Priority:</strong> <span style="text-transform: capitalize; color: ${priority === "high" ? "#dc2626" : priority === "medium" ? "#d97706" : "#059669"};">${priority}</span></p>
+            <p style="margin: 0 0 8px 0;"><strong>Priority:</strong> <span style="text-transform: capitalize; color: ${priority === 'high' ? '#dc2626' : priority === 'medium' ? '#d97706' : '#059669'};">${priority}</span></p>
             <p style="margin: 0 0 12px 0;"><strong>Summary:</strong></p>
             <p style="margin: 0; background: #f1f5f9; padding: 12px; border-radius: 4px; font-style: italic;">"${summary}"</p>
           </div>
@@ -95,24 +94,24 @@ serve(async (req) => {
       throw new Error(`Failed to send email: ${emailResponse.error.message}`);
     }
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log('Email sent successfully:', emailResponse);
 
     return new Response(
       JSON.stringify({
         success: true,
         emailId: emailResponse.data?.id,
-        message: "Notification email sent successfully",
+        message: 'Notification email sent successfully',
       }),
       {
         status: 200,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...corsHeaders,
         },
       },
     );
   } catch (error: any) {
-    console.error("Error in send-escalation-notification function:", error);
+    console.error('Error in send-escalation-notification function:', error);
     return new Response(
       JSON.stringify({
         success: false,
@@ -121,7 +120,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...corsHeaders,
         },
       },

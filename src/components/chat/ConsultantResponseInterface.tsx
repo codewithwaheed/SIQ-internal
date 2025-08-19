@@ -1,18 +1,18 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import {
   Send,
   Plus,
@@ -23,10 +23,10 @@ import {
   Shield,
   Clock,
   FileText,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChecklistItem {
   id: string;
@@ -48,44 +48,44 @@ export function ConsultantResponseInterface({
   const { user } = useAuth();
   const { toast } = useToast();
   const [responseType, setResponseType] = useState<
-    "answer" | "checklist" | "policy" | "next_steps" | "file_attachment"
-  >("answer");
-  const [content, setContent] = useState("");
+    'answer' | 'checklist' | 'policy' | 'next_steps' | 'file_attachment'
+  >('answer');
+  const [content, setContent] = useState('');
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
-  const [newChecklistItem, setNewChecklistItem] = useState("");
+  const [newChecklistItem, setNewChecklistItem] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const responseTypes = [
     {
-      value: "answer",
-      label: "Plain Answer",
+      value: 'answer',
+      label: 'Plain Answer',
       icon: MessageCircle,
-      desc: "Direct response to their question",
+      desc: 'Direct response to their question',
     },
     {
-      value: "checklist",
-      label: "Action Checklist",
+      value: 'checklist',
+      label: 'Action Checklist',
       icon: CheckCircle,
-      desc: "Step-by-step tasks to complete",
+      desc: 'Step-by-step tasks to complete',
     },
     {
-      value: "policy",
-      label: "Policy Reference",
+      value: 'policy',
+      label: 'Policy Reference',
       icon: Shield,
-      desc: "Official policy or procedure",
+      desc: 'Official policy or procedure',
     },
     {
-      value: "next_steps",
-      label: "Next Steps",
+      value: 'next_steps',
+      label: 'Next Steps',
       icon: Clock,
-      desc: "Recommended follow-up actions",
+      desc: 'Recommended follow-up actions',
     },
     {
-      value: "file_attachment",
-      label: "Document Delivery",
+      value: 'file_attachment',
+      label: 'Document Delivery',
       icon: FileText,
-      desc: "Send files or resources",
+      desc: 'Send files or resources',
     },
   ];
 
@@ -99,7 +99,7 @@ export function ConsultantResponseInterface({
     };
 
     setChecklistItems((prev) => [...prev, newItem]);
-    setNewChecklistItem("");
+    setNewChecklistItem('');
   };
 
   const removeChecklistItem = (id: string) => {
@@ -116,29 +116,29 @@ export function ConsultantResponseInterface({
   };
 
   const submitResponse = async () => {
-    if (!content.trim() && responseType !== "file_attachment") {
+    if (!content.trim() && responseType !== 'file_attachment') {
       toast({
-        title: "Content required",
-        description: "Please provide a response message",
-        variant: "destructive",
+        title: 'Content required',
+        description: 'Please provide a response message',
+        variant: 'destructive',
       });
       return;
     }
 
-    if (responseType === "checklist" && checklistItems.length === 0) {
+    if (responseType === 'checklist' && checklistItems.length === 0) {
       toast({
-        title: "Checklist items required",
-        description: "Please add at least one checklist item",
-        variant: "destructive",
+        title: 'Checklist items required',
+        description: 'Please add at least one checklist item',
+        variant: 'destructive',
       });
       return;
     }
 
-    if (responseType === "file_attachment" && attachments.length === 0) {
+    if (responseType === 'file_attachment' && attachments.length === 0) {
       toast({
-        title: "Files required",
-        description: "Please attach at least one file",
-        variant: "destructive",
+        title: 'Files required',
+        description: 'Please attach at least one file',
+        variant: 'destructive',
       });
       return;
     }
@@ -151,7 +151,7 @@ export function ConsultantResponseInterface({
       for (const file of attachments) {
         const fileName = `${Date.now()}_${file.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("consultant-deliverables")
+          .from('consultant-deliverables')
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
@@ -168,35 +168,34 @@ export function ConsultantResponseInterface({
         escalation_id: escalationId,
         type: responseType,
         content: content.trim(),
-        checklist_items:
-          responseType === "checklist" ? checklistItems : undefined,
+        checklist_items: responseType === 'checklist' ? checklistItems : undefined,
         attachments: uploadedFiles.length > 0 ? uploadedFiles : undefined,
       };
 
-      const { error } = await supabase.functions.invoke("consultant-respond", {
+      const { error } = await supabase.functions.invoke('consultant-respond', {
         body: responseData,
       });
 
       if (error) throw error;
 
       // Reset form
-      setContent("");
+      setContent('');
       setChecklistItems([]);
       setAttachments([]);
-      setResponseType("answer");
+      setResponseType('answer');
 
       toast({
-        title: "Response sent",
-        description: "Your response has been delivered to the client",
+        title: 'Response sent',
+        description: 'Your response has been delivered to the client',
       });
 
       onResponseSent?.();
     } catch (error) {
-      console.error("Error submitting response:", error);
+      console.error('Error submitting response:', error);
       toast({
-        title: "Error",
-        description: "Failed to send response. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to send response. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
@@ -214,23 +213,19 @@ export function ConsultantResponseInterface({
       <CardContent className="space-y-6">
         {/* Response Type Selection */}
         <div>
-          <Label className="text-sm font-medium mb-3 block">
-            Response Type
-          </Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Label className="mb-3 block text-sm font-medium">Response Type</Label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {responseTypes.map((type) => (
               <Button
                 key={type.value}
-                variant={responseType === type.value ? "default" : "outline"}
-                className="h-auto p-3 justify-start"
+                variant={responseType === type.value ? 'default' : 'outline'}
+                className="h-auto justify-start p-3"
                 onClick={() => setResponseType(type.value as any)}
               >
-                <type.icon className="h-4 w-4 mr-2 shrink-0" />
-                <div className="text-left min-w-0">
-                  <div className="font-medium text-sm">{type.label}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {type.desc}
-                  </div>
+                <type.icon className="mr-2 h-4 w-4 shrink-0" />
+                <div className="min-w-0 text-left">
+                  <div className="text-sm font-medium">{type.label}</div>
+                  <div className="text-xs text-muted-foreground">{type.desc}</div>
                 </div>
               </Button>
             ))}
@@ -240,7 +235,7 @@ export function ConsultantResponseInterface({
         <Separator />
 
         {/* Content based on response type */}
-        {responseType === "checklist" ? (
+        {responseType === 'checklist' ? (
           <div className="space-y-4">
             <div>
               <Label htmlFor="checklist-intro">Checklist Introduction</Label>
@@ -254,15 +249,10 @@ export function ConsultantResponseInterface({
             </div>
 
             <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Checklist Items
-              </Label>
+              <Label className="mb-2 block text-sm font-medium">Checklist Items</Label>
               <div className="space-y-2">
                 {checklistItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2 p-2 bg-muted/30 rounded"
-                  >
+                  <div key={item.id} className="flex items-center gap-2 rounded bg-muted/30 p-2">
                     <CheckCircle className="h-4 w-4 text-muted-foreground" />
                     <span className="flex-1 text-sm">{item.text}</span>
                     <Button
@@ -277,18 +267,14 @@ export function ConsultantResponseInterface({
                 ))}
               </div>
 
-              <div className="flex gap-2 mt-2">
+              <div className="mt-2 flex gap-2">
                 <Input
                   placeholder="Add checklist item..."
                   value={newChecklistItem}
                   onChange={(e) => setNewChecklistItem(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && addChecklistItem()}
+                  onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
                 />
-                <Button
-                  size="sm"
-                  onClick={addChecklistItem}
-                  disabled={!newChecklistItem.trim()}
-                >
+                <Button size="sm" onClick={addChecklistItem} disabled={!newChecklistItem.trim()}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -297,21 +283,21 @@ export function ConsultantResponseInterface({
         ) : (
           <div>
             <Label htmlFor="response-content">
-              {responseType === "answer" && "Your Answer"}
-              {responseType === "policy" && "Policy Details"}
-              {responseType === "next_steps" && "Next Steps"}
-              {responseType === "file_attachment" && "File Description"}
+              {responseType === 'answer' && 'Your Answer'}
+              {responseType === 'policy' && 'Policy Details'}
+              {responseType === 'next_steps' && 'Next Steps'}
+              {responseType === 'file_attachment' && 'File Description'}
             </Label>
             <Textarea
               id="response-content"
               placeholder={
-                responseType === "answer"
-                  ? "Provide a detailed answer to their question..."
-                  : responseType === "policy"
-                    ? "Reference the relevant policy or procedure..."
-                    : responseType === "next_steps"
-                      ? "Outline the recommended next steps..."
-                      : "Describe the files you are attaching..."
+                responseType === 'answer'
+                  ? 'Provide a detailed answer to their question...'
+                  : responseType === 'policy'
+                    ? 'Reference the relevant policy or procedure...'
+                    : responseType === 'next_steps'
+                      ? 'Outline the recommended next steps...'
+                      : 'Describe the files you are attaching...'
               }
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -322,14 +308,12 @@ export function ConsultantResponseInterface({
 
         {/* File Attachments */}
         <div>
-          <Label className="text-sm font-medium mb-2 block">
-            Attachments (Optional)
-          </Label>
+          <Label className="mb-2 block text-sm font-medium">Attachments (Optional)</Label>
           <div className="space-y-2">
             {attachments.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-2 bg-muted/30 rounded"
+                className="flex items-center justify-between rounded bg-muted/30 p-2"
               >
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -362,9 +346,9 @@ export function ConsultantResponseInterface({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => document.getElementById("file-upload")?.click()}
+              onClick={() => document.getElementById('file-upload')?.click()}
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="mr-2 h-4 w-4" />
               Attach Files
             </Button>
           </div>
@@ -372,16 +356,12 @@ export function ConsultantResponseInterface({
 
         {/* Submit Button */}
         <div className="flex justify-end pt-4">
-          <Button
-            onClick={submitResponse}
-            disabled={submitting}
-            className="min-w-32"
-          >
+          <Button onClick={submitResponse} disabled={submitting} className="min-w-32">
             {submitting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
             ) : (
               <>
-                <Send className="h-4 w-4 mr-2" />
+                <Send className="mr-2 h-4 w-4" />
                 Send Response
               </>
             )}

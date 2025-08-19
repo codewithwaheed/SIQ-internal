@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -18,14 +12,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -34,18 +28,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Loader2,
-  Users,
-  Shield,
-  Crown,
-  Building,
-  AlertTriangle,
-} from "lucide-react";
-import { AuditLogger } from "@/lib/audit-logger";
+} from '@/components/ui/dialog';
+import { Loader2, Users, Shield, Crown, Building, AlertTriangle } from 'lucide-react';
+import { AuditLogger } from '@/lib/audit-logger';
 
-type UserRole = "business_owner" | "consultant" | "admin";
+type UserRole = 'business_owner' | 'consultant' | 'admin';
 
 interface UserProfile {
   id: string;
@@ -68,18 +55,16 @@ export const UserManagementPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
-  const [newRole, setNewRole] = useState<UserRole>("business_owner");
+  const [newRole, setNewRole] = useState<UserRole>('business_owner');
   const [isChangingRole, setIsChangingRole] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
 
   // Only admins can access this panel
-  if (userRole !== "admin") {
+  if (userRole !== 'admin') {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          Access denied. Administrator privileges required.
-        </AlertDescription>
+        <AlertDescription>Access denied. Administrator privileges required.</AlertDescription>
       </Alert>
     );
   }
@@ -95,7 +80,7 @@ export const UserManagementPanel = () => {
 
       // Fetch all profiles with their roles
       const { data, error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .select(
           `
           *,
@@ -105,7 +90,7 @@ export const UserManagementPanel = () => {
           )
         `,
         )
-        .order("created_at", { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -117,8 +102,8 @@ export const UserManagementPanel = () => {
 
       setUsers(usersWithRoles);
     } catch (err: any) {
-      console.error("Error fetching users:", err);
-      setError(err.message || "Failed to fetch users");
+      console.error('Error fetching users:', err);
+      setError(err.message || 'Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -132,20 +117,20 @@ export const UserManagementPanel = () => {
 
       // Update the user's role
       const { error } = await supabase
-        .from("user_roles")
+        .from('user_roles')
         .update({
           role: newRole,
           assigned_by: user.id,
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", selectedUser.user_id);
+        .eq('user_id', selectedUser.user_id);
 
       if (error) throw error;
 
       // Log the role change
       await AuditLogger.logAdminAction(
         user.id,
-        "ROLE_CHANGE",
+        'ROLE_CHANGE',
         `Changed user ${selectedUser.email} role from ${selectedUser.role} to ${newRole}`,
         selectedUser.user_id,
         {
@@ -160,8 +145,8 @@ export const UserManagementPanel = () => {
       setShowRoleDialog(false);
       setSelectedUser(null);
     } catch (err: any) {
-      console.error("Error changing role:", err);
-      setError(err.message || "Failed to change user role");
+      console.error('Error changing role:', err);
+      setError(err.message || 'Failed to change user role');
     } finally {
       setIsChangingRole(false);
     }
@@ -169,11 +154,11 @@ export const UserManagementPanel = () => {
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
-      case "admin":
+      case 'admin':
         return <Crown className="h-4 w-4" />;
-      case "consultant":
+      case 'consultant':
         return <Shield className="h-4 w-4" />;
-      case "business_owner":
+      case 'business_owner':
         return <Building className="h-4 w-4" />;
       default:
         return <Users className="h-4 w-4" />;
@@ -182,14 +167,14 @@ export const UserManagementPanel = () => {
 
   const getRoleColor = (role: UserRole) => {
     switch (role) {
-      case "admin":
-        return "destructive";
-      case "consultant":
-        return "default";
-      case "business_owner":
-        return "secondary";
+      case 'admin':
+        return 'destructive';
+      case 'consultant':
+        return 'default';
+      case 'business_owner':
+        return 'secondary';
       default:
-        return "outline";
+        return 'outline';
     }
   };
 
@@ -214,9 +199,7 @@ export const UserManagementPanel = () => {
             <Users className="h-5 w-5" />
             User Management
           </CardTitle>
-          <CardDescription>
-            Manage user accounts and roles for the platform
-          </CardDescription>
+          <CardDescription>Manage user accounts and roles for the platform</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -227,10 +210,8 @@ export const UserManagementPanel = () => {
           )}
 
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
-                Total users: {users.length}
-              </div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">Total users: {users.length}</div>
               <Button onClick={fetchUsers} variant="outline" size="sm">
                 Refresh
               </Button>
@@ -256,26 +237,21 @@ export const UserManagementPanel = () => {
                       </div>
                     </TableCell>
                     <TableCell>{userProfile.email}</TableCell>
-                    <TableCell>{userProfile.company_name || "-"}</TableCell>
+                    <TableCell>{userProfile.company_name || '-'}</TableCell>
                     <TableCell>
                       <Badge
                         variant={getRoleColor(userProfile.role)}
-                        className="flex items-center gap-1 w-fit"
+                        className="flex w-fit items-center gap-1"
                       >
                         {getRoleIcon(userProfile.role)}
-                        {userProfile.role.replace("_", " ")}
+                        {userProfile.role.replace('_', ' ')}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {new Date(userProfile.created_at).toLocaleDateString()}
-                    </TableCell>
+                    <TableCell>{new Date(userProfile.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>
                       {userProfile.user_id !== user?.id && (
                         <Dialog
-                          open={
-                            showRoleDialog &&
-                            selectedUser?.id === userProfile.id
-                          }
+                          open={showRoleDialog && selectedUser?.id === userProfile.id}
                           onOpenChange={setShowRoleDialog}
                         >
                           <DialogTrigger asChild>
@@ -295,34 +271,28 @@ export const UserManagementPanel = () => {
                             <DialogHeader>
                               <DialogTitle>Change User Role</DialogTitle>
                               <DialogDescription>
-                                Update the role for {userProfile.first_name}{" "}
-                                {userProfile.last_name} ({userProfile.email})
+                                Update the role for {userProfile.first_name} {userProfile.last_name}{' '}
+                                ({userProfile.email})
                               </DialogDescription>
                             </DialogHeader>
 
                             <div className="space-y-4 py-4">
                               <div className="space-y-2">
-                                <label className="text-sm font-medium">
-                                  Current Role
-                                </label>
+                                <label className="text-sm font-medium">Current Role</label>
                                 <Badge
                                   variant={getRoleColor(userProfile.role)}
-                                  className="flex items-center gap-1 w-fit"
+                                  className="flex w-fit items-center gap-1"
                                 >
                                   {getRoleIcon(userProfile.role)}
-                                  {userProfile.role.replace("_", " ")}
+                                  {userProfile.role.replace('_', ' ')}
                                 </Badge>
                               </div>
 
                               <div className="space-y-2">
-                                <label className="text-sm font-medium">
-                                  New Role
-                                </label>
+                                <label className="text-sm font-medium">New Role</label>
                                 <Select
                                   value={newRole}
-                                  onValueChange={(value: UserRole) =>
-                                    setNewRole(value)
-                                  }
+                                  onValueChange={(value: UserRole) => setNewRole(value)}
                                 >
                                   <SelectTrigger>
                                     <SelectValue />
@@ -350,12 +320,12 @@ export const UserManagementPanel = () => {
                                 </Select>
                               </div>
 
-                              {newRole === "admin" && (
+                              {newRole === 'admin' && (
                                 <Alert>
                                   <AlertTriangle className="h-4 w-4" />
                                   <AlertDescription>
-                                    Warning: Admin role grants full system
-                                    access including user management.
+                                    Warning: Admin role grants full system access including user
+                                    management.
                                   </AlertDescription>
                                 </Alert>
                               )}
@@ -371,9 +341,7 @@ export const UserManagementPanel = () => {
                               </Button>
                               <Button
                                 onClick={handleRoleChange}
-                                disabled={
-                                  isChangingRole || newRole === userProfile.role
-                                }
+                                disabled={isChangingRole || newRole === userProfile.role}
                               >
                                 {isChangingRole && (
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -385,9 +353,7 @@ export const UserManagementPanel = () => {
                         </Dialog>
                       )}
                       {userProfile.user_id === user?.id && (
-                        <span className="text-sm text-muted-foreground">
-                          Current user
-                        </span>
+                        <span className="text-sm text-muted-foreground">Current user</span>
                       )}
                     </TableCell>
                   </TableRow>

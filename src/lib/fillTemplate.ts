@@ -1,5 +1,5 @@
-import { POLICY_DEFAULTS } from "@/config/defaults";
-import { formatValue, formatBoolean } from "./valueFormatter";
+import { POLICY_DEFAULTS } from '@/config/defaults';
+import { formatValue, formatBoolean } from './valueFormatter';
 
 /**
  * Fills template placeholders with values from context, workspace profile, and defaults
@@ -11,9 +11,9 @@ export function fillTemplate(
   conversationAnswers: Record<string, any> = {},
 ): string {
   // Input validation
-  if (!template || typeof template !== "string") {
-    console.error("Invalid template provided to fillTemplate");
-    return "";
+  if (!template || typeof template !== 'string') {
+    console.error('Invalid template provided to fillTemplate');
+    return '';
   }
 
   try {
@@ -24,9 +24,9 @@ export function fillTemplate(
         userContext[fieldName] ??
         workspaceProfile[fieldName] ??
         POLICY_DEFAULTS[fieldName as keyof typeof POLICY_DEFAULTS] ??
-        "";
+        '';
 
-      if (value !== undefined && value !== null && value !== "") {
+      if (value !== undefined && value !== null && value !== '') {
         try {
           // Apply smart formatting with units
           return formatValue(fieldName, value);
@@ -41,7 +41,7 @@ export function fillTemplate(
       return `[${fieldName}]`; // Show what's missing instead of keeping template syntax
     });
   } catch (error) {
-    console.error("Error in fillTemplate:", error);
+    console.error('Error in fillTemplate:', error);
     return template; // Return original template if processing fails
   }
 }
@@ -65,11 +65,7 @@ export function buildContext(
   if (!excludeDefaults) {
     // Add policy defaults for any missing values
     Object.entries(POLICY_DEFAULTS).forEach(([key, value]) => {
-      if (
-        context[key] === undefined ||
-        context[key] === null ||
-        context[key] === ""
-      ) {
+      if (context[key] === undefined || context[key] === null || context[key] === '') {
         context[key] = value;
       }
     });
@@ -92,7 +88,7 @@ export function resolveFieldValue(
     userContext[fieldName] ??
     workspaceProfile[fieldName] ??
     POLICY_DEFAULTS[fieldName as keyof typeof POLICY_DEFAULTS] ??
-    "";
+    '';
 
   return String(value);
 }
@@ -101,9 +97,7 @@ export function resolveFieldValue(
  * Gets default value for a specific field
  */
 export function getDefaultValue(fieldName: string): string {
-  return String(
-    POLICY_DEFAULTS[fieldName as keyof typeof POLICY_DEFAULTS] ?? "",
-  );
+  return String(POLICY_DEFAULTS[fieldName as keyof typeof POLICY_DEFAULTS] ?? '');
 }
 
 /**
@@ -113,11 +107,8 @@ export function validateTemplateCompletion(filledTemplate: string): {
   isComplete: boolean;
   remainingPlaceholders: string[];
 } {
-  const placeholderMatches =
-    filledTemplate.match(/\{\{([a-z0-9_]+)\}\}/gi) || [];
-  const remainingPlaceholders = placeholderMatches.map((match) =>
-    match.replace(/[{}]/g, ""),
-  );
+  const placeholderMatches = filledTemplate.match(/\{\{([a-z0-9_]+)\}\}/gi) || [];
+  const remainingPlaceholders = placeholderMatches.map((match) => match.replace(/[{}]/g, ''));
 
   return {
     isComplete: remainingPlaceholders.length === 0,
@@ -138,24 +129,16 @@ export function previewTemplate(
 } {
   const allPlaceholders = Array.from(
     new Set(
-      (template.match(/\{\{([a-z0-9_]+)\}\}/gi) || []).map((match) =>
-        match.replace(/[{}]/g, ""),
-      ),
+      (template.match(/\{\{([a-z0-9_]+)\}\}/gi) || []).map((match) => match.replace(/[{}]/g, '')),
     ),
   );
 
   const filledFields = allPlaceholders.filter(
-    (field) =>
-      context[field] !== undefined &&
-      context[field] !== null &&
-      context[field] !== "",
+    (field) => context[field] !== undefined && context[field] !== null && context[field] !== '',
   );
 
   const missingFields = allPlaceholders.filter(
-    (field) =>
-      context[field] === undefined ||
-      context[field] === null ||
-      context[field] === "",
+    (field) => context[field] === undefined || context[field] === null || context[field] === '',
   );
 
   const completionPercentage =

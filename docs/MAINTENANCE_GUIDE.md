@@ -212,21 +212,21 @@ Establish and maintain performance baselines:
 // Performance targets
 const performanceTargets = {
   api_response_time: {
-    avg: "< 2 seconds",
-    p95: "< 5 seconds",
-    p99: "< 10 seconds",
+    avg: '< 2 seconds',
+    p95: '< 5 seconds',
+    p99: '< 10 seconds',
   },
   page_load_time: {
-    avg: "< 3 seconds",
-    p95: "< 6 seconds",
+    avg: '< 3 seconds',
+    p95: '< 6 seconds',
   },
   ai_response_time: {
-    avg: "< 15 seconds",
-    p95: "< 30 seconds",
+    avg: '< 15 seconds',
+    p95: '< 30 seconds',
   },
   cve_lookup_time: {
-    avg: "< 3 seconds",
-    p95: "< 8 seconds",
+    avg: '< 3 seconds',
+    p95: '< 8 seconds',
   },
 };
 ```
@@ -292,19 +292,19 @@ curl -w "@curl-format.txt" -o /dev/null -s "https://api.sentriq.com/health"
 const cacheConfig = {
   cve_data: {
     ttl: 86400, // 24 hours
-    strategy: "write_through",
+    strategy: 'write_through',
   },
   user_sessions: {
     ttl: 28800, // 8 hours
-    strategy: "write_behind",
+    strategy: 'write_behind',
   },
   knowledge_base: {
     ttl: 3600, // 1 hour
-    strategy: "refresh_ahead",
+    strategy: 'refresh_ahead',
   },
   static_content: {
     ttl: 604800, // 7 days
-    strategy: "cache_first",
+    strategy: 'cache_first',
   },
 };
 ```
@@ -341,8 +341,8 @@ functions:
 # Database read replicas
 database:
   read_replicas: 2
-  replica_regions: ["us-west-2", "eu-west-1"]
-  load_balancing: "round_robin"
+  replica_regions: ['us-west-2', 'eu-west-1']
+  load_balancing: 'round_robin'
 ```
 
 #### Load Distribution
@@ -376,19 +376,19 @@ const routingRules = {
 # Production resource allocation
 services:
   api_gateway:
-    cpu: "2 vCPU"
-    memory: "4 GB"
-    storage: "20 GB SSD"
+    cpu: '2 vCPU'
+    memory: '4 GB'
+    storage: '20 GB SSD'
 
   database:
-    cpu: "4 vCPU"
-    memory: "16 GB"
-    storage: "500 GB SSD"
+    cpu: '4 vCPU'
+    memory: '16 GB'
+    storage: '500 GB SSD'
     iops: 3000
 
   cache:
-    memory: "8 GB"
-    network: "10 Gbps"
+    memory: '8 GB'
+    network: '10 Gbps'
 ```
 
 #### Scaling Triggers
@@ -397,15 +397,15 @@ services:
 // Automatic scaling triggers
 const scalingTriggers = {
   scale_up: {
-    cpu_usage: "> 75% for 5 minutes",
-    memory_usage: "> 80% for 5 minutes",
-    response_time: "> 5 seconds for 10 minutes",
-    error_rate: "> 5% for 5 minutes",
+    cpu_usage: '> 75% for 5 minutes',
+    memory_usage: '> 80% for 5 minutes',
+    response_time: '> 5 seconds for 10 minutes',
+    error_rate: '> 5% for 5 minutes',
   },
   scale_down: {
-    cpu_usage: "< 30% for 30 minutes",
-    memory_usage: "< 40% for 30 minutes",
-    response_time: "< 2 seconds for 30 minutes",
+    cpu_usage: '< 30% for 30 minutes',
+    memory_usage: '< 40% for 30 minutes',
+    response_time: '< 2 seconds for 30 minutes',
   },
 };
 ```
@@ -420,7 +420,7 @@ const scalingTriggers = {
 # Staging deployment pipeline
 staging:
   triggers:
-    - branch: "develop"
+    - branch: 'develop'
     - manual: true
 
   steps:
@@ -431,8 +431,8 @@ staging:
     - manual_approval
 
   environment:
-    size: "25% of production"
-    data: "anonymized_production_subset"
+    size: '25% of production'
+    data: 'anonymized_production_subset'
 ```
 
 #### Production Deployment
@@ -440,8 +440,8 @@ staging:
 ```yaml
 # Production deployment strategy
 production:
-  strategy: "blue_green"
-  rollback_threshold: "5% error rate"
+  strategy: 'blue_green'
+  rollback_threshold: '5% error rate'
 
   pre_deployment:
     - database_backup
@@ -469,18 +469,18 @@ production:
 // Maintenance window schedule
 const maintenanceSchedule = {
   regular: {
-    frequency: "monthly",
-    duration: "2 hours",
-    day: "first Sunday",
-    time: "02:00-04:00 UTC",
-    notification_lead_time: "72 hours",
+    frequency: 'monthly',
+    duration: '2 hours',
+    day: 'first Sunday',
+    time: '02:00-04:00 UTC',
+    notification_lead_time: '72 hours',
   },
 
   emergency: {
-    max_duration: "4 hours",
-    approval_required: "CTO",
-    notification: "immediate",
-    rollback_plan: "required",
+    max_duration: '4 hours',
+    approval_required: 'CTO',
+    notification: 'immediate',
+    rollback_plan: 'required',
   },
 };
 ```
@@ -514,35 +514,35 @@ const maintenanceSchedule = {
 ```javascript
 const severityLevels = {
   P1: {
-    name: "Critical",
-    description: "Complete service outage",
-    response_time: "15 minutes",
-    escalation: "immediate",
-    communication: "every 30 minutes",
+    name: 'Critical',
+    description: 'Complete service outage',
+    response_time: '15 minutes',
+    escalation: 'immediate',
+    communication: 'every 30 minutes',
   },
 
   P2: {
-    name: "High",
-    description: "Major feature unavailable",
-    response_time: "1 hour",
-    escalation: "4 hours",
-    communication: "every 2 hours",
+    name: 'High',
+    description: 'Major feature unavailable',
+    response_time: '1 hour',
+    escalation: '4 hours',
+    communication: 'every 2 hours',
   },
 
   P3: {
-    name: "Medium",
-    description: "Performance degradation",
-    response_time: "4 hours",
-    escalation: "24 hours",
-    communication: "daily",
+    name: 'Medium',
+    description: 'Performance degradation',
+    response_time: '4 hours',
+    escalation: '24 hours',
+    communication: 'daily',
   },
 
   P4: {
-    name: "Low",
-    description: "Minor issues",
-    response_time: "24 hours",
-    escalation: "72 hours",
-    communication: "as needed",
+    name: 'Low',
+    description: 'Minor issues',
+    response_time: '24 hours',
+    escalation: '72 hours',
+    communication: 'as needed',
   },
 };
 ```
@@ -562,23 +562,23 @@ const severityLevels = {
 ```javascript
 const responseTeam = {
   incident_commander: {
-    role: "Overall coordination",
-    contact: "on-call-manager@sentriq.com",
+    role: 'Overall coordination',
+    contact: 'on-call-manager@sentriq.com',
   },
 
   technical_lead: {
-    role: "Technical investigation",
-    contact: "tech-lead@sentriq.com",
+    role: 'Technical investigation',
+    contact: 'tech-lead@sentriq.com',
   },
 
   communications: {
-    role: "Stakeholder updates",
-    contact: "comms@sentriq.com",
+    role: 'Stakeholder updates',
+    contact: 'comms@sentriq.com',
   },
 
   customer_success: {
-    role: "Customer communication",
-    contact: "support@sentriq.com",
+    role: 'Customer communication',
+    contact: 'support@sentriq.com',
   },
 };
 ```
@@ -745,21 +745,21 @@ services:
 // Cost optimization strategies
 const optimizations = {
   compute: {
-    rightsize_instances: "potential 20% savings",
-    reserved_capacity: "potential 30% savings",
-    auto_scaling: "potential 15% savings",
+    rightsize_instances: 'potential 20% savings',
+    reserved_capacity: 'potential 30% savings',
+    auto_scaling: 'potential 15% savings',
   },
 
   storage: {
-    lifecycle_policies: "potential 40% savings",
-    compression: "potential 25% savings",
-    archival: "potential 60% savings",
+    lifecycle_policies: 'potential 40% savings',
+    compression: 'potential 25% savings',
+    archival: 'potential 60% savings',
   },
 
   apis: {
-    caching: "potential 50% reduction in calls",
-    batch_processing: "potential 30% savings",
-    smart_routing: "potential 20% savings",
+    caching: 'potential 50% reduction in calls',
+    batch_processing: 'potential 30% savings',
+    smart_routing: 'potential 20% savings',
   },
 };
 ```
@@ -774,7 +774,7 @@ budgets:
   monthly_total:
     limit: 50000
     alerts: [50%, 80%, 90%, 100%]
-    actions: ["notify", "notify", "notify", "throttle"]
+    actions: ['notify', 'notify', 'notify', 'throttle']
 
   per_service:
     openai_api:

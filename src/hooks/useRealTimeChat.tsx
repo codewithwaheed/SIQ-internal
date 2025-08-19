@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessage {
   id: string;
   conversation_id: string;
   content: string;
-  role: "user" | "assistant" | "consultant" | "system";
+  role: 'user' | 'assistant' | 'consultant' | 'system';
   timestamp: string;
   metadata?: Record<string, any>;
 }
@@ -38,81 +38,73 @@ export const useRealTimeChat = (): UseRealTimeChatReturn => {
       // Unsubscribe from previous conversation
       unsubscribeFromConversation();
 
-      console.log(
-        "Subscribing to real-time updates for conversation:",
-        conversationId,
-      );
+      console.log('Subscribing to real-time updates for conversation:', conversationId);
       currentConversationRef.current = conversationId;
 
       try {
         const channel = supabase
           .channel(`conversation_${conversationId}`)
           .on(
-            "postgres_changes",
+            'postgres_changes',
             {
-              event: "INSERT",
-              schema: "public",
-              table: "chat_messages",
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chat_messages',
               filter: `conversation_id=eq.${conversationId}`,
             },
             (payload) => {
-              console.log("New message received via real-time:", payload.new);
+              console.log('New message received via real-time:', payload.new);
               const newMessage = payload.new as ChatMessage;
 
               // Only add if from consultant/system (user messages are added optimistically)
-              if (
-                newMessage.role === "consultant" ||
-                newMessage.role === "system"
-              ) {
+              if (newMessage.role === 'consultant' || newMessage.role === 'system') {
                 setMessages((prev) => {
                   // Avoid duplicates
                   const exists = prev.some((msg) => msg.id === newMessage.id);
                   if (exists) return prev;
 
                   return [...prev, newMessage].sort(
-                    (a, b) =>
-                      new Date(a.timestamp).getTime() -
-                      new Date(b.timestamp).getTime(),
+                    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
                   );
                 });
 
                 // Show notification for consultant replies
-                if (newMessage.role === "consultant") {
+                if (newMessage.role === 'consultant') {
                   toast({
-                    title: "Expert Response",
-                    description: "Your cybersecurity expert has responded.",
+                    title: 'Expert Response',
+                    description: 'Your cybersecurity expert has responded.',
                   });
                 }
               }
             },
           )
           .on(
-            "postgres_changes",
+            'postgres_changes',
             {
-              event: "UPDATE",
-              schema: "public",
-              table: "chat_conversations",
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'chat_conversations',
               filter: `id=eq.${conversationId}`,
             },
             (payload) => {
-              console.log("Conversation updated:", payload.new);
+              console.log('Conversation updated:', payload.new);
               // Handle conversation status changes (e.g., escalation)
             },
           )
           .subscribe((status) => {
-            console.log("Real-time subscription status:", status);
-            if (status === "SUBSCRIBED") {
+            console.log('Real-time subscription status:', status);
+            if (status === 'SUBSCRIBED') {
               setIsConnected(true);
               setConnectionError(null);
-            } else if (status === "CHANNEL_ERROR") {
+            } else if (status === 'CHANNEL_ERROR') {
               setIsConnected(false);
-              setConnectionError("Failed to connect to real-time updates");
+              setConnectionError('Failed to connect to real-time updates');
             }
           });
 
         channelRef.current = channel;
       } catch (error: any) {
-        console.error("Error setting up real-time subscription:", error);
+        console.error('Error setting up real-time subscription:', error);
         setConnectionError(error.message);
         setIsConnected(false);
       }
@@ -122,7 +114,7 @@ export const useRealTimeChat = (): UseRealTimeChatReturn => {
 
   const unsubscribeFromConversation = useCallback(() => {
     if (channelRef.current) {
-      console.log("Unsubscribing from real-time updates");
+      console.log('Unsubscribing from real-time updates');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
       currentConversationRef.current = null;
@@ -137,8 +129,7 @@ export const useRealTimeChat = (): UseRealTimeChatReturn => {
       if (exists) return prev;
 
       return [...prev, message].sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
     });
   }, []);
@@ -158,7 +149,7 @@ export const useRealTimeChat = (): UseRealTimeChatReturn => {
   useEffect(() => {
     if (connectionError && currentConversationRef.current) {
       const reconnectTimer = setTimeout(() => {
-        console.log("Attempting to reconnect to real-time updates...");
+        console.log('Attempting to reconnect to real-time updates...');
         subscribeToConversation(currentConversationRef.current!);
       }, 5000);
 

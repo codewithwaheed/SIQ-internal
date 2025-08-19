@@ -1,19 +1,13 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertTriangle,
   Calendar,
@@ -22,7 +16,7 @@ import {
   MessageSquare,
   Send,
   Clock,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface ChatMessage {
   role: string;
@@ -44,9 +38,9 @@ export function EscalationPage() {
   const [recentMessages, setRecentMessages] = useState<ChatMessage[]>([]);
   const [recentDocuments, setRecentDocuments] = useState<Document[]>([]);
   const [formData, setFormData] = useState({
-    reason: "",
-    description: "",
-    priority: "normal" as "low" | "normal" | "high",
+    reason: '',
+    description: '',
+    priority: 'normal' as 'low' | 'normal' | 'high',
     includeChat: true,
     includeDocuments: true,
   });
@@ -64,19 +58,19 @@ export function EscalationPage() {
     try {
       // Get the most recent conversation
       const { data: conversations } = await supabase
-        .from("chat_conversations")
-        .select("id")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false })
+        .from('chat_conversations')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
         .limit(1);
 
       if (conversations && conversations.length > 0) {
         // Get the last few messages from the most recent conversation
         const { data: messages } = await supabase
-          .from("chat_messages")
-          .select("role, content, timestamp")
-          .eq("conversation_id", conversations[0].id)
-          .order("timestamp", { ascending: false })
+          .from('chat_messages')
+          .select('role, content, timestamp')
+          .eq('conversation_id', conversations[0].id)
+          .order('timestamp', { ascending: false })
           .limit(5);
 
         if (messages) {
@@ -84,7 +78,7 @@ export function EscalationPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching recent messages:", error);
+      console.error('Error fetching recent messages:', error);
     }
   };
 
@@ -93,17 +87,17 @@ export function EscalationPage() {
 
     try {
       const { data: documents } = await supabase
-        .from("documents")
-        .select("id, file_name, uploaded_at")
-        .eq("user_id", user.id)
-        .order("uploaded_at", { ascending: false })
+        .from('documents')
+        .select('id, file_name, uploaded_at')
+        .eq('user_id', user.id)
+        .order('uploaded_at', { ascending: false })
         .limit(3);
 
       if (documents) {
         setRecentDocuments(documents);
       }
     } catch (error) {
-      console.error("Error fetching recent documents:", error);
+      console.error('Error fetching recent documents:', error);
     }
   };
 
@@ -115,37 +109,30 @@ export function EscalationPage() {
       const escalationData = {
         user_id: user?.id,
         reason: formData.reason,
-        chat_context: formData.includeChat
-          ? JSON.stringify(recentMessages)
-          : "",
+        chat_context: formData.includeChat ? JSON.stringify(recentMessages) : '',
         priority: formData.priority,
         description: formData.description,
-        documents: formData.includeDocuments
-          ? recentDocuments.map((doc) => doc.id)
-          : [],
+        documents: formData.includeDocuments ? recentDocuments.map((doc) => doc.id) : [],
       };
 
-      const { data, error } = await supabase.functions.invoke(
-        "create-escalation",
-        {
-          body: escalationData,
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('create-escalation', {
+        body: escalationData,
+      });
 
       if (error) throw error;
 
       setSubmitted(true);
       toast({
-        title: "Escalation Submitted",
+        title: 'Escalation Submitted',
         description:
-          "Your request has been sent to our expert team. Expect a reply within 24-48 hours.",
+          'Your request has been sent to our expert team. Expect a reply within 24-48 hours.',
       });
     } catch (error) {
-      console.error("Error submitting escalation:", error);
+      console.error('Error submitting escalation:', error);
       toast({
-        title: "Error",
-        description: "Failed to submit escalation. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to submit escalation. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -154,17 +141,16 @@ export function EscalationPage() {
 
   if (submitted) {
     return (
-      <div className="page max-w-2xl mx-auto">
+      <div className="page mx-auto max-w-2xl">
         <Card className="border-green-200 bg-green-50/50">
           <CardContent className="p-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-green-800 mb-2">
+            <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-600" />
+            <h1 className="mb-2 text-2xl font-bold text-green-800">
               Request Submitted Successfully
             </h1>
-            <p className="text-green-700 mb-6">
-              Your escalation has been sent to our expert cybersecurity team. A
-              qualified consultant will review your case and follow up with you
-              within 24-48 hours.
+            <p className="mb-6 text-green-700">
+              Your escalation has been sent to our expert cybersecurity team. A qualified consultant
+              will review your case and follow up with you within 24-48 hours.
             </p>
 
             <div className="flex items-center justify-center gap-4 text-sm text-green-600">
@@ -178,11 +164,7 @@ export function EscalationPage() {
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              className="mt-6"
-              onClick={() => setSubmitted(false)}
-            >
+            <Button variant="outline" className="mt-6" onClick={() => setSubmitted(false)}>
               Submit Another Request
             </Button>
           </CardContent>
@@ -192,7 +174,7 @@ export function EscalationPage() {
   }
 
   return (
-    <div className="page max-w-4xl mx-auto">
+    <div className="page mx-auto max-w-4xl">
       <div className="page-title">
         <h1 className="text-3xl font-bold">Escalate to Expert</h1>
         <p className="text-muted-foreground">
@@ -204,11 +186,11 @@ export function EscalationPage() {
         <div className="grid-2">
           {/* Main Form */}
           <div className="section-card">
-            <h2 className="text-xl font-semibold flex items-center gap-space-2 mb-space-2">
+            <h2 className="mb-space-2 flex items-center gap-space-2 text-xl font-semibold">
               <AlertTriangle className="h-5 w-5" />
               Request Details
             </h2>
-            <p className="text-muted-foreground mb-space-4">
+            <p className="mb-space-4 text-muted-foreground">
               Tell us about your cybersecurity challenge
             </p>
             <div>
@@ -217,9 +199,7 @@ export function EscalationPage() {
                 id="reason"
                 placeholder="e.g., Security audit, compliance question, incident response"
                 value={formData.reason}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, reason: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, reason: e.target.value }))}
                 required
               />
             </div>
@@ -243,22 +223,18 @@ export function EscalationPage() {
 
             <div>
               <Label>Priority Level</Label>
-              <div className="flex gap-3 mt-2">
-                {(["low", "normal", "high"] as const).map((priority) => (
+              <div className="mt-2 flex gap-3">
+                {(['low', 'normal', 'high'] as const).map((priority) => (
                   <Button
                     key={priority}
                     type="button"
-                    variant={
-                      formData.priority === priority ? "default" : "outline"
-                    }
+                    variant={formData.priority === priority ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() =>
-                      setFormData((prev) => ({ ...prev, priority }))
-                    }
+                    onClick={() => setFormData((prev) => ({ ...prev, priority }))}
                   >
-                    {priority === "low" && "🟢"}
-                    {priority === "normal" && "🟡"}
-                    {priority === "high" && "🔴"}
+                    {priority === 'low' && '🟢'}
+                    {priority === 'normal' && '🟡'}
+                    {priority === 'high' && '🔴'}
                     {priority.charAt(0).toUpperCase() + priority.slice(1)}
                   </Button>
                 ))}
@@ -267,8 +243,8 @@ export function EscalationPage() {
 
             <div>
               <Label>Contact Information</Label>
-              <Input value={user?.email || ""} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground mt-1">
+              <Input value={user?.email || ''} disabled className="bg-muted" />
+              <p className="mt-1 text-xs text-muted-foreground">
                 Our consultant will reach out to this email address
               </p>
             </div>
@@ -279,8 +255,8 @@ export function EscalationPage() {
             {/* Recent Chat Messages */}
             {recentMessages.length > 0 && (
               <div className="section-card">
-                <div className="flex items-center justify-between mb-space-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-space-2">
+                <div className="mb-space-4 flex items-center justify-between">
+                  <h3 className="flex items-center gap-space-2 text-lg font-semibold">
                     <MessageSquare className="h-5 w-5" />
                     Recent Chat Context
                   </h3>
@@ -301,28 +277,24 @@ export function EscalationPage() {
                     </Label>
                   </div>
                 </div>
-                <p className="text-muted-foreground mb-space-4">
+                <p className="mb-space-4 text-muted-foreground">
                   Last {recentMessages.length} messages from your recent chat
                 </p>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="max-h-48 space-y-2 overflow-y-auto">
                   {recentMessages.map((message, index) => (
-                    <div key={index} className="p-2 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-2 mb-1">
+                    <div key={index} className="rounded-lg bg-muted/50 p-2">
+                      <div className="mb-1 flex items-center gap-2">
                         <Badge
-                          variant={
-                            message.role === "user" ? "default" : "secondary"
-                          }
+                          variant={message.role === 'user' ? 'default' : 'secondary'}
                           className="text-xs"
                         >
-                          {message.role === "user" ? "You" : "AI"}
+                          {message.role === 'user' ? 'You' : 'AI'}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
-                      <p className="text-sm">
-                        {message.content.slice(0, 150)}...
-                      </p>
+                      <p className="text-sm">{message.content.slice(0, 150)}...</p>
                     </div>
                   ))}
                 </div>
@@ -332,8 +304,8 @@ export function EscalationPage() {
             {/* Recent Documents */}
             {recentDocuments.length > 0 && (
               <div className="section-card">
-                <div className="flex items-center justify-between mb-space-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-space-2">
+                <div className="mb-space-4 flex items-center justify-between">
+                  <h3 className="flex items-center gap-space-2 text-lg font-semibold">
                     <FileText className="h-5 w-5" />
                     Recent Documents
                   </h3>
@@ -354,21 +326,15 @@ export function EscalationPage() {
                     </Label>
                   </div>
                 </div>
-                <p className="text-muted-foreground mb-space-4">
-                  Your recently uploaded documents
-                </p>
+                <p className="mb-space-4 text-muted-foreground">Your recently uploaded documents</p>
                 <div className="space-y-2">
                   {recentDocuments.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center gap-2 p-2 rounded border"
-                    >
+                    <div key={doc.id} className="flex items-center gap-2 rounded border p-2">
                       <FileText className="h-4 w-4 text-muted-foreground" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">{doc.file_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Uploaded{" "}
-                          {new Date(doc.uploaded_at).toLocaleDateString()}
+                          Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -378,18 +344,15 @@ export function EscalationPage() {
             )}
 
             {/* Expected Response Time */}
-            <div className="section-card bg-blue-50/50 border-blue-200">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="section-card border-blue-200 bg-blue-50/50">
+              <div className="mb-2 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-600" />
-                <h3 className="font-semibold text-blue-800">
-                  Response Timeline
-                </h3>
+                <h3 className="font-semibold text-blue-800">Response Timeline</h3>
               </div>
               <p className="text-sm text-blue-700">
-                Your assigned consultant will review your request and follow up
-                within
-                <strong> 24-48 hours</strong> during business days. For urgent
-                security incidents, please mark as high priority.
+                Your assigned consultant will review your request and follow up within
+                <strong> 24-48 hours</strong> during business days. For urgent security incidents,
+                please mark as high priority.
               </p>
             </div>
           </div>
@@ -402,10 +365,10 @@ export function EscalationPage() {
             className="min-w-32"
           >
             {loading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
             ) : (
               <>
-                <Send className="h-4 w-4 mr-2" />
+                <Send className="mr-2 h-4 w-4" />
                 Submit Request
               </>
             )}

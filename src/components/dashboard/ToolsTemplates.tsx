@@ -1,20 +1,20 @@
-import { useState, useEffect } from "react";
-import { DashboardLayout } from "./DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect } from 'react';
+import { DashboardLayout } from './DashboardLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import {
   FileText,
   MessageSquare,
@@ -28,9 +28,9 @@ import {
   Search,
   Link,
   Loader2,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Template {
   id: string;
@@ -75,34 +75,34 @@ export const ToolsTemplates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [cannedResponses, setCannedResponses] = useState<CannedResponse[]>([]);
   const [resourceLinks, setResourceLinks] = useState<ResourceLink[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
   const [isAddingResponse, setIsAddingResponse] = useState(false);
   const [isAddingLink, setIsAddingLink] = useState(false);
 
   const [newTemplate, setNewTemplate] = useState({
-    title: "",
-    category: "",
-    content: "",
-    tags: "",
-    description: "",
+    title: '',
+    category: '',
+    content: '',
+    tags: '',
+    description: '',
     is_shared: false,
   });
   const [newResponse, setNewResponse] = useState({
-    title: "",
-    category: "",
-    content: "",
-    tags: "",
-    description: "",
+    title: '',
+    category: '',
+    content: '',
+    tags: '',
+    description: '',
     is_shared: false,
   });
   const [newLink, setNewLink] = useState({
-    title: "",
-    url: "",
-    description: "",
-    category: "",
-    tags: "",
+    title: '',
+    url: '',
+    description: '',
+    category: '',
+    tags: '',
     is_shared: false,
   });
 
@@ -118,28 +118,28 @@ export const ToolsTemplates = () => {
 
       // Load templates
       const { data: templatesData, error: templatesError } = await supabase
-        .from("policy_templates")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+        .from('policy_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
       if (templatesError) throw templatesError;
 
       // Load canned responses
       const { data: responsesData, error: responsesError } = await supabase
-        .from("canned_responses")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+        .from('canned_responses')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
       if (responsesError) throw responsesError;
 
       // Load resource links
       const { data: linksData, error: linksError } = await supabase
-        .from("resource_links")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+        .from('resource_links')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
       if (linksError) throw linksError;
 
@@ -158,8 +158,8 @@ export const ToolsTemplates = () => {
         await initializeDefaultLinks();
       }
     } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Failed to load templates and resources");
+      console.error('Error loading data:', error);
+      toast.error('Failed to load templates and resources');
     } finally {
       setLoading(false);
     }
@@ -168,8 +168,8 @@ export const ToolsTemplates = () => {
   const initializeDefaultTemplates = async () => {
     const defaultTemplates = [
       {
-        title: "NIST 800-171 Access Control Policy",
-        category: "policy",
+        title: 'NIST 800-171 Access Control Policy',
+        category: 'policy',
         content: `# Access Control Policy Template
 
 ## 1. Purpose
@@ -185,14 +185,13 @@ This policy applies to all information systems and users within [ORGANIZATION].
 
 ## 4. Implementation
 [Add specific implementation details here]`,
-        tags: ["NIST", "Access Control", "Policy"],
-        description:
-          "Template for creating NIST 800-171 compliant access control policies",
+        tags: ['NIST', 'Access Control', 'Policy'],
+        description: 'Template for creating NIST 800-171 compliant access control policies',
         is_shared: true,
       },
       {
-        title: "CMMC Level 2 Assessment Checklist",
-        category: "assessment",
+        title: 'CMMC Level 2 Assessment Checklist',
+        category: 'assessment',
         content: `# CMMC Level 2 Assessment Checklist
 
 ## Access Control (AC)
@@ -207,14 +206,14 @@ This policy applies to all information systems and users within [ORGANIZATION].
 ## Audit and Accountability (AU)
 - [ ] AU.L2-3.3.1 - Event logging
 - [ ] AU.L2-3.3.2 - Centralized audit log management`,
-        tags: ["CMMC", "Assessment", "Checklist"],
-        description: "Comprehensive checklist for CMMC Level 2 assessments",
+        tags: ['CMMC', 'Assessment', 'Checklist'],
+        description: 'Comprehensive checklist for CMMC Level 2 assessments',
         is_shared: true,
       },
     ];
 
     for (const template of defaultTemplates) {
-      await supabase.from("policy_templates").insert({
+      await supabase.from('policy_templates').insert({
         ...template,
         user_id: user?.id,
       });
@@ -226,8 +225,8 @@ This policy applies to all information systems and users within [ORGANIZATION].
   const initializeDefaultResponses = async () => {
     const defaultResponses = [
       {
-        title: "Initial Escalation Response",
-        category: "escalation",
+        title: 'Initial Escalation Response',
+        category: 'escalation',
         content: `Thank you for escalating this issue. I've received your request and will review the details within the next 2 hours. 
 
 Based on the information provided, this appears to be a [PRIORITY] priority issue. I'll analyze your current security posture and provide specific recommendations.
@@ -237,13 +236,13 @@ Next steps: [SPECIFIC ACTIONS]
 
 Best regards,
 [CONSULTANT NAME]`,
-        tags: ["escalation", "initial", "response"],
-        description: "Standard initial response for escalated security issues",
+        tags: ['escalation', 'initial', 'response'],
+        description: 'Standard initial response for escalated security issues',
         is_shared: true,
       },
       {
-        title: "NIST 800-171 Compliance Gap Response",
-        category: "compliance",
+        title: 'NIST 800-171 Compliance Gap Response',
+        category: 'compliance',
         content: `I've reviewed your NIST 800-171 compliance assessment and identified several key areas that need attention:
 
 ## Priority 1 Issues:
@@ -258,15 +257,14 @@ Best regards,
 3. [Long-term action item]
 
 I'll prepare a detailed remediation plan with timelines and cost estimates. Would you like to schedule a call to discuss these findings?`,
-        tags: ["NIST", "compliance", "gap analysis"],
-        description:
-          "Template response for NIST 800-171 compliance assessments",
+        tags: ['NIST', 'compliance', 'gap analysis'],
+        description: 'Template response for NIST 800-171 compliance assessments',
         is_shared: true,
       },
     ];
 
     for (const response of defaultResponses) {
-      await supabase.from("canned_responses").insert({
+      await supabase.from('canned_responses').insert({
         ...response,
         user_id: user?.id,
       });
@@ -278,42 +276,41 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
   const initializeDefaultLinks = async () => {
     const defaultLinks = [
       {
-        title: "NIST 800-171 Rev 2",
-        url: "https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final",
-        description:
-          "Protecting Controlled Unclassified Information in Nonfederal Systems",
-        category: "standards",
-        tags: ["NIST", "standards", "CUI"],
+        title: 'NIST 800-171 Rev 2',
+        url: 'https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final',
+        description: 'Protecting Controlled Unclassified Information in Nonfederal Systems',
+        category: 'standards',
+        tags: ['NIST', 'standards', 'CUI'],
         is_shared: true,
       },
       {
-        title: "CISA Cybersecurity Toolkit",
-        url: "https://www.cisa.gov/resources-tools",
-        description: "Comprehensive cybersecurity resources and tools",
-        category: "tools",
-        tags: ["CISA", "tools", "resources"],
+        title: 'CISA Cybersecurity Toolkit',
+        url: 'https://www.cisa.gov/resources-tools',
+        description: 'Comprehensive cybersecurity resources and tools',
+        category: 'tools',
+        tags: ['CISA', 'tools', 'resources'],
         is_shared: true,
       },
       {
-        title: "FedRAMP Security Controls",
-        url: "https://www.fedramp.gov/understanding-baselines-and-impact-levels/",
-        description: "Security control baselines for cloud service providers",
-        category: "standards",
-        tags: ["FedRAMP", "cloud", "controls"],
+        title: 'FedRAMP Security Controls',
+        url: 'https://www.fedramp.gov/understanding-baselines-and-impact-levels/',
+        description: 'Security control baselines for cloud service providers',
+        category: 'standards',
+        tags: ['FedRAMP', 'cloud', 'controls'],
         is_shared: true,
       },
       {
-        title: "CMMC Assessment Guide",
-        url: "https://www.acq.osd.mil/cmmc/",
-        description: "Official CMMC program resources and guidance",
-        category: "standards",
-        tags: ["CMMC", "assessment", "DoD"],
+        title: 'CMMC Assessment Guide',
+        url: 'https://www.acq.osd.mil/cmmc/',
+        description: 'Official CMMC program resources and guidance',
+        category: 'standards',
+        tags: ['CMMC', 'assessment', 'DoD'],
         is_shared: true,
       },
     ];
 
     for (const link of defaultLinks) {
-      await supabase.from("resource_links").insert({
+      await supabase.from('resource_links').insert({
         ...link,
         user_id: user?.id,
       });
@@ -324,23 +321,23 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
 
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content);
-    toast.success("Copied to clipboard");
+    toast.success('Copied to clipboard');
   };
 
   const addTemplate = async () => {
     if (!newTemplate.title || !newTemplate.content) {
-      toast.error("Please fill in title and content");
+      toast.error('Please fill in title and content');
       return;
     }
 
     setIsAddingTemplate(true);
     try {
-      const { error } = await supabase.from("policy_templates").insert({
+      const { error } = await supabase.from('policy_templates').insert({
         title: newTemplate.title,
-        category: newTemplate.category || "general",
+        category: newTemplate.category || 'general',
         content: newTemplate.content,
         tags: newTemplate.tags
-          .split(",")
+          .split(',')
           .map((tag) => tag.trim())
           .filter(Boolean),
         description: newTemplate.description,
@@ -351,18 +348,18 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
       if (error) throw error;
 
       setNewTemplate({
-        title: "",
-        category: "",
-        content: "",
-        tags: "",
-        description: "",
+        title: '',
+        category: '',
+        content: '',
+        tags: '',
+        description: '',
         is_shared: false,
       });
-      toast.success("Template added successfully");
+      toast.success('Template added successfully');
       await loadData();
     } catch (error) {
-      console.error("Error adding template:", error);
-      toast.error("Failed to add template");
+      console.error('Error adding template:', error);
+      toast.error('Failed to add template');
     } finally {
       setIsAddingTemplate(false);
     }
@@ -370,18 +367,18 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
 
   const addCannedResponse = async () => {
     if (!newResponse.title || !newResponse.content) {
-      toast.error("Please fill in title and content");
+      toast.error('Please fill in title and content');
       return;
     }
 
     setIsAddingResponse(true);
     try {
-      const { error } = await supabase.from("canned_responses").insert({
+      const { error } = await supabase.from('canned_responses').insert({
         title: newResponse.title,
-        category: newResponse.category || "general",
+        category: newResponse.category || 'general',
         content: newResponse.content,
         tags: newResponse.tags
-          .split(",")
+          .split(',')
           .map((tag) => tag.trim())
           .filter(Boolean),
         description: newResponse.description,
@@ -392,18 +389,18 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
       if (error) throw error;
 
       setNewResponse({
-        title: "",
-        category: "",
-        content: "",
-        tags: "",
-        description: "",
+        title: '',
+        category: '',
+        content: '',
+        tags: '',
+        description: '',
         is_shared: false,
       });
-      toast.success("Canned response added successfully");
+      toast.success('Canned response added successfully');
       await loadData();
     } catch (error) {
-      console.error("Error adding response:", error);
-      toast.error("Failed to add response");
+      console.error('Error adding response:', error);
+      toast.error('Failed to add response');
     } finally {
       setIsAddingResponse(false);
     }
@@ -411,19 +408,19 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
 
   const addResourceLink = async () => {
     if (!newLink.title || !newLink.url) {
-      toast.error("Please fill in title and URL");
+      toast.error('Please fill in title and URL');
       return;
     }
 
     setIsAddingLink(true);
     try {
-      const { error } = await supabase.from("resource_links").insert({
+      const { error } = await supabase.from('resource_links').insert({
         title: newLink.title,
         url: newLink.url,
         description: newLink.description,
-        category: newLink.category || "general",
+        category: newLink.category || 'general',
         tags: newLink.tags
-          .split(",")
+          .split(',')
           .map((tag) => tag.trim())
           .filter(Boolean),
         is_shared: newLink.is_shared,
@@ -433,18 +430,18 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
       if (error) throw error;
 
       setNewLink({
-        title: "",
-        url: "",
-        description: "",
-        category: "",
-        tags: "",
+        title: '',
+        url: '',
+        description: '',
+        category: '',
+        tags: '',
         is_shared: false,
       });
-      toast.success("Resource link added successfully");
+      toast.success('Resource link added successfully');
       await loadData();
     } catch (error) {
-      console.error("Error adding link:", error);
-      toast.error("Failed to add link");
+      console.error('Error adding link:', error);
+      toast.error('Failed to add link');
     } finally {
       setIsAddingLink(false);
     }
@@ -454,19 +451,19 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
     try {
       // Get current count and increment
       const { data: currentData } = await supabase
-        .from("resource_links")
-        .select("access_count")
-        .eq("id", linkId)
+        .from('resource_links')
+        .select('access_count')
+        .eq('id', linkId)
         .single();
 
       if (currentData) {
         await supabase
-          .from("resource_links")
+          .from('resource_links')
           .update({ access_count: (currentData.access_count || 0) + 1 })
-          .eq("id", linkId);
+          .eq('id', linkId);
       }
     } catch (error) {
-      console.error("Error updating access count:", error);
+      console.error('Error updating access count:', error);
     }
   };
 
@@ -474,19 +471,19 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
     try {
       // Get current count and increment
       const { data: currentData } = await supabase
-        .from("canned_responses")
-        .select("use_count")
-        .eq("id", responseId)
+        .from('canned_responses')
+        .select('use_count')
+        .eq('id', responseId)
         .single();
 
       if (currentData) {
         await supabase
-          .from("canned_responses")
+          .from('canned_responses')
           .update({ use_count: (currentData.use_count || 0) + 1 })
-          .eq("id", responseId);
+          .eq('id', responseId);
       }
     } catch (error) {
-      console.error("Error updating use count:", error);
+      console.error('Error updating use count:', error);
     }
   };
 
@@ -494,27 +491,21 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
     (template) =>
       template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       template.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      template.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase()),
-      ),
+      template.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const filteredResponses = cannedResponses.filter(
     (response) =>
       response.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       response.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      response.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase()),
-      ),
+      response.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const filteredLinks = resourceLinks.filter(
     (link) =>
       link.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       link.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      link.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase()),
-      ),
+      link.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   if (loading) {
@@ -523,7 +514,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
         title="Tools & Templates"
         subtitle="Improve efficiency with pre-built templates and resources"
       >
-        <div className="flex items-center justify-center h-64">
+        <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading templates and resources...</span>
         </div>
@@ -540,7 +531,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
         {/* Search Bar */}
         <div className="flex items-center space-x-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
             <Input
               placeholder="Search templates, responses, and resources..."
               value={searchTerm}
@@ -558,9 +549,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
             <TabsTrigger value="responses">
               Canned Responses ({filteredResponses.length})
             </TabsTrigger>
-            <TabsTrigger value="resources">
-              Resource Library ({filteredLinks.length})
-            </TabsTrigger>
+            <TabsTrigger value="resources">Resource Library ({filteredLinks.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="templates" className="space-y-4">
@@ -612,9 +601,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                           />
                         </div>
                         <div>
-                          <Label htmlFor="template-description">
-                            Description
-                          </Label>
+                          <Label htmlFor="template-description">Description</Label>
                           <Input
                             id="template-description"
                             value={newTemplate.description}
@@ -628,9 +615,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                           />
                         </div>
                         <div>
-                          <Label htmlFor="template-tags">
-                            Tags (comma-separated)
-                          </Label>
+                          <Label htmlFor="template-tags">Tags (comma-separated)</Label>
                           <Input
                             id="template-tags"
                             value={newTemplate.tags}
@@ -670,9 +655,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                               })
                             }
                           />
-                          <Label htmlFor="template-shared">
-                            Share with organization
-                          </Label>
+                          <Label htmlFor="template-shared">Share with organization</Label>
                         </div>
                         <Button
                           onClick={addTemplate}
@@ -685,7 +668,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                               Adding...
                             </>
                           ) : (
-                            "Add Template"
+                            'Add Template'
                           )}
                         </Button>
                       </div>
@@ -694,17 +677,15 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {filteredTemplates.map((template) => (
                     <Card key={template.id} className="border">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h3 className="font-semibold">{template.title}</h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline">
-                                {template.category}
-                              </Badge>
+                            <div className="mt-1 flex items-center gap-2">
+                              <Badge variant="outline">{template.category}</Badge>
                               {template.is_shared && (
                                 <Badge variant="secondary" className="text-xs">
                                   <Shield className="mr-1 h-3 w-3" />
@@ -728,21 +709,15 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-1">
                             {template.tags.map((tag, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="text-xs"
-                              >
+                              <Badge key={index} variant="secondary" className="text-xs">
                                 {tag}
                               </Badge>
                             ))}
                           </div>
                           {template.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {template.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{template.description}</p>
                           )}
-                          <p className="text-sm text-muted-foreground line-clamp-2">
+                          <p className="line-clamp-2 text-sm text-muted-foreground">
                             {template.content.substring(0, 100)}...
                           </p>
                         </div>
@@ -803,9 +778,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                           />
                         </div>
                         <div>
-                          <Label htmlFor="response-description">
-                            Description
-                          </Label>
+                          <Label htmlFor="response-description">Description</Label>
                           <Input
                             id="response-description"
                             value={newResponse.description}
@@ -819,9 +792,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                           />
                         </div>
                         <div>
-                          <Label htmlFor="response-tags">
-                            Tags (comma-separated)
-                          </Label>
+                          <Label htmlFor="response-tags">Tags (comma-separated)</Label>
                           <Input
                             id="response-tags"
                             value={newResponse.tags}
@@ -861,9 +832,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                               })
                             }
                           />
-                          <Label htmlFor="response-shared">
-                            Share with organization
-                          </Label>
+                          <Label htmlFor="response-shared">Share with organization</Label>
                         </div>
                         <Button
                           onClick={addCannedResponse}
@@ -876,7 +845,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                               Adding...
                             </>
                           ) : (
-                            "Add Response"
+                            'Add Response'
                           )}
                         </Button>
                       </div>
@@ -892,10 +861,8 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h3 className="font-semibold">{response.title}</h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline">
-                                {response.category}
-                              </Badge>
+                            <div className="mt-1 flex items-center gap-2">
+                              <Badge variant="outline">{response.category}</Badge>
                               {response.is_shared && (
                                 <Badge variant="secondary" className="text-xs">
                                   <Shield className="mr-1 h-3 w-3" />
@@ -925,21 +892,15 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-1">
                             {response.tags.map((tag, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="text-xs"
-                              >
+                              <Badge key={index} variant="secondary" className="text-xs">
                                 {tag}
                               </Badge>
                             ))}
                           </div>
                           {response.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {response.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{response.description}</p>
                           )}
-                          <p className="text-sm text-muted-foreground line-clamp-3">
+                          <p className="line-clamp-3 text-sm text-muted-foreground">
                             {response.content}
                           </p>
                         </div>
@@ -976,9 +937,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                           <Input
                             id="link-title"
                             value={newLink.title}
-                            onChange={(e) =>
-                              setNewLink({ ...newLink, title: e.target.value })
-                            }
+                            onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
                             placeholder="Resource title"
                           />
                         </div>
@@ -987,9 +946,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                           <Input
                             id="link-url"
                             value={newLink.url}
-                            onChange={(e) =>
-                              setNewLink({ ...newLink, url: e.target.value })
-                            }
+                            onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                             placeholder="https://..."
                           />
                         </div>
@@ -1023,15 +980,11 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                           />
                         </div>
                         <div>
-                          <Label htmlFor="link-tags">
-                            Tags (comma-separated)
-                          </Label>
+                          <Label htmlFor="link-tags">Tags (comma-separated)</Label>
                           <Input
                             id="link-tags"
                             value={newLink.tags}
-                            onChange={(e) =>
-                              setNewLink({ ...newLink, tags: e.target.value })
-                            }
+                            onChange={(e) => setNewLink({ ...newLink, tags: e.target.value })}
                             placeholder="NIST, standards, compliance"
                           />
                         </div>
@@ -1047,9 +1000,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                               })
                             }
                           />
-                          <Label htmlFor="link-shared">
-                            Share with organization
-                          </Label>
+                          <Label htmlFor="link-shared">Share with organization</Label>
                         </div>
                         <Button
                           onClick={addResourceLink}
@@ -1062,7 +1013,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                               Adding...
                             </>
                           ) : (
-                            "Add Link"
+                            'Add Link'
                           )}
                         </Button>
                       </div>
@@ -1071,14 +1022,14 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {filteredLinks.map((link) => (
                     <Card key={link.id} className="border">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h3 className="font-semibold">{link.title}</h3>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="mt-1 flex items-center gap-2">
                               <Badge variant="outline">{link.category}</Badge>
                               {link.is_shared && (
                                 <Badge variant="secondary" className="text-xs">
@@ -1095,7 +1046,7 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              window.open(link.url, "_blank");
+                              window.open(link.url, '_blank');
                               incrementLinkAccess(link.id);
                             }}
                           >
@@ -1107,19 +1058,13 @@ I'll prepare a detailed remediation plan with timelines and cost estimates. Woul
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-1">
                             {link.tags.map((tag, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="text-xs"
-                              >
+                              <Badge key={index} variant="secondary" className="text-xs">
                                 {tag}
                               </Badge>
                             ))}
                           </div>
                           {link.description && (
-                            <p className="text-sm text-muted-foreground mb-3">
-                              {link.description}
-                            </p>
+                            <p className="mb-3 text-sm text-muted-foreground">{link.description}</p>
                           )}
                           <div className="flex items-center text-xs text-muted-foreground">
                             <Link className="mr-1 h-3 w-3" />

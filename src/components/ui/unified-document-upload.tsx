@@ -1,30 +1,22 @@
-import { useState, useRef } from "react";
-import {
-  Upload,
-  File,
-  X,
-  CheckCircle,
-  AlertCircle,
-  Tags,
-  Loader2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef } from 'react';
+import { Upload, File, X, CheckCircle, AlertCircle, Tags, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 interface Document {
   id: string;
@@ -38,7 +30,7 @@ interface Document {
 interface UnifiedDocumentUploadProps {
   onUploadSuccess?: (document: Document) => void;
   trigger?: React.ReactNode;
-  variant?: "dialog" | "inline";
+  variant?: 'dialog' | 'inline';
   showDescription?: boolean;
   showTags?: boolean;
   className?: string;
@@ -47,7 +39,7 @@ interface UnifiedDocumentUploadProps {
 export const UnifiedDocumentUpload = ({
   onUploadSuccess,
   trigger,
-  variant = "dialog",
+  variant = 'dialog',
   showDescription = true,
   showTags = true,
   className,
@@ -56,11 +48,11 @@ export const UnifiedDocumentUpload = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<
-    "idle" | "uploading" | "processing" | "success" | "error"
-  >("idle");
-  const [description, setDescription] = useState("");
+    'idle' | 'uploading' | 'processing' | 'success' | 'error'
+  >('idle');
+  const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [tagInput, setTagInput] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,27 +60,27 @@ export const UnifiedDocumentUpload = ({
   const { user } = useAuth();
 
   const allowedTypes = [
-    "application/pdf",
-    "text/plain",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    'application/pdf',
+    'text/plain',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
 
   const validateFile = (file: File): boolean => {
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: "Invalid file type",
-        description: "Please select a PDF, TXT, or Word document.",
-        variant: "destructive",
+        title: 'Invalid file type',
+        description: 'Please select a PDF, TXT, or Word document.',
+        variant: 'destructive',
       });
       return false;
     }
 
     if (file.size > 10 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please select a file smaller than 10MB.",
-        variant: "destructive",
+        title: 'File too large',
+        description: 'Please select a file smaller than 10MB.',
+        variant: 'destructive',
       });
       return false;
     }
@@ -99,7 +91,7 @@ export const UnifiedDocumentUpload = ({
   const handleFileSelect = (file: File) => {
     if (validateFile(file)) {
       setSelectedFile(file);
-      setUploadStatus("idle");
+      setUploadStatus('idle');
     }
   };
 
@@ -111,9 +103,9 @@ export const UnifiedDocumentUpload = ({
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -130,7 +122,7 @@ export const UnifiedDocumentUpload = ({
   const addTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
-      setTagInput("");
+      setTagInput('');
     }
   };
 
@@ -142,7 +134,7 @@ export const UnifiedDocumentUpload = ({
     if (!selectedFile || !user) return;
 
     setIsUploading(true);
-    setUploadStatus("uploading");
+    setUploadStatus('uploading');
     setUploadProgress(0);
 
     try {
@@ -151,20 +143,20 @@ export const UnifiedDocumentUpload = ({
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
-      const fileExt = selectedFile.name.split(".").pop();
+      const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("user-documents")
+        .from('user-documents')
         .upload(filePath, selectedFile);
 
       if (uploadError) throw uploadError;
 
       // Store document metadata
       const { data: document, error: dbError } = await supabase
-        .from("documents")
+        .from('documents')
         .insert({
           user_id: user.id,
           file_name: selectedFile.name,
@@ -172,7 +164,7 @@ export const UnifiedDocumentUpload = ({
           file_type: selectedFile.type,
           file_size: selectedFile.size,
           tags: tags,
-          processing_status: "pending",
+          processing_status: 'pending',
         })
         .select()
         .single();
@@ -182,24 +174,21 @@ export const UnifiedDocumentUpload = ({
       if (dbError) throw dbError;
 
       setUploadProgress(100);
-      setUploadStatus("processing");
+      setUploadStatus('processing');
 
       // Process document
-      const { error: processError } = await supabase.functions.invoke(
-        "extract-text",
-        {
-          body: { documentId: document.id, filePath },
-        },
-      );
+      const { error: processError } = await supabase.functions.invoke('extract-text', {
+        body: { documentId: document.id, filePath },
+      });
 
       if (processError) {
-        console.warn("Document processing failed:", processError);
+        console.warn('Document processing failed:', processError);
       }
 
-      setUploadStatus("success");
+      setUploadStatus('success');
 
       toast({
-        title: "Upload successful",
+        title: 'Upload successful',
         description: `${selectedFile.name} has been uploaded and is being processed.`,
       });
 
@@ -207,21 +196,20 @@ export const UnifiedDocumentUpload = ({
 
       // Reset form
       setSelectedFile(null);
-      setDescription("");
+      setDescription('');
       setTags([]);
       setUploadProgress(0);
 
-      if (variant === "dialog") {
+      if (variant === 'dialog') {
         setOpen(false);
       }
     } catch (error: any) {
-      console.error("Upload error:", error);
-      setUploadStatus("error");
+      console.error('Upload error:', error);
+      setUploadStatus('error');
       toast({
-        title: "Upload failed",
-        description:
-          error.message || "An error occurred while uploading the file.",
-        variant: "destructive",
+        title: 'Upload failed',
+        description: error.message || 'An error occurred while uploading the file.',
+        variant: 'destructive',
       });
     } finally {
       setIsUploading(false);
@@ -230,34 +218,34 @@ export const UnifiedDocumentUpload = ({
 
   const resetUpload = () => {
     setSelectedFile(null);
-    setUploadStatus("idle");
+    setUploadStatus('idle');
     setUploadProgress(0);
-    setDescription("");
+    setDescription('');
     setTags([]);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const UploadContent = () => (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn('space-y-6', className)}>
       {/* File Selection Area */}
       <div
         className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200",
+          'rounded-lg border-2 border-dashed p-8 text-center transition-all duration-200',
           dragActive
-            ? "border-accent bg-accent/5"
+            ? 'border-accent bg-accent/5'
             : selectedFile
-              ? "border-success bg-success/5"
-              : "border-border hover:border-accent/50",
+              ? 'border-success bg-success/5'
+              : 'border-border hover:border-accent/50',
         )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -266,38 +254,31 @@ export const UnifiedDocumentUpload = ({
       >
         {selectedFile ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-success/10 mx-auto">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
               <CheckCircle className="h-6 w-6 text-success" />
             </div>
             <div>
               <p className="font-medium">{selectedFile.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {formatFileSize(selectedFile.size)}
-              </p>
+              <p className="text-sm text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
             </div>
             <Button variant="outline" size="sm" onClick={resetUpload}>
-              <X className="h-4 w-4 mr-2" />
+              <X className="mr-2 h-4 w-4" />
               Remove
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mx-auto">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10">
               <Upload className="h-6 w-6 text-accent" />
             </div>
             <div>
-              <p className="font-medium">
-                Drop your file here or click to browse
-              </p>
+              <p className="font-medium">Drop your file here or click to browse</p>
               <p className="text-sm text-muted-foreground">
                 Supports PDF, Word documents, and text files (max 10MB)
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <File className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+              <File className="mr-2 h-4 w-4" />
               Choose File
             </Button>
           </div>
@@ -336,7 +317,7 @@ export const UnifiedDocumentUpload = ({
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === 'Enter') {
                   e.preventDefault();
                   addTag();
                 }
@@ -351,10 +332,7 @@ export const UnifiedDocumentUpload = ({
               {tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="px-2 py-1">
                   {tag}
-                  <button
-                    onClick={() => removeTag(tag)}
-                    className="ml-1 hover:text-destructive"
-                  >
+                  <button onClick={() => removeTag(tag)} className="ml-1 hover:text-destructive">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -369,11 +347,9 @@ export const UnifiedDocumentUpload = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
-              {uploadStatus === "uploading" ? "Uploading..." : "Processing..."}
+              {uploadStatus === 'uploading' ? 'Uploading...' : 'Processing...'}
             </span>
-            <span className="text-sm text-muted-foreground">
-              {uploadProgress}%
-            </span>
+            <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
           </div>
           <Progress value={uploadProgress} className="w-full" />
         </div>
@@ -381,7 +357,7 @@ export const UnifiedDocumentUpload = ({
 
       {/* Upload Button */}
       <div className="flex justify-end gap-3">
-        {variant === "dialog" && (
+        {variant === 'dialog' && (
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
@@ -393,12 +369,12 @@ export const UnifiedDocumentUpload = ({
         >
           {isUploading ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Uploading...
             </>
           ) : (
             <>
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="mr-2 h-4 w-4" />
               Upload
             </>
           )}
@@ -407,7 +383,7 @@ export const UnifiedDocumentUpload = ({
     </div>
   );
 
-  if (variant === "inline") {
+  if (variant === 'inline') {
     return <UploadContent />;
   }
 
@@ -416,7 +392,7 @@ export const UnifiedDocumentUpload = ({
       <DialogTrigger asChild>
         {trigger || (
           <Button>
-            <Upload className="h-4 w-4 mr-2" />
+            <Upload className="mr-2 h-4 w-4" />
             Upload Document
           </Button>
         )}

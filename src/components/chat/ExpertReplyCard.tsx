@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/accordion';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import {
   CheckCircle,
   MessageCircle,
@@ -21,14 +21,14 @@ import {
   Clock,
   Shield,
   Download,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExpertReply {
   id: string;
-  type: "answer" | "checklist" | "policy" | "next_steps" | "file_attachment";
+  type: 'answer' | 'checklist' | 'policy' | 'next_steps' | 'file_attachment';
   content: string;
   consultant_name: string;
   consultant_avatar?: string;
@@ -65,28 +65,28 @@ export function ExpertReplyCard({
   const { toast } = useToast();
   const [isHelpful, setIsHelpful] = useState(false);
   const [showClarificationForm, setShowClarificationForm] = useState(false);
-  const [clarificationText, setClarificationText] = useState("");
+  const [clarificationText, setClarificationText] = useState('');
   const [submittingClarification, setSubmittingClarification] = useState(false);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
   const getReplyTypeIcon = (type: string) => {
     switch (type) {
-      case "checklist":
+      case 'checklist':
         return <CheckCircle className="h-4 w-4" />;
-      case "policy":
+      case 'policy':
         return <Shield className="h-4 w-4" />;
-      case "next_steps":
+      case 'next_steps':
         return <Clock className="h-4 w-4" />;
-      case "file_attachment":
+      case 'file_attachment':
         return <FileText className="h-4 w-4" />;
       default:
         return <MessageCircle className="h-4 w-4" />;
@@ -95,18 +95,18 @@ export function ExpertReplyCard({
 
   const getReplyTypeLabel = (type: string) => {
     switch (type) {
-      case "answer":
-        return "Expert Answer";
-      case "checklist":
-        return "Action Checklist";
-      case "policy":
-        return "Policy Reference";
-      case "next_steps":
-        return "Next Steps";
-      case "file_attachment":
-        return "Document Delivery";
+      case 'answer':
+        return 'Expert Answer';
+      case 'checklist':
+        return 'Action Checklist';
+      case 'policy':
+        return 'Policy Reference';
+      case 'next_steps':
+        return 'Next Steps';
+      case 'file_attachment':
+        return 'Document Delivery';
       default:
-        return "Expert Reply";
+        return 'Expert Reply';
     }
   };
 
@@ -114,7 +114,7 @@ export function ExpertReplyCard({
     if (isHelpful) return;
 
     try {
-      const { error } = await supabase.functions.invoke("mark-reply-helpful", {
+      const { error } = await supabase.functions.invoke('mark-reply-helpful', {
         body: { replyId: reply.id, escalationId },
       });
 
@@ -122,15 +122,15 @@ export function ExpertReplyCard({
 
       setIsHelpful(true);
       toast({
-        title: "Feedback sent",
-        description: "Thank you for marking this reply as helpful!",
+        title: 'Feedback sent',
+        description: 'Thank you for marking this reply as helpful!',
       });
     } catch (error) {
-      console.error("Error marking reply helpful:", error);
+      console.error('Error marking reply helpful:', error);
       toast({
-        title: "Error",
-        description: "Failed to send feedback",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to send feedback',
+        variant: 'destructive',
       });
     }
   };
@@ -141,17 +141,17 @@ export function ExpertReplyCard({
     setSubmittingClarification(true);
     try {
       await onRequestClarification(reply.id, clarificationText);
-      setClarificationText("");
+      setClarificationText('');
       setShowClarificationForm(false);
       toast({
-        title: "Clarification sent",
-        description: "Your question has been sent to the consultant",
+        title: 'Clarification sent',
+        description: 'Your question has been sent to the consultant',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to send clarification request",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to send clarification request',
+        variant: 'destructive',
       });
     } finally {
       setSubmittingClarification(false);
@@ -163,26 +163,19 @@ export function ExpertReplyCard({
 
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground mb-4">{reply.content}</p>
+        <p className="mb-4 text-sm text-muted-foreground">{reply.content}</p>
         <div className="space-y-2">
           {reply.checklist_items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start gap-3 p-3 rounded-lg bg-muted/30"
-            >
+            <div key={item.id} className="flex items-start gap-3 rounded-lg bg-muted/30 p-3">
               <div
-                className={`mt-1 h-4 w-4 rounded border-2 flex items-center justify-center ${
-                  item.completed
-                    ? "bg-green-500 border-green-500"
-                    : "border-muted-foreground/30"
+                className={`mt-1 flex h-4 w-4 items-center justify-center rounded border-2 ${
+                  item.completed ? 'border-green-500 bg-green-500' : 'border-muted-foreground/30'
                 }`}
               >
-                {item.completed && (
-                  <CheckCircle className="h-3 w-3 text-white" />
-                )}
+                {item.completed && <CheckCircle className="h-3 w-3 text-white" />}
               </div>
               <p
-                className={`text-sm flex-1 ${item.completed ? "line-through text-muted-foreground" : ""}`}
+                className={`flex-1 text-sm ${item.completed ? 'text-muted-foreground line-through' : ''}`}
               >
                 {item.text}
               </p>
@@ -197,8 +190,8 @@ export function ExpertReplyCard({
     if (!reply.attachments || reply.attachments.length === 0) return null;
 
     return (
-      <div className="mt-4 pt-4 border-t border-border/30">
-        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+      <div className="mt-4 border-t border-border/30 pt-4">
+        <h4 className="mb-3 flex items-center gap-2 text-sm font-medium">
           <FileText className="h-4 w-4" />
           Attachments ({reply.attachments.length})
         </h4>
@@ -206,7 +199,7 @@ export function ExpertReplyCard({
           {reply.attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-border/30 bg-muted/20"
+              className="flex items-center justify-between rounded-lg border border-border/30 bg-muted/20 p-3"
             >
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-muted-foreground" />
@@ -218,7 +211,7 @@ export function ExpertReplyCard({
                 </div>
               </div>
               <Button size="sm" variant="outline" className="h-8">
-                <Download className="h-3 w-3 mr-1" />
+                <Download className="mr-1 h-3 w-3" />
                 Download
               </Button>
             </div>
@@ -237,13 +230,13 @@ export function ExpertReplyCard({
               <AvatarImage src={reply.consultant_avatar} />
               <AvatarFallback className="bg-blue-500 text-white">
                 {reply.consultant_name
-                  .split(" ")
+                  .split(' ')
                   .map((n) => n[0])
-                  .join("")}
+                  .join('')}
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="mb-1 flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
                   {getReplyTypeIcon(reply.type)}
                   {getReplyTypeLabel(reply.type)}
@@ -255,9 +248,7 @@ export function ExpertReplyCard({
               <p className="font-semibold text-blue-900 dark:text-blue-100">
                 {reply.consultant_name}
               </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300">
-                Cybersecurity Consultant
-              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300">Cybersecurity Consultant</p>
             </div>
           </div>
         </div>
@@ -265,13 +256,11 @@ export function ExpertReplyCard({
 
       <CardContent className="pt-0">
         {/* Reply content based on type */}
-        {reply.type === "checklist" ? (
+        {reply.type === 'checklist' ? (
           renderChecklistContent()
         ) : (
           <div className="prose prose-sm max-w-none">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {reply.content}
-            </p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{reply.content}</p>
           </div>
         )}
 
@@ -285,13 +274,13 @@ export function ExpertReplyCard({
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant={isHelpful ? "default" : "outline"}
+              variant={isHelpful ? 'default' : 'outline'}
               onClick={handleMarkHelpful}
               disabled={isHelpful}
               className="h-8"
             >
-              <ThumbsUp className="h-3 w-3 mr-1" />
-              {isHelpful ? "Marked helpful" : "Mark helpful"}
+              <ThumbsUp className="mr-1 h-3 w-3" />
+              {isHelpful ? 'Marked helpful' : 'Mark helpful'}
               {reply.helpful_count && reply.helpful_count > 0 && (
                 <span className="ml-1 text-xs">({reply.helpful_count})</span>
               )}
@@ -303,7 +292,7 @@ export function ExpertReplyCard({
               onClick={() => setShowClarificationForm(!showClarificationForm)}
               className="h-8"
             >
-              <MessageCircle className="h-3 w-3 mr-1" />
+              <MessageCircle className="mr-1 h-3 w-3" />
               Ask question
             </Button>
           </div>
@@ -314,15 +303,15 @@ export function ExpertReplyCard({
             onClick={() => onConvertToMeeting(reply.id)}
             className="h-8"
           >
-            <Calendar className="h-3 w-3 mr-1" />
+            <Calendar className="mr-1 h-3 w-3" />
             Schedule meeting
           </Button>
         </div>
 
         {/* Clarification form */}
         {showClarificationForm && (
-          <div className="mt-4 p-4 rounded-lg bg-muted/30 border border-border/30">
-            <h4 className="text-sm font-medium mb-2">Ask for clarification</h4>
+          <div className="mt-4 rounded-lg border border-border/30 bg-muted/30 p-4">
+            <h4 className="mb-2 text-sm font-medium">Ask for clarification</h4>
             <Textarea
               placeholder="What would you like the consultant to clarify or expand on?"
               value={clarificationText}
@@ -337,16 +326,12 @@ export function ExpertReplyCard({
                 disabled={!clarificationText.trim() || submittingClarification}
               >
                 {submittingClarification ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                  <div className="h-3 w-3 animate-spin rounded-full border-b-2 border-white" />
                 ) : (
-                  "Send question"
+                  'Send question'
                 )}
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowClarificationForm(false)}
-              >
+              <Button size="sm" variant="outline" onClick={() => setShowClarificationForm(false)}>
                 Cancel
               </Button>
             </div>

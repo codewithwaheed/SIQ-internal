@@ -1,5 +1,5 @@
 // Security middleware for API endpoints
-import { guardRequest, requireAdmin } from "@/lib/security-guard";
+import { guardRequest, requireAdmin } from '@/lib/security-guard';
 
 export interface SecurityContext {
   userId: string;
@@ -21,19 +21,19 @@ export function createSecurityMiddleware() {
 
     // Check if user can access internal data
     canAccessInternalData: (context: SecurityContext): boolean => {
-      return context.userRole === "admin";
+      return context.userRole === 'admin';
     },
 
     // Sanitize response data based on user role
     sanitizeResponse: (data: any, context: SecurityContext): any => {
-      if (context.userRole === "admin") {
+      if (context.userRole === 'admin') {
         return data; // Admins see everything
       }
 
       // Remove sensitive fields for non-admin users
       if (Array.isArray(data)) {
         return data.map((item) => sanitizeItem(item));
-      } else if (typeof data === "object" && data !== null) {
+      } else if (typeof data === 'object' && data !== null) {
         return sanitizeItem(data);
       }
 
@@ -43,7 +43,7 @@ export function createSecurityMiddleware() {
 }
 
 function sanitizeItem(item: any): any {
-  if (typeof item !== "object" || item === null) {
+  if (typeof item !== 'object' || item === null) {
     return item;
   }
 
@@ -51,20 +51,20 @@ function sanitizeItem(item: any): any {
 
   // Remove sensitive fields
   const sensitiveFields = [
-    "password",
-    "secret",
-    "key",
-    "token",
-    "credentials",
-    "api_key",
-    "access_token",
-    "refresh_token",
-    "private_key",
-    "database_url",
-    "connection_string",
-    "internal_notes",
-    "admin_notes",
-    "system_metadata",
+    'password',
+    'secret',
+    'key',
+    'token',
+    'credentials',
+    'api_key',
+    'access_token',
+    'refresh_token',
+    'private_key',
+    'database_url',
+    'connection_string',
+    'internal_notes',
+    'admin_notes',
+    'system_metadata',
   ];
 
   sensitiveFields.forEach((field) => {
@@ -75,7 +75,7 @@ function sanitizeItem(item: any): any {
 
   // Recursively sanitize nested objects
   Object.keys(sanitized).forEach((key) => {
-    if (typeof sanitized[key] === "object" && sanitized[key] !== null) {
+    if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
       sanitized[key] = sanitizeItem(sanitized[key]);
     }
   });

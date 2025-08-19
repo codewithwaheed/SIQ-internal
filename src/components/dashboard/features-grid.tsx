@@ -1,67 +1,54 @@
-import React, { useEffect } from "react";
-import {
-  MessageSquare,
-  Upload,
-  Search,
-  Users,
-  Shield,
-  FileText,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RestrictedButton, UpgradePrompt } from "@/components/ui/feature-gate";
-import { FeatureKey, useFeatureGating } from "@/hooks/useFeatureGating";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useEffect } from 'react';
+import { MessageSquare, Upload, Search, Users, Shield, FileText } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { RestrictedButton, UpgradePrompt } from '@/components/ui/feature-gate';
+import { FeatureKey, useFeatureGating } from '@/hooks/useFeatureGating';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const features = [
   {
-    title: "AI Compliance Assistant",
-    description:
-      "Get instant answers about NIST 800-171, CMMC, and FedRAMP requirements",
+    title: 'AI Compliance Assistant',
+    description: 'Get instant answers about NIST 800-171, CMMC, and FedRAMP requirements',
     icon: MessageSquare,
-    color: "text-accent",
+    color: 'text-accent',
     featureKey: null, // Basic feature
   },
   {
-    title: "Document Review",
-    description:
-      "Upload policies and procedures for AI-powered compliance assessment",
+    title: 'Document Review',
+    description: 'Upload policies and procedures for AI-powered compliance assessment',
     icon: Upload,
-    color: "text-success",
-    featureKey: "document_upload" as FeatureKey,
+    color: 'text-success',
+    featureKey: 'document_upload' as FeatureKey,
   },
   {
-    title: "Searchable History",
-    description:
-      "Access complete chat transcripts and compliance guidance history",
+    title: 'Searchable History',
+    description: 'Access complete chat transcripts and compliance guidance history',
     icon: Search,
-    color: "text-primary",
+    color: 'text-primary',
     featureKey: null, // Basic feature
   },
   {
-    title: "Expert Escalation",
-    description:
-      "Connect with certified cybersecurity consultants when you need human expertise",
+    title: 'Expert Escalation',
+    description: 'Connect with certified cybersecurity consultants when you need human expertise',
     icon: Users,
-    color: "text-warning",
-    featureKey: "escalation" as FeatureKey,
+    color: 'text-warning',
+    featureKey: 'escalation' as FeatureKey,
   },
   {
-    title: "Framework Coverage",
-    description:
-      "Comprehensive coverage of NIST, CMMC, FedRAMP, and industry best practices",
+    title: 'Framework Coverage',
+    description: 'Comprehensive coverage of NIST, CMMC, FedRAMP, and industry best practices',
     icon: Shield,
-    color: "text-accent",
+    color: 'text-accent',
     featureKey: null, // Basic feature
   },
   {
-    title: "Policy Templates",
-    description:
-      "Generate customized security policies tailored to your business requirements",
+    title: 'Policy Templates',
+    description: 'Generate customized security policies tailored to your business requirements',
     icon: FileText,
-    color: "text-success",
-    featureKey: "export_policies" as FeatureKey,
+    color: 'text-success',
+    featureKey: 'export_policies' as FeatureKey,
   },
 ];
 
@@ -74,15 +61,15 @@ export const FeaturesGrid = () => {
     if (!user) return;
 
     try {
-      await supabase.functions.invoke("audit-log", {
+      await supabase.functions.invoke('audit-log', {
         body: {
-          action: "FEATURE_VIEWED",
+          action: 'FEATURE_VIEWED',
           description: `Feature viewed: ${feature}`,
-          metadata: { feature, location: "features_grid" },
+          metadata: { feature, location: 'features_grid' },
         },
       });
     } catch (error) {
-      console.error("Error tracking feature view:", error);
+      console.error('Error tracking feature view:', error);
     }
   };
 
@@ -91,20 +78,20 @@ export const FeaturesGrid = () => {
     if (!user) return;
 
     try {
-      await supabase.functions.invoke("audit-log", {
+      await supabase.functions.invoke('audit-log', {
         body: {
-          action: "FEATURE_INTERACTION",
+          action: 'FEATURE_INTERACTION',
           description: `Feature ${action}: ${feature}`,
-          metadata: { feature, action, location: "features_grid" },
+          metadata: { feature, action, location: 'features_grid' },
         },
       });
     } catch (error) {
-      console.error("Error tracking feature interaction:", error);
+      console.error('Error tracking feature interaction:', error);
     }
   };
 
   useEffect(() => {
-    trackFeatureView("features_grid_page");
+    trackFeatureView('features_grid_page');
   }, []);
 
   const getFeatureStatus = (featureKey: FeatureKey | null) => {
@@ -115,39 +102,37 @@ export const FeaturesGrid = () => {
   };
 
   return (
-    <section className="py-16 lg:py-24 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+    <section className="bg-muted/30 py-16 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
             Everything you need for compliance success
           </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            From AI-powered guidance to expert consultation, we provide
-            comprehensive support for your cybersecurity compliance journey.
+          <p className="mx-auto max-w-3xl text-lg text-muted-foreground">
+            From AI-powered guidance to expert consultation, we provide comprehensive support for
+            your cybersecurity compliance journey.
           </p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => {
             const status = getFeatureStatus(feature.featureKey);
 
             return (
               <Card
                 key={index}
-                className="group hover:shadow-elevated transition-all duration-300 animate-fade-in relative overflow-hidden"
+                className="group relative animate-fade-in overflow-hidden transition-all duration-300 hover:shadow-elevated"
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-lg bg-muted ${feature.color}`}
-                      >
+                      <div className={`rounded-lg bg-muted p-2 ${feature.color}`}>
                         <feature.icon className="h-6 w-6" />
                       </div>
                       <CardTitle className="text-lg">{feature.title}</CardTitle>
                     </div>
                     {status.tier && (
                       <Badge
-                        variant={status.hasAccess ? "default" : "secondary"}
+                        variant={status.hasAccess ? 'default' : 'secondary'}
                         className="text-xs"
                       >
                         {status.tier}
@@ -168,10 +153,7 @@ export const FeaturesGrid = () => {
                           size="sm"
                           className="w-full"
                           onClick={() =>
-                            trackFeatureInteraction(
-                              feature.title,
-                              "upgrade_prompt_clicked",
-                            )
+                            trackFeatureInteraction(feature.title, 'upgrade_prompt_clicked')
                           }
                         >
                           Try {feature.title}
@@ -182,14 +164,14 @@ export const FeaturesGrid = () => {
 
                   {feature.featureKey && status.hasAccess && (
                     <div className="flex items-center gap-2 text-sm text-success">
-                      <div className="w-2 h-2 bg-success rounded-full" />
+                      <div className="h-2 w-2 rounded-full bg-success" />
                       <span>Available in your plan</span>
                     </div>
                   )}
 
                   {!feature.featureKey && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="w-2 h-2 bg-accent rounded-full" />
+                      <div className="h-2 w-2 rounded-full bg-accent" />
                       <span>Included with all plans</span>
                     </div>
                   )}

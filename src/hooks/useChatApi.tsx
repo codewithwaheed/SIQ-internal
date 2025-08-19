@@ -1,12 +1,12 @@
-import { useState, useCallback, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessage {
   id: string;
   conversation_id: string;
   content: string;
-  role: "user" | "assistant" | "consultant" | "system";
+  role: 'user' | 'assistant' | 'consultant' | 'system';
   timestamp: string;
   metadata?: Record<string, any>;
 }
@@ -33,10 +33,7 @@ interface UseChatApiReturn {
 
   // Actions
   loadConversations: () => Promise<void>;
-  createConversation: (
-    title: string,
-    initialMessage?: string,
-  ) => Promise<Conversation | null>;
+  createConversation: (title: string, initialMessage?: string) => Promise<Conversation | null>;
   loadMessages: (conversationId: string) => Promise<void>;
   sendMessage: (
     conversationId: string,
@@ -50,8 +47,7 @@ interface UseChatApiReturn {
 export const useChatApi = (): UseChatApiReturn => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentConversation, setCurrentConversation] =
-    useState<Conversation | null>(null);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,13 +57,13 @@ export const useChatApi = (): UseChatApiReturn => {
 
   const handleError = useCallback(
     (error: any, defaultMessage: string) => {
-      console.error("Chat API Error:", error);
+      console.error('Chat API Error:', error);
       const message = error.message || defaultMessage;
       setError(message);
       toast({
-        title: "Error",
+        title: 'Error',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
     [toast],
@@ -82,10 +78,10 @@ export const useChatApi = (): UseChatApiReturn => {
       const response = await fetch(
         `https://xfdqnmtzuuphxivsgmua.supabase.co/functions/v1/chat-api/conversations`,
         {
-          method: "GET",
+          method: 'GET',
           headers: {
             Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
         },
       );
@@ -98,7 +94,7 @@ export const useChatApi = (): UseChatApiReturn => {
 
       setConversations(data.conversations || []);
     } catch (err: any) {
-      handleError(err, "Failed to load conversations");
+      handleError(err, 'Failed to load conversations');
     } finally {
       setLoading(false);
     }
@@ -106,10 +102,7 @@ export const useChatApi = (): UseChatApiReturn => {
 
   // Create new conversation
   const createConversation = useCallback(
-    async (
-      title: string,
-      initialMessage?: string,
-    ): Promise<Conversation | null> => {
+    async (title: string, initialMessage?: string): Promise<Conversation | null> => {
       setLoading(true);
       setError(null);
 
@@ -117,10 +110,10 @@ export const useChatApi = (): UseChatApiReturn => {
         const response = await fetch(
           `https://xfdqnmtzuuphxivsgmua.supabase.co/functions/v1/chat-api/conversations`,
           {
-            method: "POST",
+            method: 'POST',
             headers: {
               Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               title,
@@ -139,13 +132,13 @@ export const useChatApi = (): UseChatApiReturn => {
         setConversations((prev) => [newConversation, ...prev]);
 
         toast({
-          title: "Success",
-          description: "Conversation created successfully",
+          title: 'Success',
+          description: 'Conversation created successfully',
         });
 
         return newConversation;
       } catch (err: any) {
-        handleError(err, "Failed to create conversation");
+        handleError(err, 'Failed to create conversation');
         return null;
       } finally {
         setLoading(false);
@@ -164,10 +157,10 @@ export const useChatApi = (): UseChatApiReturn => {
         const response = await fetch(
           `https://xfdqnmtzuuphxivsgmua.supabase.co/functions/v1/chat-api/conversations/${conversationId}/messages`,
           {
-            method: "GET",
+            method: 'GET',
             headers: {
               Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
           },
         );
@@ -180,7 +173,7 @@ export const useChatApi = (): UseChatApiReturn => {
 
         setMessages(data.messages || []);
       } catch (err: any) {
-        handleError(err, "Failed to load messages");
+        handleError(err, 'Failed to load messages');
       } finally {
         setLoading(false);
       }
@@ -190,11 +183,7 @@ export const useChatApi = (): UseChatApiReturn => {
 
   // Send a message
   const sendMessage = useCallback(
-    async (
-      conversationId: string,
-      content: string,
-      role?: string,
-    ): Promise<ChatMessage | null> => {
+    async (conversationId: string, content: string, role?: string): Promise<ChatMessage | null> => {
       setSending(true);
       setError(null);
 
@@ -202,10 +191,10 @@ export const useChatApi = (): UseChatApiReturn => {
         const response = await fetch(
           `https://xfdqnmtzuuphxivsgmua.supabase.co/functions/v1/chat-api/conversations/${conversationId}/messages`,
           {
-            method: "POST",
+            method: 'POST',
             headers: {
               Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               content,
@@ -226,15 +215,13 @@ export const useChatApi = (): UseChatApiReturn => {
         // Update conversation timestamp in local state
         setConversations((prev) =>
           prev.map((conv) =>
-            conv.id === conversationId
-              ? { ...conv, updated_at: new Date().toISOString() }
-              : conv,
+            conv.id === conversationId ? { ...conv, updated_at: new Date().toISOString() } : conv,
           ),
         );
 
         return newMessage;
       } catch (err: any) {
-        handleError(err, "Failed to send message");
+        handleError(err, 'Failed to send message');
         return null;
       } finally {
         setSending(false);
@@ -247,23 +234,20 @@ export const useChatApi = (): UseChatApiReturn => {
   useEffect(() => {
     if (!currentConversation) return;
 
-    console.log(
-      "Setting up real-time subscription for conversation:",
-      currentConversation.id,
-    );
+    console.log('Setting up real-time subscription for conversation:', currentConversation.id);
 
     const channel = supabase
       .channel(`conversation_${currentConversation.id}`)
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_messages",
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
           filter: `conversation_id=eq.${currentConversation.id}`,
         },
         (payload) => {
-          console.log("New message received:", payload.new);
+          console.log('New message received:', payload.new);
           const newMessage = payload.new as ChatMessage;
 
           // Only add if it's not already in our messages (avoid duplicates)
@@ -277,7 +261,7 @@ export const useChatApi = (): UseChatApiReturn => {
       .subscribe();
 
     return () => {
-      console.log("Cleaning up real-time subscription");
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [currentConversation]);

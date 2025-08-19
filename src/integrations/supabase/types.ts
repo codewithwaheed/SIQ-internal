@@ -1,16 +1,10 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)";
+    PostgrestVersion: '12.2.12 (cd3cf9e)';
   };
   public: {
     Tables: {
@@ -170,18 +164,18 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "ai_feedback_conversation_id_fkey";
-            columns: ["conversation_id"];
+            foreignKeyName: 'ai_feedback_conversation_id_fkey';
+            columns: ['conversation_id'];
             isOneToOne: false;
-            referencedRelation: "chat_conversations";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_conversations';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "ai_feedback_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'ai_feedback_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: false;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -350,11 +344,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "canned_responses_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'canned_responses_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -394,11 +388,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "chat_conversations_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'chat_conversations_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -432,11 +426,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "chat_evaluations_conversation_id_fkey";
-            columns: ["conversation_id"];
+            foreignKeyName: 'chat_evaluations_conversation_id_fkey';
+            columns: ['conversation_id'];
             isOneToOne: false;
-            referencedRelation: "chat_conversations";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_conversations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -476,11 +470,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "chat_messages_conversation_id_fkey";
-            columns: ["conversation_id"];
+            foreignKeyName: 'chat_messages_conversation_id_fkey';
+            columns: ['conversation_id'];
             isOneToOne: false;
-            referencedRelation: "chat_conversations";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_conversations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -709,11 +703,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "consultant_replies_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'consultant_replies_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: false;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -768,11 +762,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "consultations_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'consultations_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: false;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -884,11 +878,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "deliverables_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'deliverables_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: false;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -946,11 +940,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "documents_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'documents_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -981,11 +975,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "escalation_audit_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'escalation_audit_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: false;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1034,11 +1028,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "escalation_metrics_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'escalation_metrics_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: true;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1052,9 +1046,7 @@ export type Database = {
           context_pack: Json | null;
           created_at: string;
           environment_notes: string | null;
-          escalation_state:
-            | Database["public"]["Enums"]["escalation_state"]
-            | null;
+          escalation_state: Database['public']['Enums']['escalation_state'] | null;
           escalation_type: string | null;
           first_response_at: string | null;
           framework_tags: string[] | null;
@@ -1088,9 +1080,7 @@ export type Database = {
           context_pack?: Json | null;
           created_at?: string;
           environment_notes?: string | null;
-          escalation_state?:
-            | Database["public"]["Enums"]["escalation_state"]
-            | null;
+          escalation_state?: Database['public']['Enums']['escalation_state'] | null;
           escalation_type?: string | null;
           first_response_at?: string | null;
           framework_tags?: string[] | null;
@@ -1124,9 +1114,7 @@ export type Database = {
           context_pack?: Json | null;
           created_at?: string;
           environment_notes?: string | null;
-          escalation_state?:
-            | Database["public"]["Enums"]["escalation_state"]
-            | null;
+          escalation_state?: Database['public']['Enums']['escalation_state'] | null;
           escalation_type?: string | null;
           first_response_at?: string | null;
           framework_tags?: string[] | null;
@@ -1153,18 +1141,18 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "escalations_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'escalations_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "escalations_session_id_fkey";
-            columns: ["session_id"];
+            foreignKeyName: 'escalations_session_id_fkey';
+            columns: ['session_id'];
             isOneToOne: false;
-            referencedRelation: "chat_conversations";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_conversations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1231,7 +1219,7 @@ export type Database = {
           email: string;
           expires_at: string;
           id: string;
-          role: Database["public"]["Enums"]["user_role"];
+          role: Database['public']['Enums']['user_role'];
           token: string;
         };
         Insert: {
@@ -1242,7 +1230,7 @@ export type Database = {
           email: string;
           expires_at: string;
           id?: string;
-          role: Database["public"]["Enums"]["user_role"];
+          role: Database['public']['Enums']['user_role'];
           token: string;
         };
         Update: {
@@ -1253,7 +1241,7 @@ export type Database = {
           email?: string;
           expires_at?: string;
           id?: string;
-          role?: Database["public"]["Enums"]["user_role"];
+          role?: Database['public']['Enums']['user_role'];
           token?: string;
         };
         Relationships: [];
@@ -1369,11 +1357,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "master_knowledge_embeddings_master_document_id_fkey";
-            columns: ["master_document_id"];
+            foreignKeyName: 'master_knowledge_embeddings_master_document_id_fkey';
+            columns: ['master_document_id'];
             isOneToOne: false;
-            referencedRelation: "master_knowledge_base";
-            referencedColumns: ["id"];
+            referencedRelation: 'master_knowledge_base';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1413,25 +1401,25 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "message_processing_queue_ai_response_id_fkey";
-            columns: ["ai_response_id"];
+            foreignKeyName: 'message_processing_queue_ai_response_id_fkey';
+            columns: ['ai_response_id'];
             isOneToOne: false;
-            referencedRelation: "chat_messages";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_messages';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "message_processing_queue_conversation_id_fkey";
-            columns: ["conversation_id"];
+            foreignKeyName: 'message_processing_queue_conversation_id_fkey';
+            columns: ['conversation_id'];
             isOneToOne: false;
-            referencedRelation: "chat_conversations";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_conversations';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "message_processing_queue_user_message_id_fkey";
-            columns: ["user_message_id"];
+            foreignKeyName: 'message_processing_queue_user_message_id_fkey';
+            columns: ['user_message_id'];
             isOneToOne: false;
-            referencedRelation: "chat_messages";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_messages';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1471,11 +1459,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "message_ratings_conversation_id_fkey";
-            columns: ["conversation_id"];
+            foreignKeyName: 'message_ratings_conversation_id_fkey';
+            columns: ['conversation_id'];
             isOneToOne: false;
-            referencedRelation: "chat_conversations";
-            referencedColumns: ["id"];
+            referencedRelation: 'chat_conversations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1563,11 +1551,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "notifications_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'notifications_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: false;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1595,11 +1583,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "organization_memberships_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'organization_memberships_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1714,11 +1702,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "policies_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'policies_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1773,11 +1761,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "policy_templates_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'policy_templates_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1868,11 +1856,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "profiles_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'profiles_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1906,18 +1894,18 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "reply_feedback_escalation_id_fkey";
-            columns: ["escalation_id"];
+            foreignKeyName: 'reply_feedback_escalation_id_fkey';
+            columns: ['escalation_id'];
             isOneToOne: false;
-            referencedRelation: "escalations";
-            referencedColumns: ["id"];
+            referencedRelation: 'escalations';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "reply_feedback_reply_id_fkey";
-            columns: ["reply_id"];
+            foreignKeyName: 'reply_feedback_reply_id_fkey';
+            columns: ['reply_id'];
             isOneToOne: false;
-            referencedRelation: "consultant_replies";
-            referencedColumns: ["id"];
+            referencedRelation: 'consultant_replies';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -1969,11 +1957,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "resource_links_org_id_fkey";
-            columns: ["org_id"];
+            foreignKeyName: 'resource_links_org_id_fkey';
+            columns: ['org_id'];
             isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -2145,11 +2133,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "sync_logs_source_id_fkey";
-            columns: ["source_id"];
+            foreignKeyName: 'sync_logs_source_id_fkey';
+            columns: ['source_id'];
             isOneToOne: false;
-            referencedRelation: "external_sources";
-            referencedColumns: ["id"];
+            referencedRelation: 'external_sources';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -2203,7 +2191,7 @@ export type Database = {
           assigned_at: string;
           assigned_by: string | null;
           id: string;
-          role: Database["public"]["Enums"]["user_role"];
+          role: Database['public']['Enums']['user_role'];
           self_selected: boolean | null;
           user_id: string;
         };
@@ -2211,7 +2199,7 @@ export type Database = {
           assigned_at?: string;
           assigned_by?: string | null;
           id?: string;
-          role: Database["public"]["Enums"]["user_role"];
+          role: Database['public']['Enums']['user_role'];
           self_selected?: boolean | null;
           user_id: string;
         };
@@ -2219,7 +2207,7 @@ export type Database = {
           assigned_at?: string;
           assigned_by?: string | null;
           id?: string;
-          role?: Database["public"]["Enums"]["user_role"];
+          role?: Database['public']['Enums']['user_role'];
           self_selected?: boolean | null;
           user_id?: string;
         };
@@ -2276,7 +2264,7 @@ export type Database = {
           last_assignment_at: string | null;
           last_name: string | null;
           phone: string | null;
-          role: Database["public"]["Enums"]["user_role"] | null;
+          role: Database['public']['Enums']['user_role'] | null;
           total_escalations_handled: number | null;
           updated_at: string | null;
           user_id: string | null;
@@ -2286,7 +2274,7 @@ export type Database = {
     };
     Functions: {
       binary_quantize: {
-        Args: { "": string } | { "": unknown };
+        Args: { '': string } | { '': unknown };
         Returns: unknown;
       };
       block_suspicious_ip: {
@@ -2301,21 +2289,21 @@ export type Database = {
         Args: {
           conversation_id: string;
           user_id: string;
-          user_role?: Database["public"]["Enums"]["user_role"];
+          user_role?: Database['public']['Enums']['user_role'];
         };
         Returns: boolean;
       };
       can_update_role: {
         Args: {
           target_user_id: string;
-          new_role: Database["public"]["Enums"]["user_role"];
+          new_role: Database['public']['Enums']['user_role'];
         };
         Returns: boolean;
       };
       can_update_role_enhanced: {
         Args: {
           target_user_id: string;
-          new_role: Database["public"]["Enums"]["user_role"];
+          new_role: Database['public']['Enums']['user_role'];
         };
         Returns: boolean;
       };
@@ -2405,7 +2393,7 @@ export type Database = {
       };
       get_user_role: {
         Args: { _user_id: string };
-        Returns: Database["public"]["Enums"]["user_role"];
+        Returns: Database['public']['Enums']['user_role'];
       };
       get_users_with_roles: {
         Args: { limit_val?: number; offset_val?: number; search_term?: string };
@@ -2415,48 +2403,48 @@ export type Database = {
           first_name: string;
           last_name: string;
           company_name: string;
-          role: Database["public"]["Enums"]["user_role"];
+          role: Database['public']['Enums']['user_role'];
           created_at: string;
           last_active_at: string;
         }[];
       };
       halfvec_avg: {
-        Args: { "": number[] };
+        Args: { '': number[] };
         Returns: unknown;
       };
       halfvec_out: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       halfvec_send: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: string;
       };
       halfvec_typmod_in: {
-        Args: { "": unknown[] };
+        Args: { '': unknown[] };
         Returns: number;
       };
       has_role: {
         Args: {
           _user_id: string;
-          _role: Database["public"]["Enums"]["user_role"];
+          _role: Database['public']['Enums']['user_role'];
         };
         Returns: boolean;
       };
       hnsw_bit_support: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       hnsw_halfvec_support: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       hnsw_sparsevec_support: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       hnswhandler: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       increment_escalation_count: {
@@ -2468,23 +2456,23 @@ export type Database = {
         Returns: undefined;
       };
       ivfflat_bit_support: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       ivfflat_halfvec_support: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       ivfflathandler: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       l2_norm: {
-        Args: { "": unknown } | { "": unknown };
+        Args: { '': unknown } | { '': unknown };
         Returns: number;
       };
       l2_normalize: {
-        Args: { "": string } | { "": unknown } | { "": unknown };
+        Args: { '': string } | { '': unknown } | { '': unknown };
         Returns: unknown;
       };
       log_document_access: {
@@ -2525,15 +2513,15 @@ export type Database = {
         Returns: boolean;
       };
       sparsevec_out: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: unknown;
       };
       sparsevec_send: {
-        Args: { "": unknown };
+        Args: { '': unknown };
         Returns: string;
       };
       sparsevec_typmod_in: {
-        Args: { "": unknown[] };
+        Args: { '': unknown[] };
         Returns: number;
       };
       update_consultant_availability: {
@@ -2545,7 +2533,7 @@ export type Database = {
           conversation_id: string;
           new_status: string;
           user_id: string;
-          user_role: Database["public"]["Enums"]["user_role"];
+          user_role: Database['public']['Enums']['user_role'];
         };
         Returns: boolean;
       };
@@ -2588,67 +2576,67 @@ export type Database = {
         }[];
       };
       vector_avg: {
-        Args: { "": number[] };
+        Args: { '': number[] };
         Returns: string;
       };
       vector_dims: {
-        Args: { "": string } | { "": unknown };
+        Args: { '': string } | { '': unknown };
         Returns: number;
       };
       vector_norm: {
-        Args: { "": string };
+        Args: { '': string };
         Returns: number;
       };
       vector_out: {
-        Args: { "": string };
+        Args: { '': string };
         Returns: unknown;
       };
       vector_send: {
-        Args: { "": string };
+        Args: { '': string };
         Returns: string;
       };
       vector_typmod_in: {
-        Args: { "": unknown[] };
+        Args: { '': unknown[] };
         Returns: number;
       };
     };
     Enums: {
       audit_action:
-        | "LOGIN_SUCCESS"
-        | "LOGIN_FAILURE"
-        | "LOGOUT"
-        | "SIGNUP"
-        | "FILE_UPLOADED"
-        | "FILE_DOWNLOADED"
-        | "FILE_DELETED"
-        | "DOCUMENT_VIEWED"
-        | "CHAT_STARTED"
-        | "CHAT_MESSAGE_SENT"
-        | "ESCALATION_REQUESTED"
-        | "ESCALATION_ASSIGNED"
-        | "ESCALATION_RESOLVED"
-        | "CONSULTANT_RESPONSE"
-        | "SUBSCRIPTION_CREATED"
-        | "SUBSCRIPTION_UPDATED"
-        | "SUBSCRIPTION_CANCELLED"
-        | "ROLE_CHANGED"
-        | "USER_INVITED"
-        | "PROFILE_UPDATED"
-        | "PASSWORD_CHANGED"
-        | "MFA_ENABLED"
-        | "MFA_DISABLED"
-        | "ADMIN_ACTION"
-        | "SYSTEM_EVENT";
+        | 'LOGIN_SUCCESS'
+        | 'LOGIN_FAILURE'
+        | 'LOGOUT'
+        | 'SIGNUP'
+        | 'FILE_UPLOADED'
+        | 'FILE_DOWNLOADED'
+        | 'FILE_DELETED'
+        | 'DOCUMENT_VIEWED'
+        | 'CHAT_STARTED'
+        | 'CHAT_MESSAGE_SENT'
+        | 'ESCALATION_REQUESTED'
+        | 'ESCALATION_ASSIGNED'
+        | 'ESCALATION_RESOLVED'
+        | 'CONSULTANT_RESPONSE'
+        | 'SUBSCRIPTION_CREATED'
+        | 'SUBSCRIPTION_UPDATED'
+        | 'SUBSCRIPTION_CANCELLED'
+        | 'ROLE_CHANGED'
+        | 'USER_INVITED'
+        | 'PROFILE_UPDATED'
+        | 'PASSWORD_CHANGED'
+        | 'MFA_ENABLED'
+        | 'MFA_DISABLED'
+        | 'ADMIN_ACTION'
+        | 'SYSTEM_EVENT';
       escalation_state:
-        | "drafted"
-        | "submitted"
-        | "routing"
-        | "assigned"
-        | "in_progress"
-        | "awaiting_user"
-        | "resolved"
-        | "closed";
-      user_role: "business_owner" | "consultant" | "admin";
+        | 'drafted'
+        | 'submitted'
+        | 'routing'
+        | 'assigned'
+        | 'in_progress'
+        | 'awaiting_user'
+        | 'resolved'
+        | 'closed';
+      user_role: 'business_owner' | 'consultant' | 'admin';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -2656,36 +2644,31 @@ export type Database = {
   };
 };
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<
-  keyof Database,
-  "public"
->];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R;
       }
       ? R
@@ -2694,23 +2677,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I;
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I;
       }
       ? I
@@ -2719,23 +2702,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U;
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U;
       }
       ? U
@@ -2744,79 +2727,79 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
+    | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
+    | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never;
 
 export const Constants = {
   public: {
     Enums: {
       audit_action: [
-        "LOGIN_SUCCESS",
-        "LOGIN_FAILURE",
-        "LOGOUT",
-        "SIGNUP",
-        "FILE_UPLOADED",
-        "FILE_DOWNLOADED",
-        "FILE_DELETED",
-        "DOCUMENT_VIEWED",
-        "CHAT_STARTED",
-        "CHAT_MESSAGE_SENT",
-        "ESCALATION_REQUESTED",
-        "ESCALATION_ASSIGNED",
-        "ESCALATION_RESOLVED",
-        "CONSULTANT_RESPONSE",
-        "SUBSCRIPTION_CREATED",
-        "SUBSCRIPTION_UPDATED",
-        "SUBSCRIPTION_CANCELLED",
-        "ROLE_CHANGED",
-        "USER_INVITED",
-        "PROFILE_UPDATED",
-        "PASSWORD_CHANGED",
-        "MFA_ENABLED",
-        "MFA_DISABLED",
-        "ADMIN_ACTION",
-        "SYSTEM_EVENT",
+        'LOGIN_SUCCESS',
+        'LOGIN_FAILURE',
+        'LOGOUT',
+        'SIGNUP',
+        'FILE_UPLOADED',
+        'FILE_DOWNLOADED',
+        'FILE_DELETED',
+        'DOCUMENT_VIEWED',
+        'CHAT_STARTED',
+        'CHAT_MESSAGE_SENT',
+        'ESCALATION_REQUESTED',
+        'ESCALATION_ASSIGNED',
+        'ESCALATION_RESOLVED',
+        'CONSULTANT_RESPONSE',
+        'SUBSCRIPTION_CREATED',
+        'SUBSCRIPTION_UPDATED',
+        'SUBSCRIPTION_CANCELLED',
+        'ROLE_CHANGED',
+        'USER_INVITED',
+        'PROFILE_UPDATED',
+        'PASSWORD_CHANGED',
+        'MFA_ENABLED',
+        'MFA_DISABLED',
+        'ADMIN_ACTION',
+        'SYSTEM_EVENT',
       ],
       escalation_state: [
-        "drafted",
-        "submitted",
-        "routing",
-        "assigned",
-        "in_progress",
-        "awaiting_user",
-        "resolved",
-        "closed",
+        'drafted',
+        'submitted',
+        'routing',
+        'assigned',
+        'in_progress',
+        'awaiting_user',
+        'resolved',
+        'closed',
       ],
-      user_role: ["business_owner", "consultant", "admin"],
+      user_role: ['business_owner', 'consultant', 'admin'],
     },
   },
 } as const;

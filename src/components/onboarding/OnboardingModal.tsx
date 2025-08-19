@@ -1,25 +1,25 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ChevronLeft, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+} from '@/components/ui/select';
+import { ChevronLeft, Sparkles } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OnboardingModalProps {
   open: boolean;
@@ -27,32 +27,32 @@ interface OnboardingModalProps {
 }
 
 const countries = [
-  "United States",
-  "Canada",
-  "United Kingdom",
-  "Australia",
-  "Germany",
-  "France",
-  "Japan",
-  "South Korea",
-  "Singapore",
-  "Netherlands",
-  "Switzerland",
-  "Sweden",
-  "Norway",
-  "Denmark",
-  "Finland",
-  "New Zealand",
-  "Ireland",
-  "Austria",
-  "Belgium",
-  "Luxembourg",
+  'United States',
+  'Canada',
+  'United Kingdom',
+  'Australia',
+  'Germany',
+  'France',
+  'Japan',
+  'South Korea',
+  'Singapore',
+  'Netherlands',
+  'Switzerland',
+  'Sweden',
+  'Norway',
+  'Denmark',
+  'Finland',
+  'New Zealand',
+  'Ireland',
+  'Austria',
+  'Belgium',
+  'Luxembourg',
 ];
 
 export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
   const [step, setStep] = useState(1);
-  const [country, setCountry] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [country, setCountry] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -60,8 +60,8 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
   const handleNext = () => {
     if (!country) {
       toast({
-        title: "Please select a country",
-        variant: "destructive",
+        title: 'Please select a country',
+        variant: 'destructive',
       });
       return;
     }
@@ -74,27 +74,27 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({
           country,
           company_name: companyName || null,
         })
-        .eq("user_id", user.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
       toast({
-        title: "Profile updated successfully!",
-        description: "Welcome to your personalized experience.",
+        title: 'Profile updated successfully!',
+        description: 'Welcome to your personalized experience.',
       });
 
       onComplete();
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error('Error updating profile:', error);
       toast({
-        title: "Error updating profile",
-        description: "Please try again.",
-        variant: "destructive",
+        title: 'Error updating profile',
+        description: 'Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -113,7 +113,7 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
 
         <div className="space-y-6">
           {/* Header */}
-          <div className="text-center space-y-2">
+          <div className="space-y-2 text-center">
             <div className="flex items-center justify-center gap-2">
               <h2 className="text-xl font-semibold text-foreground">
                 Make SentrIQ Smarter for You
@@ -135,8 +135,7 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
                   Country
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Helps us apply the right legal framework based on your
-                  location.
+                  Helps us apply the right legal framework based on your location.
                 </p>
                 <Select value={country} onValueChange={setCountry}>
                   <SelectTrigger>
@@ -187,15 +186,11 @@ export const OnboardingModal = ({ open, onComplete }: OnboardingModalProps) => {
                 </Button>
 
                 <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={handleComplete}
-                    disabled={loading}
-                  >
+                  <Button variant="ghost" onClick={handleComplete} disabled={loading}>
                     Skip
                   </Button>
                   <Button onClick={handleComplete} disabled={loading}>
-                    {loading ? "Saving..." : "Save and Exit"}
+                    {loading ? 'Saving...' : 'Save and Exit'}
                   </Button>
                 </div>
               </div>

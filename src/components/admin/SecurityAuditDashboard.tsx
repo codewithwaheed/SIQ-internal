@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Shield,
   AlertTriangle,
@@ -24,14 +18,14 @@ import {
   Eye,
   Download,
   RefreshCw,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SecurityEvent {
   id: string;
   event_type: string;
-  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   description: string;
   user_id?: string;
   ip_address?: string;
@@ -61,17 +55,15 @@ export const SecurityAuditDashboard = () => {
     blockedIPs: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [selectedSeverity, setSelectedSeverity] = useState<string>("ALL");
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
 
   // Check if user is admin
-  if (userRole !== "admin") {
+  if (userRole !== 'admin') {
     return (
       <div className="container mx-auto p-6">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Access denied. Administrative privileges required.
-          </AlertDescription>
+          <AlertDescription>Access denied. Administrative privileges required.</AlertDescription>
         </Alert>
       </div>
     );
@@ -86,13 +78,13 @@ export const SecurityAuditDashboard = () => {
     try {
       // Load security events
       const { data: events, error: eventsError } = await supabase
-        .from("security_events")
-        .select("*")
-        .order("created_at", { ascending: false })
+        .from('security_events')
+        .select('*')
+        .order('created_at', { ascending: false })
         .limit(100);
 
       if (eventsError) {
-        console.error("Failed to load security events:", eventsError);
+        console.error('Failed to load security events:', eventsError);
         return;
       }
 
@@ -100,31 +92,24 @@ export const SecurityAuditDashboard = () => {
 
       // Calculate metrics
       const totalEvents = events?.length || 0;
-      const criticalEvents =
-        events?.filter((e) => e.severity === "CRITICAL").length || 0;
+      const criticalEvents = events?.filter((e) => e.severity === 'CRITICAL').length || 0;
       const unresolvedEvents = events?.filter((e) => !e.resolved).length || 0;
 
       // Load additional metrics from audit logs
       const { data: auditLogs } = await supabase
-        .from("audit_logs")
-        .select("action, created_at")
-        .gte(
-          "created_at",
-          new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        );
+        .from('audit_logs')
+        .select('action, created_at')
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
       const failedLogins =
         auditLogs?.filter(
           (log) =>
-            log.action.includes("FAILED_LOGIN") ||
-            log.action.includes("TOKEN_VALIDATION_FAILED"),
+            log.action.includes('FAILED_LOGIN') || log.action.includes('TOKEN_VALIDATION_FAILED'),
         ).length || 0;
 
       const suspiciousActivities =
         auditLogs?.filter(
-          (log) =>
-            log.action.includes("SUSPICIOUS") ||
-            log.action.includes("SECURITY_"),
+          (log) => log.action.includes('SUSPICIOUS') || log.action.includes('SECURITY_'),
         ).length || 0;
 
       setMetrics({
@@ -136,7 +121,7 @@ export const SecurityAuditDashboard = () => {
         blockedIPs: 0, // TODO: Implement IP blocking tracking
       });
     } catch (error) {
-      console.error("Error loading security data:", error);
+      console.error('Error loading security data:', error);
     } finally {
       setLoading(false);
     }
@@ -145,68 +130,68 @@ export const SecurityAuditDashboard = () => {
   const markEventResolved = async (eventId: string) => {
     try {
       const { error } = await supabase
-        .from("security_events")
+        .from('security_events')
         .update({
           resolved: true,
           resolved_by: user?.id,
           resolved_at: new Date().toISOString(),
         })
-        .eq("id", eventId);
+        .eq('id', eventId);
 
       if (error) {
-        console.error("Failed to resolve event:", error);
+        console.error('Failed to resolve event:', error);
         return;
       }
 
       // Refresh data
       loadSecurityData();
     } catch (error) {
-      console.error("Error resolving event:", error);
+      console.error('Error resolving event:', error);
     }
   };
 
   const runSuspiciousActivityScan = async () => {
     try {
-      const { data, error } = await supabase.rpc("detect_suspicious_activity");
+      const { data, error } = await supabase.rpc('detect_suspicious_activity');
 
       if (error) {
-        console.error("Failed to run suspicious activity scan:", error);
+        console.error('Failed to run suspicious activity scan:', error);
         return;
       }
 
-      console.log("Suspicious activity scan results:", data);
+      console.log('Suspicious activity scan results:', data);
 
       // Refresh data to show new findings
       loadSecurityData();
     } catch (error) {
-      console.error("Error running suspicious activity scan:", error);
+      console.error('Error running suspicious activity scan:', error);
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case "CRITICAL":
-        return "destructive";
-      case "HIGH":
-        return "destructive";
-      case "MEDIUM":
-        return "default";
-      case "LOW":
-        return "secondary";
+      case 'CRITICAL':
+        return 'destructive';
+      case 'HIGH':
+        return 'destructive';
+      case 'MEDIUM':
+        return 'default';
+      case 'LOW':
+        return 'secondary';
       default:
-        return "outline";
+        return 'outline';
     }
   };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
-      case "CRITICAL":
+      case 'CRITICAL':
         return <XCircle className="h-4 w-4" />;
-      case "HIGH":
+      case 'HIGH':
         return <AlertTriangle className="h-4 w-4" />;
-      case "MEDIUM":
+      case 'MEDIUM':
         return <Eye className="h-4 w-4" />;
-      case "LOW":
+      case 'LOW':
         return <CheckCircle className="h-4 w-4" />;
       default:
         return <Activity className="h-4 w-4" />;
@@ -214,7 +199,7 @@ export const SecurityAuditDashboard = () => {
   };
 
   const filteredEvents =
-    selectedSeverity === "ALL"
+    selectedSeverity === 'ALL'
       ? securityEvents
       : securityEvents.filter((event) => event.severity === selectedSeverity);
 
@@ -229,8 +214,8 @@ export const SecurityAuditDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto space-y-6 p-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Security Audit Dashboard</h1>
           <p className="text-muted-foreground">
@@ -239,47 +224,37 @@ export const SecurityAuditDashboard = () => {
         </div>
         <div className="flex space-x-2">
           <Button onClick={runSuspiciousActivityScan} variant="outline">
-            <Activity className="h-4 w-4 mr-2" />
+            <Activity className="mr-2 h-4 w-4" />
             Scan for Threats
           </Button>
           <Button onClick={loadSecurityData} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
         </div>
       </div>
 
       {/* Security Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Events (24h)
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Events (24h)</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.totalEvents}</div>
-            <p className="text-xs text-muted-foreground">
-              Security events recorded
-            </p>
+            <p className="text-xs text-muted-foreground">Security events recorded</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Critical Events
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Critical Events</CardTitle>
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {metrics.criticalEvents}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Require immediate attention
-            </p>
+            <div className="text-2xl font-bold text-destructive">{metrics.criticalEvents}</div>
+            <p className="text-xs text-muted-foreground">Require immediate attention</p>
           </CardContent>
         </Card>
 
@@ -290,9 +265,7 @@ export const SecurityAuditDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.unresolvedEvents}</div>
-            <p className="text-xs text-muted-foreground">
-              Events pending resolution
-            </p>
+            <p className="text-xs text-muted-foreground">Events pending resolution</p>
           </CardContent>
         </Card>
 
@@ -303,26 +276,18 @@ export const SecurityAuditDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.failedLogins}</div>
-            <p className="text-xs text-muted-foreground">
-              Authentication failures
-            </p>
+            <p className="text-xs text-muted-foreground">Authentication failures</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Suspicious Activities
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Suspicious Activities</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {metrics.suspiciousActivities}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Anomalous patterns detected
-            </p>
+            <div className="text-2xl font-bold">{metrics.suspiciousActivities}</div>
+            <p className="text-xs text-muted-foreground">Anomalous patterns detected</p>
           </CardContent>
         </Card>
 
@@ -333,9 +298,7 @@ export const SecurityAuditDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.blockedIPs}</div>
-            <p className="text-xs text-muted-foreground">
-              IP addresses blocked
-            </p>
+            <p className="text-xs text-muted-foreground">IP addresses blocked</p>
           </CardContent>
         </Card>
       </div>
@@ -343,34 +306,30 @@ export const SecurityAuditDashboard = () => {
       {/* Security Events */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <div>
               <CardTitle>Security Events</CardTitle>
-              <CardDescription>
-                Recent security events and incidents
-              </CardDescription>
+              <CardDescription>Recent security events and incidents</CardDescription>
             </div>
             <div className="flex space-x-2">
               <Button
-                variant={selectedSeverity === "ALL" ? "default" : "outline"}
+                variant={selectedSeverity === 'ALL' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedSeverity("ALL")}
+                onClick={() => setSelectedSeverity('ALL')}
               >
                 All
               </Button>
               <Button
-                variant={
-                  selectedSeverity === "CRITICAL" ? "default" : "outline"
-                }
+                variant={selectedSeverity === 'CRITICAL' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedSeverity("CRITICAL")}
+                onClick={() => setSelectedSeverity('CRITICAL')}
               >
                 Critical
               </Button>
               <Button
-                variant={selectedSeverity === "HIGH" ? "default" : "outline"}
+                variant={selectedSeverity === 'HIGH' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedSeverity("HIGH")}
+                onClick={() => setSelectedSeverity('HIGH')}
               >
                 High
               </Button>
@@ -380,53 +339,39 @@ export const SecurityAuditDashboard = () => {
         <CardContent>
           <div className="space-y-4">
             {filteredEvents.length === 0 ? (
-              <div className="text-center py-8">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  No security events found
-                </p>
+              <div className="py-8 text-center">
+                <CheckCircle className="mx-auto mb-4 h-12 w-12 text-green-500" />
+                <p className="text-muted-foreground">No security events found</p>
               </div>
             ) : (
               filteredEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="flex items-start justify-between p-4 border rounded-lg"
+                  className="flex items-start justify-between rounded-lg border p-4"
                 >
                   <div className="flex items-start space-x-3">
                     {getSeverityIcon(event.severity)}
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <Badge
-                          variant={getSeverityColor(event.severity) as any}
-                        >
+                        <Badge variant={getSeverityColor(event.severity) as any}>
                           {event.severity}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
                           {new Date(event.created_at).toLocaleString()}
                         </span>
-                        {event.resolved && (
-                          <Badge variant="secondary">Resolved</Badge>
-                        )}
+                        {event.resolved && <Badge variant="secondary">Resolved</Badge>}
                       </div>
-                      <h4 className="font-semibold mt-1">{event.event_type}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {event.description}
-                      </p>
+                      <h4 className="mt-1 font-semibold">{event.event_type}</h4>
+                      <p className="text-sm text-muted-foreground">{event.description}</p>
                       {event.ip_address && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          IP: {event.ip_address}
-                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">IP: {event.ip_address}</p>
                       )}
                     </div>
                   </div>
 
                   {!event.resolved && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => markEventResolved(event.id)}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1" />
+                    <Button size="sm" variant="outline" onClick={() => markEventResolved(event.id)}>
+                      <CheckCircle className="mr-1 h-4 w-4" />
                       Resolve
                     </Button>
                   )}

@@ -2,45 +2,37 @@ import {
   findMissingPlaceholders,
   groupMissingFields,
   humanizeFieldName,
-} from "./placeholderScanner";
-import { buildContext, fillTemplate, resolveFieldValue } from "./fillTemplate";
-import {
-  POLICY_SLUG_MAP,
-  findPolicySlug,
-  type PolicySlug,
-} from "@/config/policySlugMap";
-import { POLICY_DEFAULTS, isReservedToken } from "@/config/defaults";
+} from './placeholderScanner';
+import { buildContext, fillTemplate, resolveFieldValue } from './fillTemplate';
+import { POLICY_SLUG_MAP, findPolicySlug, type PolicySlug } from '@/config/policySlugMap';
+import { POLICY_DEFAULTS, isReservedToken } from '@/config/defaults';
 
 // Available policy templates
 export const POLICY_TEMPLATES = {
   password_management: {
-    file: "password_management.md",
-    title: "Password Management Policy",
-    description:
-      "Establishes requirements for creating and managing secure passwords",
+    file: 'password_management.md',
+    title: 'Password Management Policy',
+    description: 'Establishes requirements for creating and managing secure passwords',
   },
   acceptable_use: {
-    file: "acceptable_use.md",
-    title: "Acceptable Use Policy",
-    description:
-      "Defines appropriate use of company IT resources and equipment",
+    file: 'acceptable_use.md',
+    title: 'Acceptable Use Policy',
+    description: 'Defines appropriate use of company IT resources and equipment',
   },
   incident_response: {
-    file: "incident_response.md",
-    title: "Incident Response Policy",
-    description:
-      "Procedures for detecting and responding to cybersecurity incidents",
+    file: 'incident_response.md',
+    title: 'Incident Response Policy',
+    description: 'Procedures for detecting and responding to cybersecurity incidents',
   },
   mobile_device: {
-    file: "mobile_device.md",
-    title: "Mobile Device Management Policy",
-    description:
-      "Security requirements for mobile devices accessing company resources",
+    file: 'mobile_device.md',
+    title: 'Mobile Device Management Policy',
+    description: 'Security requirements for mobile devices accessing company resources',
   },
   generic_template: {
-    file: "generic_template.md",
-    title: "Generic Policy Template",
-    description: "Universal policy template for any policy type",
+    file: 'generic_template.md',
+    title: 'Generic Policy Template',
+    description: 'Universal policy template for any policy type',
   },
 } as const;
 
@@ -49,80 +41,61 @@ export type PolicyType = keyof typeof POLICY_TEMPLATES;
 /**
  * v2.0 Intent Detection - Three levels: none | unspecified | specified
  */
-export function detectPolicyIntent(
-  text: string,
-): "none" | "unspecified" | "specified" {
+export function detectPolicyIntent(text: string): 'none' | 'unspecified' | 'specified' {
   const normalizedText = text.toLowerCase().trim();
 
   // Must contain a policy-related word AND a creation verb
-  const hasPolicyWord =
-    /\b(policy|procedure|standard|guideline|document)\b/i.test(normalizedText);
-  const hasCreationVerb =
-    /\b(create|draft|generate|make|build|write|produce|develop)\b/i.test(
-      normalizedText,
-    );
+  const hasPolicyWord = /\b(policy|procedure|standard|guideline|document)\b/i.test(normalizedText);
+  const hasCreationVerb = /\b(create|draft|generate|make|build|write|produce|develop)\b/i.test(
+    normalizedText,
+  );
 
   // Must have BOTH policy word AND creation verb to trigger policy flow
-  if (!hasPolicyWord || !hasCreationVerb) return "none";
+  if (!hasPolicyWord || !hasCreationVerb) return 'none';
 
   // Check if specific policy type is mentioned
   const hasType = findPolicySlug(normalizedText) !== null;
 
-  return hasType ? "specified" : "unspecified";
+  return hasType ? 'specified' : 'unspecified';
 }
 
 /**
  * Loads a policy template from the templates directory
  */
-export async function loadPolicyTemplate(
-  policyType: PolicyType,
-): Promise<string> {
+export async function loadPolicyTemplate(policyType: PolicyType): Promise<string> {
   try {
-    console.log("[DEBUG] Loading policy template:", policyType);
+    console.log('[DEBUG] Loading policy template:', policyType);
     const templateInfo = POLICY_TEMPLATES[policyType];
 
     // Import the template content dynamically
     let templateContent: string;
 
     switch (policyType) {
-      case "password_management":
-        const passwordModule = await import(
-          "/src/templates/password_management.md?raw"
-        );
+      case 'password_management':
+        const passwordModule = await import('/src/templates/password_management.md?raw');
         templateContent = passwordModule.default;
         break;
-      case "acceptable_use":
-        const acceptableUseModule = await import(
-          "/src/templates/acceptable_use.md?raw"
-        );
+      case 'acceptable_use':
+        const acceptableUseModule = await import('/src/templates/acceptable_use.md?raw');
         templateContent = acceptableUseModule.default;
         break;
-      case "incident_response":
-        const incidentModule = await import(
-          "/src/templates/incident_response.md?raw"
-        );
+      case 'incident_response':
+        const incidentModule = await import('/src/templates/incident_response.md?raw');
         templateContent = incidentModule.default;
         break;
-      case "mobile_device":
-        const mobileModule = await import(
-          "/src/templates/mobile_device.md?raw"
-        );
+      case 'mobile_device':
+        const mobileModule = await import('/src/templates/mobile_device.md?raw');
         templateContent = mobileModule.default;
         break;
-      case "generic_template":
-        const genericModule = await import(
-          "/src/templates/generic_template.md?raw"
-        );
+      case 'generic_template':
+        const genericModule = await import('/src/templates/generic_template.md?raw');
         templateContent = genericModule.default;
         break;
       default:
         throw new Error(`Unknown policy type: ${policyType}`);
     }
 
-    console.log(
-      "[DEBUG] Template loaded successfully, length:",
-      templateContent.length,
-    );
+    console.log('[DEBUG] Template loaded successfully, length:', templateContent.length);
     return templateContent;
   } catch (error) {
     console.error(`Error loading policy template ${policyType}:`, error);
@@ -147,17 +120,13 @@ export async function analyzePolicyRequirements(
   const allMissingFields = await findMissingPlaceholders(template, context);
 
   // Filter out reserved tokens
-  const missingFields = allMissingFields.filter(
-    (field) => !isReservedToken(field),
-  );
+  const missingFields = allMissingFields.filter((field) => !isReservedToken(field));
   const fieldGroups = groupMissingFields(missingFields);
 
   // Calculate completion percentage based on non-reserved fields only
   const totalPlaceholders = Array.from(
     new Set(
-      (template.match(/\{\{([a-z0-9_]+)\}\}/gi) || []).map((match) =>
-        match.replace(/[{}]/g, ""),
-      ),
+      (template.match(/\{\{([a-z0-9_]+)\}\}/gi) || []).map((match) => match.replace(/[{}]/g, '')),
     ),
   ).filter((field) => !isReservedToken(field));
 
@@ -189,9 +158,7 @@ export function createFieldPrompt(
     label: humanizeFieldName(field),
   }));
 
-  const fieldList = humanizedFields
-    .map((field) => `• ${field.label}`)
-    .join("\n");
+  const fieldList = humanizedFields.map((field) => `• ${field.label}`).join('\n');
 
   const prefix = isFirstGroup
     ? `To tailor your ${policyTitle}, I need a few details:`
@@ -214,7 +181,7 @@ export function processUserAnswers(
   const processedAnswers: Record<string, string> = {};
 
   // Handle "use defaults" case
-  if (answers.toLowerCase().includes("default")) {
+  if (answers.toLowerCase().includes('default')) {
     return {}; // Will use defaults during template filling
   }
 
@@ -247,18 +214,13 @@ export function generatePolicy(
   missingFields: string[];
 } {
   const context = buildContext({}, userProfile, conversationAnswers);
-  const filledPolicy = fillTemplate(
-    template,
-    {},
-    userProfile,
-    conversationAnswers,
-  );
+  const filledPolicy = fillTemplate(template, {}, userProfile, conversationAnswers);
 
   // Check for any remaining placeholders
   const remainingPlaceholders = Array.from(
     new Set(
       (filledPolicy.match(/\{\{([a-z0-9_]+)\}\}/gi) || []).map((match) =>
-        match.replace(/[{}]/g, ""),
+        match.replace(/[{}]/g, ''),
       ),
     ),
   );
@@ -303,7 +265,7 @@ export function getPolicyTypeFromInput(userInput: string): {
 
   // Fallback: extract policy title from user input and use generic template
   const extractedTitle = extractPolicyTitle(userInput);
-  return { type: "generic_template", title: extractedTitle };
+  return { type: 'generic_template', title: extractedTitle };
 }
 
 /**
@@ -316,22 +278,22 @@ function extractPolicyTitle(userInput: string): string {
   let title = normalized
     .replace(
       /^(create|generate|make|build|draft|write|produce|need|want|help.*draft|help.*create)\s+/i,
-      "",
+      '',
     )
-    .replace(/\b(policy|procedure|standard|guideline)\b/i, "")
-    .replace(/\b(for\s+(us|me|our\s+company))\b/i, "")
+    .replace(/\b(policy|procedure|standard|guideline)\b/i, '')
+    .replace(/\b(for\s+(us|me|our\s+company))\b/i, '')
     .trim();
 
   // If nothing meaningful remains, use generic title
   if (!title || title.length < 3) {
-    title = "organizational policy";
+    title = 'organizational policy';
   }
 
   // Capitalize first letter of each word
   return (
     title
-      .split(" ")
+      .split(' ')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ") + " Policy"
+      .join(' ') + ' Policy'
   );
 }

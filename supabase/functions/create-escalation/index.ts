@@ -1,22 +1,14 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import {
-  withSecurity,
-  SecurityContext,
-  sanitizeResponse,
-} from "../_shared/security-hardening.ts";
-import {
-  createErrorResponse,
-  HTTP_STATUS,
-  ERROR_CODES,
-} from "../_shared/error-handler.ts";
-import { InputSanitizer } from "../_shared/security-utils.ts";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { withSecurity, SecurityContext, sanitizeResponse } from '../_shared/security-hardening.ts';
+import { createErrorResponse, HTTP_STATUS, ERROR_CODES } from '../_shared/error-handler.ts';
+import { InputSanitizer } from '../_shared/security-utils.ts';
 
 interface EscalationRequest {
   sessionId?: string;
   messageLog?: any[];
   reason?: string;
-  priority?: "low" | "normal" | "high" | "urgent";
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
   summary?: string;
   framework_tags?: string[];
   escalation_state?: string;
@@ -31,25 +23,23 @@ serve(async (req) => {
     req,
     {
       requireAuth: true,
-      rateLimitKey: "create-escalation",
+      rateLimitKey: 'create-escalation',
       rateLimitOptions: {
         maxAttempts: 5, // 5 escalations per hour to prevent abuse
         windowMs: 3600000, // 1 hour
       },
-      validateInput: "escalation",
+      validateInput: 'escalation',
       logActivity: true,
     },
     async (request: Request, context: SecurityContext) => {
       // Initialize Supabase client
       const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
         { auth: { persistSession: false } },
       );
 
-      console.log(
-        `[CREATE-ESCALATION] Escalation request from user ${context.userId}`,
-      );
+      console.log(`[CREATE-ESCALATION] Escalation request from user ${context.userId}`);
 
       // Parse and validate request body
       let escalationRequest: EscalationRequest;
@@ -57,7 +47,7 @@ serve(async (req) => {
         escalationRequest = await request.json();
       } catch (error) {
         return createErrorResponse(
-          "Invalid JSON in request body",
+          'Invalid JSON in request body',
           HTTP_STATUS.BAD_REQUEST,
           ERROR_CODES.INVALID_INPUT,
         );
@@ -67,7 +57,7 @@ serve(async (req) => {
         sessionId,
         messageLog,
         reason,
-        priority = "normal",
+        priority = 'normal',
         summary,
         framework_tags,
         escalation_state,
@@ -78,21 +68,17 @@ serve(async (req) => {
       } = escalationRequest;
 
       // Validate and sanitize inputs
-      const sanitizedReason = reason
-        ? InputSanitizer.sanitizeString(reason, 1000)
-        : null;
-      const sanitizedSummary = summary
-        ? InputSanitizer.sanitizeString(summary, 2000)
-        : null;
+      const sanitizedReason = reason ? InputSanitizer.sanitizeString(reason, 1000) : null;
+      const sanitizedSummary = summary ? InputSanitizer.sanitizeString(summary, 2000) : null;
       const sanitizedContactEmail = contact_email
         ? InputSanitizer.sanitizeEmail(contact_email)
         : null;
 
       // Validate priority
-      const validPriorities = ["low", "normal", "high", "urgent"];
+      const validPriorities = ['low', 'normal', 'high', 'urgent'];
       if (!validPriorities.includes(priority)) {
         return createErrorResponse(
-          "Invalid priority level",
+          'Invalid priority level',
           HTTP_STATUS.BAD_REQUEST,
           ERROR_CODES.INVALID_INPUT,
         );
@@ -101,7 +87,7 @@ serve(async (req) => {
       // Validate session ID if provided
       if (sessionId && !InputSanitizer.isValidUUID(sessionId)) {
         return createErrorResponse(
-          "Invalid session ID format",
+          'Invalid session ID format',
           HTTP_STATUS.BAD_REQUEST,
           ERROR_CODES.INVALID_INPUT,
         );
@@ -111,7 +97,7 @@ serve(async (req) => {
       let sanitizedFrameworkTags: string[] = [];
       if (framework_tags && Array.isArray(framework_tags)) {
         sanitizedFrameworkTags = framework_tags
-          .filter((tag) => typeof tag === "string")
+          .filter((tag) => typeof tag === 'string')
           .map((tag) => InputSanitizer.sanitizeString(tag, 50))
           .filter((tag) => tag.length > 0)
           .slice(0, 20); // Limit number of tags
@@ -119,15 +105,15 @@ serve(async (req) => {
 
       // Validate message log and sanitize if present
       let sanitizedMessageLog: any[] = [];
-      let chatContext = "";
+      let chatContext = '';
       if (messageLog && Array.isArray(messageLog)) {
         sanitizedMessageLog = messageLog
           .slice(0, 50) // Limit number of messages
           .map((msg) => {
-            if (typeof msg === "object" && msg.content) {
+            if (typeof msg === 'object' && msg.content) {
               return {
                 content: InputSanitizer.sanitizeString(msg.content, 1000),
-                role: msg.role || "user",
+                role: msg.role || 'user',
                 timestamp: msg.timestamp || new Date().toISOString(),
               };
             }
@@ -137,7 +123,7 @@ serve(async (req) => {
 
         chatContext = sanitizedMessageLog
           .map((msg) => msg.content)
-          .join("\n")
+          .join('\n')
           .substring(0, 5000); // Limit chat context size
       } else if (sanitizedSummary) {
         chatContext = sanitizedSummary;
@@ -146,16 +132,16 @@ serve(async (req) => {
       // Check for duplicate escalations from same user for same session
       if (sessionId) {
         const { data: existingEscalation } = await supabaseClient
-          .from("escalations")
-          .select("id, status")
-          .eq("user_id", context.userId)
-          .eq("session_id", sessionId)
-          .eq("status", "pending")
+          .from('escalations')
+          .select('id, status')
+          .eq('user_id', context.userId)
+          .eq('session_id', sessionId)
+          .eq('status', 'pending')
           .maybeSingle();
 
         if (existingEscalation) {
           return createErrorResponse(
-            "An escalation is already pending for this session",
+            'An escalation is already pending for this session',
             HTTP_STATUS.CONFLICT,
             ERROR_CODES.DUPLICATE_REQUEST,
           );
@@ -166,42 +152,40 @@ serve(async (req) => {
       const slaDeadline = calculateSLADeadline(priority);
 
       // Create escalation record with enhanced security and validation
-      const { data: escalationData, error: escalationError } =
-        await supabaseClient
-          .from("escalations")
-          .insert({
-            user_id: context.userId,
-            org_id: context.orgId,
-            session_id: sessionId || null,
-            message_log:
-              sanitizedMessageLog.length > 0 ? sanitizedMessageLog : null,
-            reason: sanitizedReason || sanitizedSummary || "General inquiry",
-            priority: priority,
-            status: "pending",
-            escalation_state: escalation_state || "submitted",
-            framework_tags: sanitizedFrameworkTags,
-            contact_email: sanitizedContactEmail || null,
-            response_type: response_type || "async",
-            timezone: timezone || "UTC",
-            language_preference: language_preference || "en",
-            chat_context: chatContext,
-            sla_deadline: slaDeadline.toISOString(),
-          })
-          .select()
-          .single();
+      const { data: escalationData, error: escalationError } = await supabaseClient
+        .from('escalations')
+        .insert({
+          user_id: context.userId,
+          org_id: context.orgId,
+          session_id: sessionId || null,
+          message_log: sanitizedMessageLog.length > 0 ? sanitizedMessageLog : null,
+          reason: sanitizedReason || sanitizedSummary || 'General inquiry',
+          priority: priority,
+          status: 'pending',
+          escalation_state: escalation_state || 'submitted',
+          framework_tags: sanitizedFrameworkTags,
+          contact_email: sanitizedContactEmail || null,
+          response_type: response_type || 'async',
+          timezone: timezone || 'UTC',
+          language_preference: language_preference || 'en',
+          chat_context: chatContext,
+          sla_deadline: slaDeadline.toISOString(),
+        })
+        .select()
+        .single();
 
       if (escalationError) {
-        console.error("Failed to create escalation:", escalationError);
+        console.error('Failed to create escalation:', escalationError);
         return createErrorResponse(
-          "Failed to create escalation request",
+          'Failed to create escalation request',
           HTTP_STATUS.INTERNAL_ERROR,
           ERROR_CODES.DATABASE_ERROR,
         );
       }
 
       // Log escalation creation for security audit
-      await supabaseClient.from("audit_logs").insert({
-        action: "ESCALATION_CREATED",
+      await supabaseClient.from('audit_logs').insert({
+        action: 'ESCALATION_CREATED',
         description: `Escalation created with priority ${priority}`,
         user_id: context.userId,
         metadata: {
@@ -210,13 +194,13 @@ serve(async (req) => {
           session_id: sessionId,
           framework_tags: sanitizedFrameworkTags,
           has_message_log: sanitizedMessageLog.length > 0,
-          security_level: "MEDIUM",
+          security_level: 'MEDIUM',
         },
         ip_address: context.ipAddress,
         user_agent: context.userAgent,
       });
 
-      console.log("Escalation created successfully:", {
+      console.log('Escalation created successfully:', {
         id: escalationData.id,
         userId: context.userId,
         priority: priority,
@@ -224,9 +208,7 @@ serve(async (req) => {
       });
 
       // Notify consultants (background task)
-      EdgeRuntime.waitUntil(
-        notifyConsultantsAsync(supabaseClient, escalationData),
-      );
+      EdgeRuntime.waitUntil(notifyConsultantsAsync(supabaseClient, escalationData));
 
       const sanitizedResponse = sanitizeResponse(
         {
@@ -245,7 +227,7 @@ serve(async (req) => {
       );
 
       return new Response(JSON.stringify(sanitizedResponse), {
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         status: HTTP_STATUS.CREATED,
       });
     },
@@ -268,8 +250,7 @@ function calculateSLADeadline(priority: string): Date {
 
 function getResponseMessage(priority: string): string {
   const messages = {
-    urgent:
-      "Your urgent request has been escalated. You'll hear back within 2 hours.",
+    urgent: "Your urgent request has been escalated. You'll hear back within 2 hours.",
     high: "Your high-priority request has been escalated. You'll hear back within 4 hours.",
     normal:
       "Your request has been escalated to our cybersecurity consultants. You'll hear back within 24 hours.",
@@ -280,10 +261,10 @@ function getResponseMessage(priority: string): string {
 
 function getEstimatedResponseTime(priority: string): string {
   const times = {
-    urgent: "2 hours",
-    high: "4 hours",
-    normal: "24 hours",
-    low: "72 hours",
+    urgent: '2 hours',
+    high: '4 hours',
+    normal: '24 hours',
+    low: '72 hours',
   };
   return times[priority] || times.normal;
 }
@@ -292,10 +273,10 @@ async function notifyConsultantsAsync(supabase: any, escalation: any) {
   try {
     // Find available consultants
     const { data: consultants } = await supabase
-      .from("consultant_profiles")
-      .select("user_id, expertise_areas")
-      .eq("is_active", true)
-      .eq("availability_status", "online");
+      .from('consultant_profiles')
+      .select('user_id, expertise_areas')
+      .eq('is_active', true)
+      .eq('availability_status', 'online');
 
     if (consultants && consultants.length > 0) {
       // Simple round-robin assignment for now
@@ -303,16 +284,16 @@ async function notifyConsultantsAsync(supabase: any, escalation: any) {
 
       // Update escalation with assigned consultant
       await supabase
-        .from("escalations")
+        .from('escalations')
         .update({ assigned_consultant: assignedConsultant.user_id })
-        .eq("id", escalation.id);
+        .eq('id', escalation.id);
 
       // Send notification to consultant
-      await supabase.functions.invoke("send-notification", {
+      await supabase.functions.invoke('send-notification', {
         body: {
           user_id: assignedConsultant.user_id,
-          type: "new_escalation",
-          title: "New Escalation Assigned",
+          type: 'new_escalation',
+          title: 'New Escalation Assigned',
           message: `A new ${escalation.priority} priority escalation has been assigned to you`,
           metadata: {
             escalation_id: escalation.id,
@@ -323,6 +304,6 @@ async function notifyConsultantsAsync(supabase: any, escalation: any) {
       });
     }
   } catch (error) {
-    console.error("Failed to notify consultants:", error);
+    console.error('Failed to notify consultants:', error);
   }
 }

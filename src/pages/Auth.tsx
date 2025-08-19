@@ -1,25 +1,19 @@
-import { useState, useEffect } from "react";
-import { Navigate, useSearchParams, Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { MFAChallenge } from "@/components/auth/MFAChallenge";
-import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
-import { AuthErrorHandler } from "@/lib/password-validation";
-import { ClientRateLimiter } from "@/lib/security";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { Navigate, useSearchParams, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { MFAChallenge } from '@/components/auth/MFAChallenge';
+import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
+import { AuthErrorHandler } from '@/lib/password-validation';
+import { ClientRateLimiter } from '@/lib/security';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   Shield,
   Building,
@@ -36,17 +30,17 @@ import {
   UserCheck,
   CreditCard,
   AlertTriangle,
-} from "lucide-react";
+} from 'lucide-react';
 const Auth = () => {
   const { user, session, loading, mfaChallenge, signIn, signUp } = useAuth();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const selectedRole = "business_owner";
+  const selectedRole = 'business_owner';
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [showMFAChallenge, setShowMFAChallenge] = useState(false);
-  const [signupPassword, setSignupPassword] = useState("");
+  const [signupPassword, setSignupPassword] = useState('');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -54,37 +48,34 @@ const Auth = () => {
   const rateLimiter = new ClientRateLimiter();
 
   // Get URL parameters for pricing flow
-  const priceId = searchParams.get("priceId");
-  const redirect = searchParams.get("redirect");
+  const priceId = searchParams.get('priceId');
+  const redirect = searchParams.get('redirect');
 
   // Handle authenticated user with pricing flow
   useEffect(() => {
-    if (user && !loading && priceId && redirect === "checkout") {
+    if (user && !loading && priceId && redirect === 'checkout') {
       // Redirect to checkout after authentication
       const checkoutFlow = async () => {
         try {
-          const { data, error } = await supabase.functions.invoke(
-            "create-checkout",
-            {
-              body: {
-                priceId,
-              },
-              headers: {
-                Authorization: `Bearer ${session?.access_token}`,
-              },
+          const { data, error } = await supabase.functions.invoke('create-checkout', {
+            body: {
+              priceId,
             },
-          );
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+          });
           if (error) throw error;
 
           // Open Stripe checkout in a new tab
-          window.open(data.url, "_blank");
+          window.open(data.url, '_blank');
           // Redirect to dashboard after opening checkout
-          window.location.href = "/dashboard";
+          window.location.href = '/dashboard';
         } catch (error: any) {
-          console.error("Error creating checkout session:", error);
-          toast.error(error.message || "Failed to create checkout session");
+          console.error('Error creating checkout session:', error);
+          toast.error(error.message || 'Failed to create checkout session');
           // Still redirect to dashboard on error
-          window.location.href = "/dashboard";
+          window.location.href = '/dashboard';
         }
       };
       checkoutFlow();
@@ -92,7 +83,7 @@ const Auth = () => {
   }, [user, loading, priceId, redirect]);
 
   // Regular redirect if already authenticated (no pricing flow)
-  if (user && !loading && (!priceId || redirect !== "checkout")) {
+  if (user && !loading && (!priceId || redirect !== 'checkout')) {
     return <Navigate to="/dashboard" replace />;
   }
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -100,19 +91,13 @@ const Auth = () => {
     setLastError(null);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
     // Client-side rate limiting
     if (!rateLimiter.checkLimit(`signin_${email}`, 5, 15 * 60 * 1000)) {
-      const remaining = rateLimiter.getRemainingAttempts(
-        `signin_${email}`,
-        5,
-        15 * 60 * 1000,
-      );
-      toast.error(
-        `Too many sign-in attempts. Please wait 15 minutes before trying again.`,
-      );
+      const remaining = rateLimiter.getRemainingAttempts(`signin_${email}`, 5, 15 * 60 * 1000);
+      toast.error(`Too many sign-in attempts. Please wait 15 minutes before trying again.`);
       return;
     }
 
@@ -126,9 +111,7 @@ const Auth = () => {
         setShowMFAChallenge(true);
       } else if (result.error) {
         const errorMessage = AuthErrorHandler.getErrorMessage(result.error);
-        const suggestedAction = AuthErrorHandler.getSuggestedAction(
-          result.error,
-        );
+        const suggestedAction = AuthErrorHandler.getSuggestedAction(result.error);
         setLastError(errorMessage);
 
         toast.error(errorMessage, {
@@ -149,25 +132,21 @@ const Auth = () => {
     setLastError(null);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
-    const companyName = formData.get("companyName") as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const companyName = formData.get('companyName') as string;
 
     // Client-side rate limiting for signup
     if (!rateLimiter.checkLimit(`signup_${email}`, 3, 60 * 60 * 1000)) {
-      toast.error(
-        "Too many signup attempts. Please wait an hour before trying again.",
-      );
+      toast.error('Too many signup attempts. Please wait an hour before trying again.');
       return;
     }
 
     // Validate password strength before submitting
     if (!isPasswordValid) {
-      toast.error(
-        "Please ensure your password meets all security requirements.",
-      );
+      toast.error('Please ensure your password meets all security requirements.');
       return;
     }
 
@@ -176,7 +155,7 @@ const Auth = () => {
     try {
       // Build redirect URL with pricing parameters if they exist
       let redirectUrl = `${window.location.origin}/`;
-      if (priceId && redirect === "checkout") {
+      if (priceId && redirect === 'checkout') {
         redirectUrl = `${
           window.location.origin
         }/auth?priceId=${encodeURIComponent(priceId)}&redirect=checkout`;
@@ -196,9 +175,7 @@ const Auth = () => {
 
       if (result.error) {
         const errorMessage = AuthErrorHandler.getErrorMessage(result.error);
-        const suggestedAction = AuthErrorHandler.getSuggestedAction(
-          result.error,
-        );
+        const suggestedAction = AuthErrorHandler.getSuggestedAction(result.error);
         setLastError(errorMessage);
 
         toast.error(errorMessage, {
@@ -218,14 +195,14 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
+    const email = formData.get('email') as string;
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
       setResetEmailSent(true);
-      toast.success("Password reset email sent! Check your inbox.");
+      toast.success('Password reset email sent! Check your inbox.');
     } catch (error: any) {
       const errorMessage = AuthErrorHandler.getErrorMessage(error);
       toast.error(errorMessage);
@@ -234,8 +211,8 @@ const Auth = () => {
   };
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -243,7 +220,7 @@ const Auth = () => {
   // Show MFA challenge if required
   if (showMFAChallenge || mfaChallenge) {
     return (
-      <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-background p-4">
         <MFAChallenge
           onComplete={() => {
             setShowMFAChallenge(false);
@@ -257,10 +234,10 @@ const Auth = () => {
     );
   }
   return (
-    <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-background p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
+        <div className="mb-8 text-center">
+          <div className="mb-4 flex items-center justify-center">
             <img
               src="/lovable-uploads/6362c9bd-c403-4a72-abae-4de6f5238518.png"
               alt="SentriQ Labs"
@@ -269,19 +246,18 @@ const Auth = () => {
           </div>
           <div className="space-y-2">
             <p className="text-muted-foreground">
-              AI-powered security insights and expert guidance at your
-              fingertips
+              AI-powered security insights and expert guidance at your fingertips
             </p>
           </div>
         </div>
 
-        <Card className="shadow-elevated border-0">
+        <Card className="border-0 shadow-elevated">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-center text-2xl">Welcome</CardTitle>
             <CardDescription className="text-center">
               {showForgotPassword
-                ? "Enter your email to reset your password"
-                : "Sign in to your account or create a new one"}
+                ? 'Enter your email to reset your password'
+                : 'Sign in to your account or create a new one'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -291,8 +267,7 @@ const Auth = () => {
                   <Alert className="border-success bg-success/10">
                     <CheckCircle className="h-4 w-4 text-success" />
                     <AlertDescription className="text-success">
-                      Password reset email sent! Check your inbox and follow the
-                      instructions.
+                      Password reset email sent! Check your inbox and follow the instructions.
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -308,14 +283,10 @@ const Auth = () => {
                         className="h-11"
                       />
                     </div>
-                    <Button
-                      type="submit"
-                      className="w-full h-11"
-                      disabled={isLoading}
-                    >
+                    <Button type="submit" className="h-11 w-full" disabled={isLoading}>
                       {isLoading ? (
                         <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
                           Sending...
                         </div>
                       ) : (
@@ -341,7 +312,7 @@ const Auth = () => {
               </div>
             ) : (
               <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 h-11">
+                <TabsList className="grid h-11 w-full grid-cols-2">
                   <TabsTrigger
                     onClick={() => setLastError(null)}
                     value="signin"
@@ -387,7 +358,7 @@ const Auth = () => {
                         <Button
                           type="button"
                           variant="link"
-                          className="px-0 font-normal text-sm text-primary hover:text-primary/80"
+                          className="px-0 text-sm font-normal text-primary hover:text-primary/80"
                           onClick={() => setShowForgotPassword(true)}
                         >
                           Forgot password?
@@ -397,7 +368,7 @@ const Auth = () => {
                         <Input
                           id="password"
                           name="password"
-                          type={showPassword ? "text" : "password"}
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="Enter your password"
                           required
                           className="h-11 pr-10"
@@ -417,14 +388,10 @@ const Auth = () => {
                         </Button>
                       </div>
                     </div>
-                    <Button
-                      type="submit"
-                      className="w-full h-11 text-base"
-                      disabled={isLoading}
-                    >
+                    <Button type="submit" className="h-11 w-full text-base" disabled={isLoading}>
                       {isLoading ? (
                         <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
                           Signing in...
                         </div>
                       ) : (
@@ -489,7 +456,7 @@ const Auth = () => {
                         <Input
                           id="signup-password"
                           name="password"
-                          type={showPassword ? "text" : "password"}
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="Create a secure password"
                           required
                           minLength={12}
@@ -519,12 +486,12 @@ const Auth = () => {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full h-11 text-base"
+                      className="h-11 w-full text-base"
                       disabled={isLoading || !isPasswordValid}
                     >
                       {isLoading ? (
                         <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
                           Creating account...
                         </div>
                       ) : (
@@ -546,14 +513,14 @@ const Auth = () => {
           <div className="flex justify-center space-x-6">
             <Badge
               variant="secondary"
-              className="px-3 py-1 bg-green-100 text-green-800 border-green-200"
+              className="border-green-200 bg-green-100 px-3 py-1 text-green-800"
             >
               <Lock className="mr-1.5 h-3 w-3" />
               SSL Secured
             </Badge>
             <Badge
               variant="secondary"
-              className="px-3 py-1 bg-purple-100 text-purple-800 border-purple-200"
+              className="border-purple-200 bg-purple-100 px-3 py-1 text-purple-800"
             >
               <CreditCard className="mr-1.5 h-3 w-3" />
               Stripe Secured
@@ -572,16 +539,13 @@ const Auth = () => {
           </div>
         </div>
 
-        <div className="text-center mt-6 text-sm text-muted-foreground">
+        <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>
-            By creating an account, you agree to our{" "}
-            <Link
-              to="/terms-of-service"
-              className="text-primary hover:underline"
-            >
+            By creating an account, you agree to our{' '}
+            <Link to="/terms-of-service" className="text-primary hover:underline">
               Terms of Service
-            </Link>{" "}
-            and{" "}
+            </Link>{' '}
+            and{' '}
             <Link to="/privacy-policy" className="text-primary hover:underline">
               Privacy Policy
             </Link>

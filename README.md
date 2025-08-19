@@ -109,7 +109,7 @@ supabase/
 The `AuthContext` provides comprehensive auth state management:
 
 ```tsx
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from '@/contexts/AuthContext';
 
 function MyComponent() {
   const {

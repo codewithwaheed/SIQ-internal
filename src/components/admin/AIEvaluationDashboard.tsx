@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Play, Clock, CheckCircle, AlertCircle, FileText } from "lucide-react";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Play, Clock, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 
 interface EvaluationResult {
   prompt_id: string;
@@ -53,12 +53,9 @@ export const AIEvaluationDashboard = () => {
         setProgress((prev) => Math.min(prev + 10, 90));
       }, 2000);
 
-      const { data, error } = await supabase.functions.invoke(
-        "ai-eval-harness",
-        {
-          body: {},
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('ai-eval-harness', {
+        body: {},
+      });
 
       clearInterval(progressInterval);
       setProgress(100);
@@ -71,17 +68,16 @@ export const AIEvaluationDashboard = () => {
       setLastRun(data);
 
       toast({
-        title: "Evaluation completed",
+        title: 'Evaluation completed',
         description: `Processed ${data.prompt_count} prompts in ${(data.duration_ms / 1000).toFixed(1)}s`,
-        className: "message-success",
+        className: 'message-success',
       });
     } catch (error) {
-      console.error("Evaluation error:", error);
+      console.error('Evaluation error:', error);
       toast({
-        title: "Evaluation failed",
-        description:
-          error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
+        title: 'Evaluation failed',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive',
       });
     } finally {
       setIsRunning(false);
@@ -90,15 +86,15 @@ export const AIEvaluationDashboard = () => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return "text-green-600";
-    if (score >= 0.6) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 0.8) return 'text-green-600';
+    if (score >= 0.6) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 0.8) return "default";
-    if (score >= 0.6) return "secondary";
-    return "destructive";
+    if (score >= 0.8) return 'default';
+    if (score >= 0.6) return 'secondary';
+    return 'destructive';
   };
 
   const formatPercentage = (value: number) => `${(value * 100).toFixed(1)}%`;
@@ -115,19 +111,15 @@ export const AIEvaluationDashboard = () => {
           </p>
         </div>
 
-        <Button
-          onClick={runEvaluation}
-          disabled={isRunning}
-          className="min-w-32"
-        >
+        <Button onClick={runEvaluation} disabled={isRunning} className="min-w-32">
           {isRunning ? (
             <>
-              <Clock className="h-4 w-4 mr-2 animate-spin" />
+              <Clock className="mr-2 h-4 w-4 animate-spin" />
               Running...
             </>
           ) : (
             <>
-              <Play className="h-4 w-4 mr-2" />
+              <Play className="mr-2 h-4 w-4" />
               Run Evaluation
             </>
           )}
@@ -139,12 +131,8 @@ export const AIEvaluationDashboard = () => {
           <CardContent className="pt-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  Running evaluation harness...
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {progress}%
-                </span>
+                <span className="text-sm font-medium">Running evaluation harness...</span>
+                <span className="text-sm text-muted-foreground">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
             </div>
@@ -155,7 +143,7 @@ export const AIEvaluationDashboard = () => {
       {run && (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center space-x-2">
@@ -174,9 +162,7 @@ export const AIEvaluationDashboard = () => {
                   <Clock className="h-4 w-4 text-green-600" />
                   <div>
                     <p className="text-sm font-medium">Duration</p>
-                    <p className="text-2xl font-bold">
-                      {(run.duration_ms / 1000).toFixed(1)}s
-                    </p>
+                    <p className="text-2xl font-bold">{(run.duration_ms / 1000).toFixed(1)}s</p>
                   </div>
                 </div>
               </CardContent>
@@ -191,9 +177,7 @@ export const AIEvaluationDashboard = () => {
                     <p
                       className={`text-2xl font-bold ${getScoreColor(run.aggregate_scores.json_validity_rate)}`}
                     >
-                      {formatPercentage(
-                        run.aggregate_scores.json_validity_rate,
-                      )}
+                      {formatPercentage(run.aggregate_scores.json_validity_rate)}
                     </p>
                   </div>
                 </div>
@@ -209,9 +193,7 @@ export const AIEvaluationDashboard = () => {
                     <p
                       className={`text-2xl font-bold ${getScoreColor(run.aggregate_scores.escalation_accuracy)}`}
                     >
-                      {formatPercentage(
-                        run.aggregate_scores.escalation_accuracy,
-                      )}
+                      {formatPercentage(run.aggregate_scores.escalation_accuracy)}
                     </p>
                   </div>
                 </div>
@@ -225,45 +207,25 @@ export const AIEvaluationDashboard = () => {
               <CardTitle>Detailed Metrics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      Framework Tag Accuracy
-                    </span>
-                    <Badge
-                      variant={getScoreBadge(
-                        run.aggregate_scores.framework_accuracy_avg,
-                      )}
-                    >
-                      {formatPercentage(
-                        run.aggregate_scores.framework_accuracy_avg,
-                      )}
+                    <span className="text-sm font-medium">Framework Tag Accuracy</span>
+                    <Badge variant={getScoreBadge(run.aggregate_scores.framework_accuracy_avg)}>
+                      {formatPercentage(run.aggregate_scores.framework_accuracy_avg)}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      Risk Level Accuracy
-                    </span>
-                    <Badge
-                      variant={getScoreBadge(
-                        run.aggregate_scores.risk_level_accuracy,
-                      )}
-                    >
-                      {formatPercentage(
-                        run.aggregate_scores.risk_level_accuracy,
-                      )}
+                    <span className="text-sm font-medium">Risk Level Accuracy</span>
+                    <Badge variant={getScoreBadge(run.aggregate_scores.risk_level_accuracy)}>
+                      {formatPercentage(run.aggregate_scores.risk_level_accuracy)}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Citation Rate</span>
-                    <Badge
-                      variant={getScoreBadge(
-                        run.aggregate_scores.citation_rate,
-                      )}
-                    >
+                    <Badge variant={getScoreBadge(run.aggregate_scores.citation_rate)}>
                       {formatPercentage(run.aggregate_scores.citation_rate)}
                     </Badge>
                   </div>
@@ -271,38 +233,22 @@ export const AIEvaluationDashboard = () => {
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      Appropriate Length Rate
-                    </span>
-                    <Badge
-                      variant={getScoreBadge(
-                        run.aggregate_scores.appropriate_length_rate,
-                      )}
-                    >
-                      {formatPercentage(
-                        run.aggregate_scores.appropriate_length_rate,
-                      )}
+                    <span className="text-sm font-medium">Appropriate Length Rate</span>
+                    <Badge variant={getScoreBadge(run.aggregate_scores.appropriate_length_rate)}>
+                      {formatPercentage(run.aggregate_scores.appropriate_length_rate)}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      Next Actions Rate
-                    </span>
-                    <Badge
-                      variant={getScoreBadge(
-                        run.aggregate_scores.next_actions_rate,
-                      )}
-                    >
+                    <span className="text-sm font-medium">Next Actions Rate</span>
+                    <Badge variant={getScoreBadge(run.aggregate_scores.next_actions_rate)}>
                       {formatPercentage(run.aggregate_scores.next_actions_rate)}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Run ID</span>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">
-                      {run.run_id}
-                    </code>
+                    <code className="rounded bg-muted px-2 py-1 text-xs">{run.run_id}</code>
                   </div>
                 </div>
               </div>
@@ -319,47 +265,35 @@ export const AIEvaluationDashboard = () => {
                 {run.individual_results.map((result, index) => (
                   <div
                     key={result.prompt_id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
+                    className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div>
-                      <span className="text-sm font-medium">
-                        {result.prompt_id}
-                      </span>
+                      <span className="text-sm font-medium">{result.prompt_id}</span>
                       {result.error && (
-                        <span className="text-xs text-red-600 ml-2">
-                          Error: {result.error}
-                        </span>
+                        <span className="ml-2 text-xs text-red-600">Error: {result.error}</span>
                       )}
                     </div>
 
                     <div className="flex items-center space-x-2">
                       <Badge
-                        variant={
-                          result.scores.json_valid ? "default" : "destructive"
-                        }
+                        variant={result.scores.json_valid ? 'default' : 'destructive'}
                         className="text-xs"
                       >
-                        JSON: {result.scores.json_valid ? "✓" : "✗"}
+                        JSON: {result.scores.json_valid ? '✓' : '✗'}
                       </Badge>
 
                       <Badge
-                        variant={
-                          result.scores.escalation_accuracy
-                            ? "default"
-                            : "secondary"
-                        }
+                        variant={result.scores.escalation_accuracy ? 'default' : 'secondary'}
                         className="text-xs"
                       >
-                        ESC: {result.scores.escalation_accuracy ? "✓" : "✗"}
+                        ESC: {result.scores.escalation_accuracy ? '✓' : '✗'}
                       </Badge>
 
                       <Badge
-                        variant={
-                          result.scores.has_citations ? "default" : "secondary"
-                        }
+                        variant={result.scores.has_citations ? 'default' : 'secondary'}
                         className="text-xs"
                       >
-                        CITE: {result.scores.has_citations ? "✓" : "✗"}
+                        CITE: {result.scores.has_citations ? '✓' : '✗'}
                       </Badge>
                     </div>
                   </div>
@@ -374,11 +308,8 @@ export const AIEvaluationDashboard = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>
-                No evaluation runs yet. Click "Run Evaluation" to start testing
-                AI responses.
-              </p>
+              <FileText className="mx-auto mb-4 h-12 w-12 opacity-50" />
+              <p>No evaluation runs yet. Click "Run Evaluation" to start testing AI responses.</p>
             </div>
           </CardContent>
         </Card>

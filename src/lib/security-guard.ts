@@ -139,11 +139,11 @@ export interface GuardResult {
 
 export function guardRequest(
   userMessage: string,
-  userRole: string = "user",
-  userId: string = "anonymous",
+  userRole: string = 'user',
+  userId: string = 'anonymous',
 ): GuardResult {
   // Input validation
-  if (!userMessage || typeof userMessage !== "string") {
+  if (!userMessage || typeof userMessage !== 'string') {
     return { blocked: false };
   }
 
@@ -151,9 +151,9 @@ export function guardRequest(
   const normalizedMessage = userMessage.toLowerCase().trim();
 
   // Admins can access everything (but still log for audit)
-  if (userRole === "admin") {
+  if (userRole === 'admin') {
     // Log admin access for audit purposes
-    console.log("[SECURITY-GUARD] Admin bypass", {
+    console.log('[SECURITY-GUARD] Admin bypass', {
       userId,
       message: normalizedMessage.substring(0, 100),
     });
@@ -161,20 +161,18 @@ export function guardRequest(
   }
 
   // Check if message contains blocked patterns
-  const blockedPattern = BLOCK_PATTERNS.find((pattern) =>
-    pattern.test(normalizedMessage),
-  );
+  const blockedPattern = BLOCK_PATTERNS.find((pattern) => pattern.test(normalizedMessage));
 
   if (!blockedPattern) {
     return { blocked: false };
   }
 
   // Log the blocked attempt
-  console.warn("[SECURITY-GUARD] Blocked request", {
+  console.warn('[SECURITY-GUARD] Blocked request', {
     userId,
     userRole,
     pattern: blockedPattern.source,
-    message: normalizedMessage.substring(0, 100) + "...",
+    message: normalizedMessage.substring(0, 100) + '...',
     timestamp: new Date().toISOString(),
   });
 
@@ -196,7 +194,7 @@ export function guardRequest(
 
   // After 3 attempts, show redirect message
   if (userState.dataRequestAttempts >= 3) {
-    console.warn("[SECURITY-GUARD] Repeated violation", {
+    console.warn('[SECURITY-GUARD] Repeated violation', {
       userId,
       attemptCount: userState.dataRequestAttempts,
       pattern: blockedPattern.source,
@@ -217,31 +215,30 @@ export function guardRequest(
 }
 
 export function isAdminRole(userRole: string): boolean {
-  return userRole === "admin";
+  return userRole === 'admin';
 }
 
 export function requireAdmin(userRole: string): void {
   if (!isAdminRole(userRole)) {
-    throw new Error("Access denied: Admin role required");
+    throw new Error('Access denied: Admin role required');
   }
 }
 
 // Compliance topic suggestions
 export const COMPLIANCE_TOPICS = [
-  "NIST Cybersecurity Framework implementation",
-  "ISO 27001 compliance requirements",
-  "SOC 2 audit preparation",
-  "CMMC compliance for defense contractors",
-  "HIPAA security controls for healthcare",
-  "PCI DSS requirements for payment processing",
-  "GDPR data protection compliance",
-  "Incident response planning",
-  "Risk assessment methodologies",
-  "Security awareness training programs",
+  'NIST Cybersecurity Framework implementation',
+  'ISO 27001 compliance requirements',
+  'SOC 2 audit preparation',
+  'CMMC compliance for defense contractors',
+  'HIPAA security controls for healthcare',
+  'PCI DSS requirements for payment processing',
+  'GDPR data protection compliance',
+  'Incident response planning',
+  'Risk assessment methodologies',
+  'Security awareness training programs',
 ];
 
 export function getComplianceTopicSuggestion(): string {
-  const randomTopic =
-    COMPLIANCE_TOPICS[Math.floor(Math.random() * COMPLIANCE_TOPICS.length)];
+  const randomTopic = COMPLIANCE_TOPICS[Math.floor(Math.random() * COMPLIANCE_TOPICS.length)];
   return `Would you like help with ${randomTopic}?`;
 }

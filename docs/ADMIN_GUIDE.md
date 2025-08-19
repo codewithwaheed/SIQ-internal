@@ -248,14 +248,14 @@ Create organization-specific views:
 ```yaml
 # Automated backups via Supabase
 backup_schedule:
-  frequency: "daily"
-  time: "02:00 UTC"
-  retention: "30 days"
-  encryption: "AES-256"
+  frequency: 'daily'
+  time: '02:00 UTC'
+  retention: '30 days'
+  encryption: 'AES-256'
 
 point_in_time_recovery:
   enabled: true
-  retention: "7 days"
+  retention: '7 days'
 ```
 
 #### Performance Optimization

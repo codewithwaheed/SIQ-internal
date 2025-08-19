@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 interface TypewriterAnimationProps {
   texts: string[];
@@ -13,10 +13,10 @@ export const TypewriterAnimation = ({
   speed = 150,
   deleteSpeed = 75,
   pause = 2000,
-  className = "",
+  className = '',
 }: TypewriterAnimationProps) => {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
-  const [currentText, setCurrentText] = useState("");
+  const [currentText, setCurrentText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTyping, setIsTyping] = useState(true);
 
@@ -44,15 +44,7 @@ export const TypewriterAnimation = ({
     );
 
     return () => clearTimeout(timer);
-  }, [
-    currentText,
-    currentTextIndex,
-    isDeleting,
-    texts,
-    speed,
-    deleteSpeed,
-    pause,
-  ]);
+  }, [currentText, currentTextIndex, isDeleting, texts, speed, deleteSpeed, pause]);
 
   return (
     <span className={className}>

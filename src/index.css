@@ -86,11 +86,7 @@ Based on exact brand colors and Poppins typography
       hsl(var(--brand-blue)) 0%,
       hsl(var(--brand-cyan)) 100%
     );
-    --gradient-background: linear-gradient(
-      180deg,
-      hsl(var(--background)),
-      hsl(210 20% 99%)
-    );
+    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(210 20% 99%));
 
     /* Clean shadows */
     --shadow-minimal: 0 1px 3px -1px hsl(210 15% 15% / 0.08);
@@ -117,21 +113,9 @@ Based on exact brand colors and Poppins typography
     --ring: 215 28% 17%;
 
     /* Security-themed gradients */
-    --gradient-primary: linear-gradient(
-      135deg,
-      hsl(var(--primary)),
-      hsl(var(--primary-glow))
-    );
-    --gradient-accent: linear-gradient(
-      135deg,
-      hsl(var(--accent)),
-      hsl(213 94% 75%)
-    );
-    --gradient-background: linear-gradient(
-      180deg,
-      hsl(var(--background)),
-      hsl(215 20% 96%)
-    );
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(213 94% 75%));
+    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(215 20% 96%));
 
     /* Professional shadows */
     --shadow-subtle: 0 2px 8px -2px hsl(var(--primary) / 0.1);
@@ -252,10 +236,7 @@ main.app-content {
 /* Floating composer card */
 .chat-composer .composer-shell {
   pointer-events: auto;
-  width: min(
-    calc(100% - (var(--composer-side-gutter) * 2)),
-    var(--composer-maxw)
-  );
+  width: min(calc(100% - (var(--composer-side-gutter) * 2)), var(--composer-maxw));
   margin: var(--composer-gap) auto 0;
   margin-bottom: calc(env(safe-area-inset-bottom) + var(--composer-gap));
   background: hsl(var(--background));
@@ -386,11 +367,11 @@ main.app-content {
 
   /* Loading & Typing Indicators */
   .typing-indicator {
-    @apply flex space-x-1 items-center;
+    @apply flex items-center space-x-1;
   }
 
   .typing-dot {
-    @apply w-2 h-2 bg-muted-foreground rounded-full animate-pulse;
+    @apply h-2 w-2 animate-pulse rounded-full bg-muted-foreground;
   }
 
   .typing-dot:nth-child(1) {
@@ -405,7 +386,7 @@ main.app-content {
 
   /* Progress Bar */
   .progress-bar {
-    @apply w-full bg-secondary rounded-full h-2 overflow-hidden;
+    @apply h-2 w-full overflow-hidden rounded-full bg-secondary;
   }
 
   .progress-fill {
@@ -438,16 +419,16 @@ main.app-content {
 
   /* Interaction Feedback */
   .button-press {
-    @apply active:scale-95 transition-transform duration-100;
+    @apply transition-transform duration-100 active:scale-95;
   }
 
   .hover-lift {
-    @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg;
   }
 
   /* Context Indicators */
   .context-chip {
-    @apply inline-flex items-center px-2 py-1 rounded-full bg-accent/10 text-accent text-xs border border-accent/20;
+    @apply inline-flex items-center rounded-full border border-accent/20 bg-accent/10 px-2 py-1 text-xs text-accent;
   }
 
   .context-chip.active {

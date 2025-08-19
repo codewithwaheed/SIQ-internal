@@ -1,17 +1,14 @@
-import { ArrowUp, History, Upload, Crown, Square } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tooltip } from "@/components/ui/custom-tooltip";
-import { DocumentUpload } from "./DocumentUpload";
-import {
-  InlineUpgradeNudge,
-  UpgradePrompt,
-} from "@/components/ui/feature-gate";
-import { useFeatureGating } from "@/hooks/useFeatureGating";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { ArrowUp, History, Upload, Crown, Square } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tooltip } from '@/components/ui/custom-tooltip';
+import { DocumentUpload } from './DocumentUpload';
+import { InlineUpgradeNudge, UpgradePrompt } from '@/components/ui/feature-gate';
+import { useFeatureGating } from '@/hooks/useFeatureGating';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 interface MessageInputBoxProps {
   input: string;
@@ -58,7 +55,7 @@ export const MessageInputBox = ({
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const handleUploadClick = () => {
-    const access = checkFeatureAccess("document_upload");
+    const access = checkFeatureAccess('document_upload');
     if (access.hasAccess) {
       onShowDocumentUpload();
     } else {
@@ -66,27 +63,25 @@ export const MessageInputBox = ({
     }
   };
 
-  const access = checkFeatureAccess("document_upload");
-  const premiumIcon = (
-    <Crown className="w-3 h-3 absolute -top-1 -right-1 text-blue-500" />
-  );
+  const access = checkFeatureAccess('document_upload');
+  const premiumIcon = <Crown className="absolute -right-1 -top-1 h-3 w-3 text-blue-500" />;
 
   return (
     <div className="w-full p-3 sm:p-4">
-      <div className="flex items-end gap-2 sm:gap-3 w-full">
+      <div className="flex w-full items-end gap-2 sm:gap-3">
         {/* Left Actions - Mobile Optimized */}
         <div className="flex items-center gap-1 sm:gap-2">
           {!isDemo && user && (
             <>
               {/* History Button with Badge - Larger Touch Target */}
               <Tooltip
-                content={`Chat History${conversations.length > 0 ? ` (${conversations.length})` : ""}`}
+                content={`Chat History${conversations.length > 0 ? ` (${conversations.length})` : ''}`}
               >
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={onShowChatHistory}
-                  className="relative h-10 w-10 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-xl touch-manipulation"
+                  className="relative h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
                 >
                   <History className="h-5 w-5 sm:h-4 sm:w-4" />
                 </Button>
@@ -100,29 +95,25 @@ export const MessageInputBox = ({
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="relative h-10 w-10 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-xl touch-manipulation"
+                      className="relative h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
                     >
                       <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
-                      {!access.hasAccess &&
-                        uploadedDocuments.length === 0 &&
-                        premiumIcon}
+                      {!access.hasAccess && uploadedDocuments.length === 0 && premiumIcon}
                     </Button>
                   }
                 />
               ) : (
                 <Tooltip
-                  content={`Upload Documents${uploadedDocuments.length > 0 ? ` (${uploadedDocuments.length} uploaded)` : ""}`}
+                  content={`Upload Documents${uploadedDocuments.length > 0 ? ` (${uploadedDocuments.length} uploaded)` : ''}`}
                 >
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={handleUploadClick}
-                    className="relative h-10 w-10 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-xl touch-manipulation"
+                    className="relative h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
                   >
                     <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
-                    {!access.hasAccess &&
-                      uploadedDocuments.length === 0 &&
-                      premiumIcon}
+                    {!access.hasAccess && uploadedDocuments.length === 0 && premiumIcon}
                   </Button>
                 </Tooltip>
               )}
@@ -131,34 +122,34 @@ export const MessageInputBox = ({
         </div>
 
         {/* Input Area - Mobile Optimized */}
-        <div className="flex-1 relative min-w-0">
+        <div className="relative min-w-0 flex-1">
           <Textarea
             ref={inputRef}
             placeholder={
               loading
                 ? isEscalated
-                  ? "Expert is responding..."
-                  : "AI is responding..."
+                  ? 'Expert is responding...'
+                  : 'AI is responding...'
                 : isEscalated
-                  ? "Type your message to the cybersecurity expert..."
-                  : "What cybersecurity challenge can I help you solve today?"
+                  ? 'Type your message to the cybersecurity expert...'
+                  : 'What cybersecurity challenge can I help you solve today?'
             }
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={onKeyPress}
             disabled={loading}
-            className="min-h-[48px] max-h-[120px] resize-none border border-border/30 bg-background text-base placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring px-3 sm:px-4 py-3 rounded-xl transition-all touch-manipulation"
+            className="max-h-[120px] min-h-[48px] touch-manipulation resize-none rounded-xl border border-border/30 bg-background px-3 py-3 text-base transition-all placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring sm:px-4"
           />
         </div>
 
         {/* Right Actions - Mobile Optimized */}
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
           {/* Send/Stop Button - Dynamic based on loading state */}
           {loading && abortController ? (
             <Button
               size="icon"
               onClick={onStopGeneration}
-              className="h-12 w-12 sm:h-10 sm:w-10 rounded-xl transition-all duration-200 touch-manipulation bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              className="h-12 w-12 touch-manipulation rounded-xl bg-destructive text-destructive-foreground transition-all duration-200 hover:bg-destructive/90 sm:h-10 sm:w-10"
             >
               <Square className="h-5 w-5 sm:h-4 sm:w-4" />
             </Button>
@@ -167,16 +158,16 @@ export const MessageInputBox = ({
               size="icon"
               onClick={onSendMessage}
               disabled={loading || !input.trim()}
-              className={`h-12 w-12 sm:h-10 sm:w-10 rounded-xl transition-all duration-200 touch-manipulation ${
+              className={`h-12 w-12 touch-manipulation rounded-xl transition-all duration-200 sm:h-10 sm:w-10 ${
                 loading
-                  ? "bg-muted text-muted-foreground cursor-not-allowed"
+                  ? 'cursor-not-allowed bg-muted text-muted-foreground'
                   : input.trim()
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg hover:scale-105"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    ? 'bg-primary text-primary-foreground shadow-md hover:scale-105 hover:bg-primary/90 hover:shadow-lg'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
               {loading ? (
-                <div className="animate-spin h-5 w-5 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent sm:h-4 sm:w-4" />
               ) : (
                 <ArrowUp className="h-5 w-5 sm:h-4 sm:w-4" />
               )}

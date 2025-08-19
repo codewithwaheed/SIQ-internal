@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface EscalationOptions {
   conversationId: string;
   reason?: string;
-  priority?: "low" | "normal" | "high" | "urgent";
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
   aiInitiated?: boolean;
 }
 
@@ -27,12 +27,9 @@ export const useEscalation = () => {
       setIsEscalating(true);
 
       try {
-        const { data, error } = await supabase.functions.invoke(
-          "conversation-escalate",
-          {
-            body: options,
-          },
-        );
+        const { data, error } = await supabase.functions.invoke('conversation-escalate', {
+          body: options,
+        });
 
         if (error) {
           throw new Error(error.message);
@@ -40,21 +37,21 @@ export const useEscalation = () => {
 
         if (data.success) {
           toast({
-            title: "Escalated Successfully",
+            title: 'Escalated Successfully',
             description: data.message,
           });
         }
 
         return data;
       } catch (error: any) {
-        console.error("Escalation error:", error);
+        console.error('Escalation error:', error);
 
-        const errorMessage = error.message || "Failed to escalate conversation";
+        const errorMessage = error.message || 'Failed to escalate conversation';
 
         toast({
-          title: "Escalation Failed",
+          title: 'Escalation Failed',
           description: errorMessage,
-          variant: "destructive",
+          variant: 'destructive',
         });
 
         return {
@@ -71,11 +68,9 @@ export const useEscalation = () => {
   const checkEscalationStatus = useCallback(async (conversationId: string) => {
     try {
       const { data, error } = await supabase
-        .from("chat_conversations")
-        .select(
-          "status, consultant_id, escalations(id, status, assigned_consultant)",
-        )
-        .eq("id", conversationId)
+        .from('chat_conversations')
+        .select('status, consultant_id, escalations(id, status, assigned_consultant)')
+        .eq('id', conversationId)
         .single();
 
       if (error) {
@@ -83,12 +78,12 @@ export const useEscalation = () => {
       }
 
       return {
-        isEscalated: data.status === "escalated",
+        isEscalated: data.status === 'escalated',
         consultantId: data.consultant_id,
         escalations: data.escalations || [],
       };
     } catch (error: any) {
-      console.error("Error checking escalation status:", error);
+      console.error('Error checking escalation status:', error);
       return {
         isEscalated: false,
         consultantId: null,
@@ -99,14 +94,11 @@ export const useEscalation = () => {
 
   // Helper function for AI to trigger escalation
   const triggerAIEscalation = useCallback(
-    async (
-      conversationId: string,
-      reason: string,
-    ): Promise<EscalationResult> => {
+    async (conversationId: string, reason: string): Promise<EscalationResult> => {
       return escalateConversation({
         conversationId,
         reason,
-        priority: "normal",
+        priority: 'normal',
         aiInitiated: true,
       });
     },

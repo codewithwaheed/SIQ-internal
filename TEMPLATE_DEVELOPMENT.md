@@ -68,9 +68,9 @@ Add your template to the policy generator configuration:
 export const POLICY_TEMPLATES = {
   // ... existing templates
   data_retention: {
-    file: "data_retention.md",
-    title: "Data Retention Policy",
-    description: "Defines data lifecycle and retention requirements",
+    file: 'data_retention.md',
+    title: 'Data Retention Policy',
+    description: 'Defines data lifecycle and retention requirements',
   },
 };
 ```
@@ -83,9 +83,9 @@ Define defaults for your template tokens:
 // src/config/defaults.ts
 export const POLICY_DEFAULTS = {
   // ... existing defaults
-  retention_period_years: "7",
-  backup_frequency: "daily",
-  compliance_framework: "SOX, GDPR, CCPA",
+  retention_period_years: '7',
+  backup_frequency: 'daily',
+  compliance_framework: 'SOX, GDPR, CCPA',
 };
 ```
 
@@ -98,11 +98,11 @@ Map keywords to your policy type:
 export const POLICY_SLUG_MAP: Record<PolicySlug, string[]> = {
   // ... existing mappings
   data_retention: [
-    "data retention",
-    "retention policy",
-    "data lifecycle",
-    "backup policy",
-    "archive",
+    'data retention',
+    'retention policy',
+    'data lifecycle',
+    'backup policy',
+    'archive',
   ],
 };
 ```
@@ -273,12 +273,12 @@ const getIndustryTemplate = (industry: string, policyType: string) => {
 ```typescript
 // Generate content based on organization size
 const generateRequirements = (orgSize: string) => {
-  if (orgSize === "enterprise") {
-    return "Formal change management process required";
-  } else if (orgSize === "medium") {
-    return "Document all changes in change log";
+  if (orgSize === 'enterprise') {
+    return 'Formal change management process required';
+  } else if (orgSize === 'medium') {
+    return 'Document all changes in change log';
   } else {
-    return "Maintain basic change records";
+    return 'Maintain basic change records';
   }
 };
 ```
@@ -290,13 +290,7 @@ const generateRequirements = (orgSize: string) => {
 ```typescript
 // Test template structure
 const validateTemplate = (template: string) => {
-  const requiredSections = [
-    "Introduction",
-    "Purpose",
-    "Scope",
-    "Policy Statement",
-    "Procedures",
-  ];
+  const requiredSections = ['Introduction', 'Purpose', 'Scope', 'Policy Statement', 'Procedures'];
 
   requiredSections.forEach((section) => {
     if (!template.includes(`**${section}**`)) {
@@ -313,7 +307,7 @@ const validateTemplate = (template: string) => {
 const validatePlaceholders = (template: string) => {
   const placeholders = template.match(/\{\{([a-z0-9_]+)\}\}/gi);
   placeholders?.forEach((placeholder) => {
-    const fieldName = placeholder.replace(/[{}]/g, "");
+    const fieldName = placeholder.replace(/[{}]/g, '');
     if (!POLICY_DEFAULTS[fieldName]) {
       console.warn(`No default value for: ${fieldName}`);
     }

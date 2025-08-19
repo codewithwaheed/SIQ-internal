@@ -1,14 +1,8 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -16,11 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle, XCircle, Clock, Eye, MessageSquare } from "lucide-react";
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { CheckCircle, XCircle, Clock, Eye, MessageSquare } from 'lucide-react';
 
 interface ConsultantApplication {
   id: string;
@@ -46,7 +40,7 @@ interface ConsultantApplication {
   background_check_consent: boolean;
   nda_agreement: boolean;
   additional_info?: string;
-  status: "pending" | "approved" | "rejected";
+  status: 'pending' | 'approved' | 'rejected';
   admin_notes?: string;
   created_at: string;
   updated_at: string;
@@ -57,32 +51,28 @@ interface ConsultantApplication {
 export const ConsultantApplicationsDashboard = () => {
   const [applications, setApplications] = useState<ConsultantApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedApplication, setSelectedApplication] =
-    useState<ConsultantApplication | null>(null);
-  const [adminNotes, setAdminNotes] = useState("");
+  const [selectedApplication, setSelectedApplication] = useState<ConsultantApplication | null>(
+    null,
+  );
+  const [adminNotes, setAdminNotes] = useState('');
   const [updating, setUpdating] = useState(false);
-  const [filter, setFilter] = useState<
-    "all" | "pending" | "approved" | "rejected"
-  >("all");
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const { toast } = useToast();
 
   const fetchApplications = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "manage-consultant-applications",
-        {
-          method: "GET",
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('manage-consultant-applications', {
+        method: 'GET',
+      });
 
       if (error) throw error;
       setApplications(data || []);
     } catch (error: any) {
-      console.error("Error fetching applications:", error);
+      console.error('Error fetching applications:', error);
       toast({
-        title: "Error",
-        description: "Failed to load applications",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load applications',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -95,39 +85,36 @@ export const ConsultantApplicationsDashboard = () => {
 
   const updateApplicationStatus = async (
     applicationId: string,
-    status: "approved" | "rejected",
+    status: 'approved' | 'rejected',
   ) => {
     setUpdating(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "manage-consultant-applications",
-        {
-          method: "PATCH",
-          body: {
-            applicationId,
-            status,
-            adminNotes,
-          },
+      const { data, error } = await supabase.functions.invoke('manage-consultant-applications', {
+        method: 'PATCH',
+        body: {
+          applicationId,
+          status,
+          adminNotes,
         },
-      );
+      });
 
       if (error) throw error;
 
       toast({
-        title: "Success",
+        title: 'Success',
         description: `Application ${status} successfully`,
       });
 
       // Refresh applications
       await fetchApplications();
       setSelectedApplication(null);
-      setAdminNotes("");
+      setAdminNotes('');
     } catch (error: any) {
-      console.error("Error updating application:", error);
+      console.error('Error updating application:', error);
       toast({
-        title: "Error",
-        description: "Failed to update application",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update application',
+        variant: 'destructive',
       });
     } finally {
       setUpdating(false);
@@ -136,24 +123,24 @@ export const ConsultantApplicationsDashboard = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending":
+      case 'pending':
         return (
           <Badge variant="secondary">
-            <Clock className="w-3 h-3 mr-1" />
+            <Clock className="mr-1 h-3 w-3" />
             Pending
           </Badge>
         );
-      case "approved":
+      case 'approved':
         return (
           <Badge variant="default" className="bg-green-500">
-            <CheckCircle className="w-3 h-3 mr-1" />
+            <CheckCircle className="mr-1 h-3 w-3" />
             Approved
           </Badge>
         );
-      case "rejected":
+      case 'rejected':
         return (
           <Badge variant="destructive">
-            <XCircle className="w-3 h-3 mr-1" />
+            <XCircle className="mr-1 h-3 w-3" />
             Rejected
           </Badge>
         );
@@ -163,44 +150,31 @@ export const ConsultantApplicationsDashboard = () => {
   };
 
   const filteredApplications = applications.filter(
-    (app) => filter === "all" || app.status === filter,
+    (app) => filter === 'all' || app.status === filter,
   );
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        Loading applications...
-      </div>
-    );
+    return <div className="flex h-64 items-center justify-center">Loading applications...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Consultant Applications</h1>
-        <p className="text-muted-foreground">
-          Review and manage consultant applications
-        </p>
+        <p className="text-muted-foreground">Review and manage consultant applications</p>
       </div>
 
-      <Tabs
-        value={filter}
-        onValueChange={(value) => setFilter(value as any)}
-        className="w-full"
-      >
+      <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">All ({applications.length})</TabsTrigger>
           <TabsTrigger value="pending">
-            Pending ({applications.filter((a) => a.status === "pending").length}
-            )
+            Pending ({applications.filter((a) => a.status === 'pending').length})
           </TabsTrigger>
           <TabsTrigger value="approved">
-            Approved (
-            {applications.filter((a) => a.status === "approved").length})
+            Approved ({applications.filter((a) => a.status === 'approved').length})
           </TabsTrigger>
           <TabsTrigger value="rejected">
-            Rejected (
-            {applications.filter((a) => a.status === "rejected").length})
+            Rejected ({applications.filter((a) => a.status === 'rejected').length})
           </TabsTrigger>
         </TabsList>
 
@@ -216,7 +190,7 @@ export const ConsultantApplicationsDashboard = () => {
               {filteredApplications.map((application) => (
                 <Card key={application.id}>
                   <CardHeader>
-                    <div className="flex justify-between items-start">
+                    <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2">
                           {application.full_name}
@@ -225,13 +199,12 @@ export const ConsultantApplicationsDashboard = () => {
                         <CardDescription>{application.email}</CardDescription>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Applied{" "}
-                        {new Date(application.created_at).toLocaleDateString()}
+                        Applied {new Date(application.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
                       <div>
                         <p className="text-sm font-medium">Experience</p>
                         <p className="text-sm text-muted-foreground">
@@ -240,9 +213,7 @@ export const ConsultantApplicationsDashboard = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Timezone</p>
-                        <p className="text-sm text-muted-foreground">
-                          {application.timezone}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{application.timezone}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">Availability</p>
@@ -253,18 +224,14 @@ export const ConsultantApplicationsDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">SMB Experience</p>
                         <p className="text-sm text-muted-foreground">
-                          {application.smb_experience ? "Yes" : "No"}
+                          {application.smb_experience ? 'Yes' : 'No'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-1 mb-4">
+                    <div className="mb-4 flex flex-wrap gap-1">
                       {application.expertise_areas.map((area, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="text-xs"
-                        >
+                        <Badge key={index} variant="outline" className="text-xs">
                           {area}
                         </Badge>
                       ))}
@@ -278,102 +245,81 @@ export const ConsultantApplicationsDashboard = () => {
                             size="sm"
                             onClick={() => setSelectedApplication(application)}
                           >
-                            <Eye className="w-4 h-4 mr-1" />
+                            <Eye className="mr-1 h-4 w-4" />
                             View Details
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogContent className="max-h-[80vh] max-w-4xl overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>{application.full_name}</DialogTitle>
-                            <DialogDescription>
-                              Consultant Application Details
-                            </DialogDescription>
+                            <DialogDescription>Consultant Application Details</DialogDescription>
                           </DialogHeader>
 
                           <div className="space-y-6">
                             {/* Basic Info */}
                             <div>
-                              <h3 className="font-semibold mb-2">
-                                Contact Information
-                              </h3>
+                              <h3 className="mb-2 font-semibold">Contact Information</h3>
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
                                   <strong>Email:</strong> {application.email}
                                 </div>
                                 <div>
-                                  <strong>Phone:</strong>{" "}
-                                  {application.phone || "Not provided"}
+                                  <strong>Phone:</strong> {application.phone || 'Not provided'}
                                 </div>
                                 <div>
-                                  <strong>LinkedIn:</strong>{" "}
-                                  {application.linkedin || "Not provided"}
+                                  <strong>LinkedIn:</strong>{' '}
+                                  {application.linkedin || 'Not provided'}
                                 </div>
                                 <div>
-                                  <strong>Timezone:</strong>{" "}
-                                  {application.timezone}
+                                  <strong>Timezone:</strong> {application.timezone}
                                 </div>
                               </div>
                             </div>
 
                             {/* Experience */}
                             <div>
-                              <h3 className="font-semibold mb-2">
-                                Experience & Background
-                              </h3>
+                              <h3 className="mb-2 font-semibold">Experience & Background</h3>
                               <div className="space-y-2 text-sm">
                                 <div>
-                                  <strong>Years of Experience:</strong>{" "}
+                                  <strong>Years of Experience:</strong>{' '}
                                   {application.experience_years}
                                 </div>
                                 <div>
-                                  <strong>SMB Experience:</strong>{" "}
-                                  {application.smb_experience ? "Yes" : "No"}
+                                  <strong>SMB Experience:</strong>{' '}
+                                  {application.smb_experience ? 'Yes' : 'No'}
                                 </div>
                                 <div>
-                                  <strong>vCISO Experience:</strong>{" "}
-                                  {application.vciso_experience ? "Yes" : "No"}
+                                  <strong>vCISO Experience:</strong>{' '}
+                                  {application.vciso_experience ? 'Yes' : 'No'}
                                 </div>
                                 <div>
                                   <strong>Expertise Areas:</strong>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {application.expertise_areas.map(
-                                      (area, index) => (
-                                        <Badge
-                                          key={index}
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {area}
-                                        </Badge>
-                                      ),
-                                    )}
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {application.expertise_areas.map((area, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {area}
+                                      </Badge>
+                                    ))}
                                   </div>
                                 </div>
                                 <div>
                                   <strong>Certifications:</strong>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {application.certifications.map(
-                                      (cert, index) => (
-                                        <Badge
-                                          key={index}
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {cert}
-                                        </Badge>
-                                      ),
-                                    )}
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {application.certifications.map((cert, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {cert}
+                                      </Badge>
+                                    ))}
                                   </div>
                                 </div>
                                 {application.other_expertise && (
                                   <div>
-                                    <strong>Other Expertise:</strong>{" "}
-                                    {application.other_expertise}
+                                    <strong>Other Expertise:</strong> {application.other_expertise}
                                   </div>
                                 )}
                                 {application.other_certifications && (
                                   <div>
-                                    <strong>Other Certifications:</strong>{" "}
+                                    <strong>Other Certifications:</strong>{' '}
                                     {application.other_certifications}
                                   </div>
                                 )}
@@ -382,28 +328,19 @@ export const ConsultantApplicationsDashboard = () => {
 
                             {/* Availability */}
                             <div>
-                              <h3 className="font-semibold mb-2">
-                                Availability
-                              </h3>
-                              <div className="text-sm space-y-2">
+                              <h3 className="mb-2 font-semibold">Availability</h3>
+                              <div className="space-y-2 text-sm">
                                 <div>
-                                  <strong>Hours per week:</strong>{" "}
-                                  {application.availability_hours}
+                                  <strong>Hours per week:</strong> {application.availability_hours}
                                 </div>
                                 <div>
                                   <strong>Engagement Preferences:</strong>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {application.engagement_preferences.map(
-                                      (pref, index) => (
-                                        <Badge
-                                          key={index}
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {pref}
-                                        </Badge>
-                                      ),
-                                    )}
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {application.engagement_preferences.map((pref, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {pref}
+                                      </Badge>
+                                    ))}
                                   </div>
                                 </div>
                               </div>
@@ -412,31 +349,21 @@ export const ConsultantApplicationsDashboard = () => {
                             {/* Additional Info */}
                             {application.additional_info && (
                               <div>
-                                <h3 className="font-semibold mb-2">
-                                  Additional Information
-                                </h3>
-                                <p className="text-sm">
-                                  {application.additional_info}
-                                </p>
+                                <h3 className="mb-2 font-semibold">Additional Information</h3>
+                                <p className="text-sm">{application.additional_info}</p>
                               </div>
                             )}
 
                             {/* Admin Actions */}
-                            {application.status === "pending" && (
+                            {application.status === 'pending' && (
                               <div className="border-t pt-4">
-                                <h3 className="font-semibold mb-2">
-                                  Admin Actions
-                                </h3>
+                                <h3 className="mb-2 font-semibold">Admin Actions</h3>
                                 <div className="space-y-4">
                                   <div>
-                                    <label className="text-sm font-medium">
-                                      Admin Notes
-                                    </label>
+                                    <label className="text-sm font-medium">Admin Notes</label>
                                     <Textarea
                                       value={adminNotes}
-                                      onChange={(e) =>
-                                        setAdminNotes(e.target.value)
-                                      }
+                                      onChange={(e) => setAdminNotes(e.target.value)}
                                       placeholder="Add notes about this application..."
                                       className="mt-1"
                                     />
@@ -444,28 +371,22 @@ export const ConsultantApplicationsDashboard = () => {
                                   <div className="flex gap-2">
                                     <Button
                                       onClick={() =>
-                                        updateApplicationStatus(
-                                          application.id,
-                                          "approved",
-                                        )
+                                        updateApplicationStatus(application.id, 'approved')
                                       }
                                       disabled={updating}
                                       className="bg-green-500 hover:bg-green-600"
                                     >
-                                      <CheckCircle className="w-4 h-4 mr-1" />
+                                      <CheckCircle className="mr-1 h-4 w-4" />
                                       Approve
                                     </Button>
                                     <Button
                                       onClick={() =>
-                                        updateApplicationStatus(
-                                          application.id,
-                                          "rejected",
-                                        )
+                                        updateApplicationStatus(application.id, 'rejected')
                                       }
                                       disabled={updating}
                                       variant="destructive"
                                     >
-                                      <XCircle className="w-4 h-4 mr-1" />
+                                      <XCircle className="mr-1 h-4 w-4" />
                                       Reject
                                     </Button>
                                   </div>
@@ -476,10 +397,8 @@ export const ConsultantApplicationsDashboard = () => {
                             {/* Admin Notes Display */}
                             {application.admin_notes && (
                               <div>
-                                <h3 className="font-semibold mb-2">
-                                  Admin Notes
-                                </h3>
-                                <p className="text-sm bg-muted p-3 rounded">
+                                <h3 className="mb-2 font-semibold">Admin Notes</h3>
+                                <p className="rounded bg-muted p-3 text-sm">
                                   {application.admin_notes}
                                 </p>
                               </div>
@@ -488,21 +407,18 @@ export const ConsultantApplicationsDashboard = () => {
                         </DialogContent>
                       </Dialog>
 
-                      {application.status === "pending" && (
+                      {application.status === 'pending' && (
                         <>
                           <Button
                             size="sm"
                             onClick={() => {
                               setSelectedApplication(application);
-                              updateApplicationStatus(
-                                application.id,
-                                "approved",
-                              );
+                              updateApplicationStatus(application.id, 'approved');
                             }}
                             disabled={updating}
                             className="bg-green-500 hover:bg-green-600"
                           >
-                            <CheckCircle className="w-4 h-4 mr-1" />
+                            <CheckCircle className="mr-1 h-4 w-4" />
                             Approve
                           </Button>
                           <Button
@@ -510,14 +426,11 @@ export const ConsultantApplicationsDashboard = () => {
                             variant="destructive"
                             onClick={() => {
                               setSelectedApplication(application);
-                              updateApplicationStatus(
-                                application.id,
-                                "rejected",
-                              );
+                              updateApplicationStatus(application.id, 'rejected');
                             }}
                             disabled={updating}
                           >
-                            <XCircle className="w-4 h-4 mr-1" />
+                            <XCircle className="mr-1 h-4 w-4" />
                             Reject
                           </Button>
                         </>
