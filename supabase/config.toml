@@ -1,0 +1,22 @@
+project_id = "xfdqnmtzuuphxivsgmua"
+
+[functions.chat-with-ai]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.extract-text]
+verify_jwt = false
+
+[functions.export-policy]
+verify_jwt = true
+
+[functions.submit-ai-feedback]
+verify_jwt = true
+
+[functions.get-cve-details]
+verify_jwt = false
+
+[functions.fetch-latest-cves]
+verify_jwt = false

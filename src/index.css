@@ -1,0 +1,528 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SentrIQ Labs Design System - Modern & Minimalistic
+Based on exact brand colors and Poppins typography
+*/
+
+@layer base {
+  :root {
+    /* === SPACING SCALE - USE ONLY THESE === */
+    --space-0: 0;
+    --space-1: 4px;          /* xs gap */
+    --space-2: 8px;          /* sm gap */
+    --space-3: 12px;         /* md gap */
+    --space-4: 16px;         /* lg gap */
+    --space-5: 24px;         /* xl gap */
+    --space-6: 32px;         /* 2xl section gap */
+
+    /* === CONTAINER + GRID === */
+    --page-max-w: 1040px;    /* desktop max */
+    --page-side-pad: var(--space-5); /* 24px */
+
+    /* Composer styling for floating card */
+    --composer-gap: 8px;                /* visual space under the floating card */
+    --composer-maxw: 860px;             /* max width for floating card */
+    --composer-side-gutter: 16px;       /* side padding on small screens */
+    --composer-h: 72px;                 /* default, will be updated at runtime */
+    
+    /* Core backgrounds - clean and minimal */
+    --background: 0 0% 100%;
+    --foreground: 210 15% 15%;
+
+    /* Card system - pure white with subtle shadows */
+    --card: 0 0% 100%;
+    --card-foreground: 210 15% 15%;
+
+    /* Interactive elements */
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 15% 15%;
+
+    /* Primary - Brand navy #2D373F */
+    --primary: 203 18% 21%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 203 18% 30%;
+
+    /* Secondary - Light gray for subtle backgrounds */
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 210 15% 15%;
+
+    /* Muted elements */
+    --muted: 210 20% 98%;
+    --muted-foreground: 210 10% 50%;
+
+    /* Accent - Brand bright blue #1054FF */
+    --accent: 226 100% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Brand colors from palette */
+    --brand-blue: 226 100% 53%; /* #1054FF */
+    --brand-medium-blue: 207 100% 53%; /* #0D8CFF */
+    --brand-cyan: 191 100% 55%; /* #12DEFF */
+    --brand-navy: 203 18% 21%; /* #2D373F */
+
+    /* Success/warning states */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders and inputs - minimal */
+    --border: 210 20% 92%;
+    --input: 210 20% 98%;
+    --ring: 226 100% 53%;
+
+    /* Modern gradients using brand colors */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--brand-blue)), hsl(var(--brand-medium-blue)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--brand-blue)) 0%, hsl(var(--brand-cyan)) 100%);
+    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(210 20% 99%));
+
+    /* Clean shadows */
+    --shadow-minimal: 0 1px 3px -1px hsl(210 15% 15% / 0.08);
+    --shadow-elevated: 0 4px 12px -2px hsl(210 15% 15% / 0.12);
+
+    /* Border radius */
+    --radius: 0.75rem;
+
+    /* Trust/success indicator */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+
+    /* Warning/alert states */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+
+    /* Destructive actions */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders and inputs */
+    --border: 215 20% 89%;
+    --input: 215 20% 94%;
+    --ring: 215 28% 17%;
+
+    /* Security-themed gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(213 94% 75%));
+    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(215 20% 96%));
+
+    /* Professional shadows */
+    --shadow-subtle: 0 2px 8px -2px hsl(var(--primary) / 0.1);
+    --shadow-elevated: 0 8px 25px -5px hsl(var(--primary) / 0.15);
+
+    /* Border radius system */
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+/* Layout System - Use dynamic viewport to avoid iOS 100vh bugs */
+html, body { 
+  height: 100%; 
+}
+
+/* === PAGE SHELL === */
+.page { 
+  min-height: 100dvh; 
+  display: flex; 
+  flex-direction: column;
+  max-width: var(--page-max-w);
+  margin-inline: auto;
+  padding-inline: var(--page-side-pad);
+  padding-block-start: var(--space-6);
+  gap: var(--space-6);
+}
+
+/* Main scroll container with proper padding for floating composer */
+main.app-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--composer-h) + var(--composer-gap));
+}
+
+/* Floating chat composer wrapper - fixed position, transparent background */
+.chat-composer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 0;
+  background: transparent;            /* no bar behind the composer */
+  display: flex;
+  justify-content: center;
+  pointer-events: none;               /* clicks go to the inner card only */
+  padding-left: 256px;                /* Account for sidebar width on desktop */
+}
+
+/* Adjust for collapsed sidebar or mobile */
+@media (max-width: 768px) {
+  .chat-composer {
+    padding-left: 0;
+  }
+}
+
+.sidebar-collapsed .chat-composer {
+  padding-left: 64px;                 /* Account for collapsed sidebar width */
+}
+
+/* Floating composer card */
+.chat-composer .composer-shell {
+  pointer-events: auto;
+  width: min(
+    calc(100% - (var(--composer-side-gutter) * 2)),
+    var(--composer-maxw)
+  );
+  margin: var(--composer-gap) auto 0;
+  margin-bottom: calc(env(safe-area-inset-bottom) + var(--composer-gap));
+  background: hsl(var(--background));
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08);
+  border: 1px solid hsl(var(--border));
+}
+
+/* Input and buttons inside the shell */
+.composer-shell .inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+/* Touch targets for mobile */
+.composer-shell button, 
+.composer-shell .icon-btn {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Ensure anchored elements don't land under composer */
+*[id] { 
+  scroll-margin-bottom: calc(var(--composer-h) + var(--composer-gap)); 
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  .page-title {
+    margin-block-end: var(--space-4);
+  }
+}
+
+/* Enhanced UX Animations & Feedback */
+@layer components {
+  /* === SECTION CARDS === */
+  .section-card {
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: var(--space-5);
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .section-card-compact {
+    @apply section-card;
+    padding: var(--space-4);
+  }
+
+  .section-card-warning {
+    @apply section-card;
+    background: #FFF9EB;
+    border-color: #F59E0B;
+  }
+
+  /* === GRID HELPERS === */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-5);
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-5);
+  }
+
+  @media (max-width: 1100px) {
+    .grid-3 {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 800px) {
+    .grid-2, .grid-3 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* === FLEX HELPERS === */
+  .flex-gap-1 { display: flex; gap: var(--space-1); }
+  .flex-gap-2 { display: flex; gap: var(--space-2); }
+  .flex-gap-3 { display: flex; gap: var(--space-3); }
+  .flex-gap-4 { display: flex; gap: var(--space-4); }
+  .flex-gap-5 { display: flex; gap: var(--space-5); }
+  .flex-gap-6 { display: flex; gap: var(--space-6); }
+
+  /* === RESPONSIVE SPACING === */
+  @media (max-width: 400px) {
+    :root {
+      --page-side-pad: var(--space-4); /* 16px on mobile */
+    }
+  }
+
+  /* Loading & Typing Indicators */
+  .typing-indicator {
+    @apply flex space-x-1 items-center;
+  }
+  
+  .typing-dot {
+    @apply w-2 h-2 bg-muted-foreground rounded-full animate-pulse;
+  }
+  
+  .typing-dot:nth-child(1) { animation-delay: 0ms; }
+  .typing-dot:nth-child(2) { animation-delay: 150ms; }
+  .typing-dot:nth-child(3) { animation-delay: 300ms; }
+  
+  /* Progress Bar */
+  .progress-bar {
+    @apply w-full bg-secondary rounded-full h-2 overflow-hidden;
+  }
+  
+  .progress-fill {
+    @apply h-full bg-accent transition-all duration-300 ease-out;
+  }
+  
+  /* Upload States */
+  .upload-zone {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .upload-zone:hover {
+    @apply scale-[1.02] shadow-md;
+  }
+  
+  .upload-zone.uploading {
+    @apply border-accent bg-accent/5;
+  }
+  
+  /* Message Animations */
+  .message-enter {
+    @apply animate-fade-in;
+  }
+  
+  .message-success {
+    @apply animate-pulse;
+    animation-duration: 0.6s;
+    animation-iteration-count: 2;
+  }
+  
+  /* Interaction Feedback */
+  .button-press {
+    @apply active:scale-95 transition-transform duration-100;
+  }
+  
+  .hover-lift {
+    @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+  }
+  
+  /* Context Indicators */
+  .context-chip {
+    @apply inline-flex items-center px-2 py-1 rounded-full bg-accent/10 text-accent text-xs border border-accent/20;
+  }
+  
+  .context-chip.active {
+    @apply bg-accent text-accent-foreground;
+  }
+  
+  /* Notification Styles */
+  .notification-enter {
+    @apply animate-slide-in-right;
+  }
+  
+  .notification-exit {
+    @apply animate-slide-out-right;
+  }
+  
+  /* Error States */
+  .error-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+}
+
+/* Animation Keyframes */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulse-success {
+  0%, 100% {
+    background-color: inherit;
+    border-color: inherit;
+  }
+  50% {
+    background-color: hsl(var(--success) / 0.1);
+    border-color: hsl(var(--success));
+  }
+}
+
+/* Marquee Animation for Trusted By Section */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
+.logo-marquee:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+/* Disable animation on mobile, enable touch scroll */
+@media (max-width: 640px) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+/* Scale-based pulse animation for logo */
+@keyframes pulse-scale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-scale {
+  animation: pulse-scale 2s ease-in-out infinite;
+}
+
+/* Mobile scroll for logo marquee */
+@media (max-width: 640px) {
+  .logo-marquee {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .logo-marquee::-webkit-scrollbar {
+    display: none;
+  }
+}
