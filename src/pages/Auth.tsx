@@ -34,14 +34,18 @@ import {
 const Auth = () => {
   const { user, session, loading, mfaChallenge, signIn, signUp } = useAuth();
   const [searchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
   const selectedRole = 'business_owner';
+  
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const [showMFAChallenge, setShowMFAChallenge] = useState(false);
+
   const [signupPassword, setSignupPassword] = useState('');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
+
   const [lastError, setLastError] = useState<string | null>(null);
 
   // Rate limiter for auth attempts
@@ -131,6 +135,7 @@ const Auth = () => {
     e.preventDefault();
     setLastError(null);
 
+    const formEl = e.currentTarget;
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
@@ -182,6 +187,10 @@ const Auth = () => {
           description: suggestedAction,
           duration: 6000,
         });
+      }else{
+        formEl.reset();
+        setSignupPassword("")
+        setSignupSuccess(true);
       }
     } catch (error) {
       const errorMessage = AuthErrorHandler.getErrorMessage(error);
@@ -261,7 +270,24 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {showForgotPassword ? (
+            {signupSuccess ? (
+              <div className="space-y-4 text-center">
+              <CheckCircle className="h-10 w-10 text-success mx-auto" />
+              <h2 className="text-xl font-semibold">Thanks for signing up!</h2>
+              <p className="text-muted-foreground">
+                We sent a verification link to your email. Please verify to continue.
+              </p>
+              
+              <Button
+                variant="ghost"
+                className="w-full mt-2"
+                onClick={() => setSignupSuccess(false)}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Sign In
+              </Button>
+            </div>
+            ) : showForgotPassword ? (
               <div className="space-y-4">
                 {resetEmailSent ? (
                   <Alert className="border-success bg-success/10">
