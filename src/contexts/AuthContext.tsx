@@ -171,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, metadata?: any, redirectUrl?: string) => {
     const finalRedirectUrl = redirectUrl || `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -200,8 +200,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "We've sent you a confirmation link.",
       });
     }
-
-    return { error };
+    
+    const isAlreadyRegisterd = data?.user?.identities?.length == 0
+    return { error, isAlreadyRegisterd };
   };
 
   const signIn = async (email: string, password: string) => {

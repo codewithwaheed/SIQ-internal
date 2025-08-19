@@ -166,7 +166,7 @@ const Auth = () => {
         }/auth?priceId=${encodeURIComponent(priceId)}&redirect=checkout`;
       }
 
-      const result = await signUp(
+      const result: any = await signUp(
         email,
         password,
         {
@@ -190,7 +190,12 @@ const Auth = () => {
       }else{
         formEl.reset();
         setSignupPassword("")
-        setSignupSuccess(true);
+
+        if(result?.isAlreadyRegisterd){
+          toast.error("This email is already registered, Please login")
+        }else{
+          setSignupSuccess(true);
+        }
       }
     } catch (error) {
       const errorMessage = AuthErrorHandler.getErrorMessage(error);
