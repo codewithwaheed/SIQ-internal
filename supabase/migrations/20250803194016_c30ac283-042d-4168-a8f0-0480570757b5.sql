@@ -248,6 +248,7 @@ END;
 $function$;
 
 -- 5. Enhanced security monitoring function
+DROP FUNCTION IF EXISTS public.detect_suspicious_activity();
 CREATE OR REPLACE FUNCTION public.detect_suspicious_activity()
 RETURNS TABLE(
   alert_type text, 

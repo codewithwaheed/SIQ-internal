@@ -172,7 +172,7 @@ export const ChatHistoryPage = () => {
   // Get all unique tags
   const allTags = [...new Set(conversations.flatMap((conv) => conv.tags))];
   const startNewChat = () => {
-    navigate('/dashboard');
+    navigate('/dashboard/chat');
   };
   return (
     <div className="page">

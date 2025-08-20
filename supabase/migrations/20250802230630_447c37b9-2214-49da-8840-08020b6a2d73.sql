@@ -33,8 +33,15 @@ EXCEPTION
 END $$;
 
 -- Update escalations table to use the enum
+-- First drop the default to avoid cast error, then change type, then re-add default
+ALTER TABLE escalations 
+ALTER COLUMN state DROP DEFAULT;
+
 ALTER TABLE escalations 
 ALTER COLUMN state TYPE escalation_state USING state::escalation_state;
+
+ALTER TABLE escalations 
+ALTER COLUMN state SET DEFAULT 'drafted';
 
 -- Create escalation audit trail for routing decisions
 CREATE TABLE IF NOT EXISTS escalation_audit (
@@ -50,6 +57,7 @@ CREATE TABLE IF NOT EXISTS escalation_audit (
 ALTER TABLE escalation_audit ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for escalation audit
+DROP POLICY IF EXISTS "Consultants and admins can view escalation audit" ON escalation_audit;
 CREATE POLICY "Consultants and admins can view escalation audit"
 ON escalation_audit
 FOR SELECT
@@ -58,6 +66,7 @@ USING (
   has_role(auth.uid(), 'admin'::user_role)
 );
 
+DROP POLICY IF EXISTS "System can insert audit records" ON escalation_audit;
 CREATE POLICY "System can insert audit records"
 ON escalation_audit
 FOR INSERT

@@ -1,5 +1,5 @@
 -- Create consultant applications table
-CREATE TABLE public.consultant_applications (
+CREATE TABLE IF NOT EXISTS public.consultant_applications (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   full_name TEXT NOT NULL,
   email TEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE public.consultant_applications (
   engagement_preferences TEXT[] NOT NULL DEFAULT '{}',
   resume_url TEXT,
   portfolio_url TEXT,
-  references TEXT,
+  "references" TEXT,
   background_check_consent BOOLEAN NOT NULL DEFAULT false,
   nda_agreement BOOLEAN NOT NULL DEFAULT false,
   additional_info TEXT,
