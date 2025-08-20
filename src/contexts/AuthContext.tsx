@@ -3,6 +3,7 @@ import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AuditLogger } from '@/lib/audit-logger';
+import { toast as toastSonner } from 'sonner';
 
 type UserRole = 'business_owner' | 'consultant' | 'admin';
 type SubscriptionTier = 'Basic' | 'Pro' | 'Premium';
@@ -164,6 +165,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false);
     });
+
+   
+      const hash = window.location.hash;
+      if (hash.includes("error=access_denied") && hash.includes("otp_expired")) {
+
+        toastSonner.error("We could not verify that link.", {
+          description: "Please request a new one or sign in with your password.",
+          duration: 6000,
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 2000);
+      }
 
     return () => subscription.unsubscribe();
   }, []);

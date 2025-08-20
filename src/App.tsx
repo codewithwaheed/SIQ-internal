@@ -40,6 +40,7 @@ import ISO27001 from './pages/ISO27001';
 import HIPAA from './pages/HIPAA';
 import SOC2 from './pages/SOC2';
 import { CVESecurityPage } from './pages/CVESecurity';
+import ResetPasswordPage from './pages/ResetPassword';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/login" element={<Auth />} />
 
                 {/* Protected Dashboard Routes */}
