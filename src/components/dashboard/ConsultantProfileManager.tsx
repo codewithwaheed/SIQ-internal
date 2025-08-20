@@ -127,7 +127,7 @@ export const ConsultantProfileManager = () => {
 
   useEffect(() => {
     if (user && userRole === 'consultant') {
-      fetchProfile();
+      // fetchProfile();
     }
   }, [user, userRole]);
 

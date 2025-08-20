@@ -74,12 +74,12 @@ const Auth = () => {
           // Open Stripe checkout in a new tab
           window.open(data.url, '_blank');
           // Redirect to dashboard after opening checkout
-          window.location.href = '/dashboard';
+          window.location.href = '/dashboard/chat';
         } catch (error: any) {
           console.error('Error creating checkout session:', error);
           toast.error(error.message || 'Failed to create checkout session');
           // Still redirect to dashboard on error
-          window.location.href = '/dashboard';
+          window.location.href = '/dashboard/chat';
         }
       };
       checkoutFlow();

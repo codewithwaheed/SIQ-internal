@@ -1,7 +1,7 @@
 -- Create tables for expert replies and consultation features
 
 -- Consultant replies table
-CREATE TABLE public.consultant_replies (
+CREATE TABLE IF NOT EXISTS public.consultant_replies (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   escalation_id UUID REFERENCES public.escalations(id) ON DELETE CASCADE,
   consultant_id UUID NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE public.consultant_replies (
 );
 
 -- Consultations/meetings table
-CREATE TABLE public.consultations (
+CREATE TABLE IF NOT EXISTS public.consultations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   escalation_id UUID REFERENCES public.escalations(id) ON DELETE SET NULL,
   consultant_id UUID,
@@ -33,7 +33,7 @@ CREATE TABLE public.consultations (
 );
 
 -- Reply feedback table
-CREATE TABLE public.reply_feedback (
+CREATE TABLE IF NOT EXISTS public.reply_feedback (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   reply_id UUID REFERENCES public.consultant_replies(id) ON DELETE CASCADE,
   escalation_id UUID REFERENCES public.escalations(id) ON DELETE CASCADE,
@@ -44,7 +44,9 @@ CREATE TABLE public.reply_feedback (
 );
 
 -- Storage bucket for consultant deliverables
-INSERT INTO storage.buckets (id, name, public) VALUES ('consultant-deliverables', 'consultant-deliverables', false);
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('consultant-deliverables', 'consultant-deliverables', false)
+ON CONFLICT (id) DO NOTHING;
 
 -- Enable RLS
 ALTER TABLE public.consultant_replies ENABLE ROW LEVEL SECURITY;
@@ -52,15 +54,17 @@ ALTER TABLE public.consultations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reply_feedback ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for consultant_replies
+DROP POLICY IF EXISTS "Users can view replies for their escalations" ON public.consultant_replies;
 CREATE POLICY "Users can view replies for their escalations" ON public.consultant_replies
 FOR SELECT USING (
   EXISTS (
-    SELECT 1 FROM public.escalations e 
-    WHERE e.id = consultant_replies.escalation_id 
+    SELECT 1 FROM public.escalations e
+    WHERE e.id = consultant_replies.escalation_id
     AND e.user_id = auth.uid()
   )
 );
 
+DROP POLICY IF EXISTS "Consultants can insert replies" ON public.consultant_replies;
 CREATE POLICY "Consultants can insert replies" ON public.consultant_replies
 FOR INSERT WITH CHECK (
   has_role(auth.uid(), 'consultant'::user_role) OR 
@@ -68,12 +72,15 @@ FOR INSERT WITH CHECK (
 );
 
 -- RLS Policies for consultations
+DROP POLICY IF EXISTS "Users can view their own consultations" ON public.consultations;
 CREATE POLICY "Users can view their own consultations" ON public.consultations
 FOR SELECT USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can create consultations" ON public.consultations;
 CREATE POLICY "Users can create consultations" ON public.consultations
 FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Consultants can view assigned consultations" ON public.consultations;
 CREATE POLICY "Consultants can view assigned consultations" ON public.consultations
 FOR SELECT USING (
   has_role(auth.uid(), 'consultant'::user_role) OR 
@@ -81,10 +88,12 @@ FOR SELECT USING (
 );
 
 -- RLS Policies for reply_feedback
+DROP POLICY IF EXISTS "Users can manage their own feedback" ON public.reply_feedback;
 CREATE POLICY "Users can manage their own feedback" ON public.reply_feedback
 FOR ALL USING (user_id = auth.uid());
 
 -- Storage policies for consultant deliverables
+DROP POLICY IF EXISTS "Users can view deliverables for their escalations" ON storage.objects;
 CREATE POLICY "Users can view deliverables for their escalations" ON storage.objects
 FOR SELECT USING (
   bucket_id = 'consultant-deliverables' AND
@@ -95,6 +104,7 @@ FOR SELECT USING (
   )
 );
 
+DROP POLICY IF EXISTS "Consultants can upload deliverables" ON storage.objects;
 CREATE POLICY "Consultants can upload deliverables" ON storage.objects
 FOR INSERT WITH CHECK (
   bucket_id = 'consultant-deliverables' AND

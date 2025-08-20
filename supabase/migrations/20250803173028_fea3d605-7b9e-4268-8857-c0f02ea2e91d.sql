@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS escalation_audit (
 ALTER TABLE escalation_audit ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for escalation audit
+DROP POLICY IF EXISTS "Consultants and admins can view escalation audit" ON escalation_audit;
 CREATE POLICY "Consultants and admins can view escalation audit"
 ON escalation_audit
 FOR SELECT
@@ -57,6 +58,7 @@ USING (
   has_role(auth.uid(), 'admin'::user_role)
 );
 
+DROP POLICY IF EXISTS "System can insert audit records" ON escalation_audit;
 CREATE POLICY "System can insert audit records"
 ON escalation_audit
 FOR INSERT

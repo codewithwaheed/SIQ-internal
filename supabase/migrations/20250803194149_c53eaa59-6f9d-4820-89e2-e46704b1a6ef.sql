@@ -100,11 +100,13 @@ CREATE TABLE IF NOT EXISTS public.security_events (
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for security events
+DROP POLICY IF EXISTS "Admins can manage security events" ON public.security_events;
 CREATE POLICY "Admins can manage security events" 
 ON public.security_events 
 FOR ALL 
 USING (has_role(auth.uid(), 'admin'));
 
+DROP POLICY IF EXISTS "System can insert security events" ON public.security_events;
 CREATE POLICY "System can insert security events" 
 ON public.security_events 
 FOR INSERT 

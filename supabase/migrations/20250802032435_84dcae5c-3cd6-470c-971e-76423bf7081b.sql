@@ -18,22 +18,25 @@ CREATE TABLE IF NOT EXISTS public.subscribers (
 ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
 
 -- Create policy for users to view their own subscription info
-CREATE POLICY IF NOT EXISTS "select_own_subscription" ON public.subscribers
+DROP POLICY IF EXISTS "select_own_subscription" ON public.subscribers;
+CREATE POLICY "select_own_subscription" ON public.subscribers
 FOR SELECT
 USING (user_id = auth.uid() OR email = auth.email());
 
 -- Create policy for edge functions to update subscription info
-CREATE POLICY IF NOT EXISTS "update_own_subscription" ON public.subscribers
+DROP POLICY IF EXISTS "update_own_subscription" ON public.subscribers;
+CREATE POLICY "update_own_subscription" ON public.subscribers
 FOR UPDATE
 USING (true);
 
 -- Create policy for edge functions to insert subscription info
-CREATE POLICY IF NOT EXISTS "insert_subscription" ON public.subscribers
+DROP POLICY IF EXISTS "insert_subscription" ON public.subscribers;
+CREATE POLICY "insert_subscription" ON public.subscribers
 FOR INSERT
 WITH CHECK (true);
 
--- Add trigger for updated_at
-CREATE TRIGGER IF NOT EXISTS update_subscribers_updated_at
-    BEFORE UPDATE ON public.subscribers
-    FOR EACH ROW
-    EXECUTE FUNCTION public.update_updated_at_column();
+DROP TRIGGER IF EXISTS update_subscribers_updated_at ON public.subscribers;
+CREATE TRIGGER update_subscribers_updated_at
+  BEFORE UPDATE ON public.subscribers
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();

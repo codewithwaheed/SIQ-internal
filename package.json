@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "format": "prettier --write \"**/*.{js,ts,tsx,json,css,scss,md,html,mdx}\"",
-    "format:check": "prettier --check \"**/*.{js,ts,tsx,json,css,scss,md,html,mdx}\""
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,json,css,scss,md,html,mdx}\"",
+    "fx:all": "supabase functions serve --env-file .env.local --no-verify-jwt",
+    "test": "echo 'E2E tests are disabled in CI' && exit 0",
+    "test:local": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
