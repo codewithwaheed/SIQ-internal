@@ -35,7 +35,7 @@ const Auth = () => {
   const { user, session, loading, mfaChallenge, signIn, signUp } = useAuth();
   const [searchParams] = useSearchParams();
   const selectedRole = 'business_owner';
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -74,12 +74,12 @@ const Auth = () => {
           // Open Stripe checkout in a new tab
           window.open(data.url, '_blank');
           // Redirect to dashboard after opening checkout
-          window.location.href = '/dashboard/chat';
+          window.location.href = '/dashboard';
         } catch (error: any) {
           console.error('Error creating checkout session:', error);
           toast.error(error.message || 'Failed to create checkout session');
           // Still redirect to dashboard on error
-          window.location.href = '/dashboard/chat';
+          window.location.href = '/dashboard';
         }
       };
       checkoutFlow();
@@ -187,13 +187,13 @@ const Auth = () => {
           description: suggestedAction,
           duration: 6000,
         });
-      }else{
+      } else {
         formEl.reset();
-        setSignupPassword("")
+        setSignupPassword('');
 
-        if(result?.isAlreadyRegisterd){
-          toast.error("This email is already registered, Please login")
-        }else{
+        if (result?.isAlreadyRegisterd) {
+          toast.error('This email is already registered, Please login');
+        } else {
           setSignupSuccess(true);
         }
       }
@@ -277,21 +277,21 @@ const Auth = () => {
           <CardContent>
             {signupSuccess ? (
               <div className="space-y-4 text-center">
-              <CheckCircle className="h-10 w-10 text-success mx-auto" />
-              <h2 className="text-xl font-semibold">Thanks for signing up!</h2>
-              <p className="text-muted-foreground">
-                We sent a verification link to your email. Please verify to continue.
-              </p>
-              
-              <Button
-                variant="ghost"
-                className="w-full mt-2"
-                onClick={() => setSignupSuccess(false)}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Sign In
-              </Button>
-            </div>
+                <CheckCircle className="mx-auto h-10 w-10 text-success" />
+                <h2 className="text-xl font-semibold">Thanks for signing up!</h2>
+                <p className="text-muted-foreground">
+                  We sent a verification link to your email. Please verify to continue.
+                </p>
+
+                <Button
+                  variant="ghost"
+                  className="mt-2 w-full"
+                  onClick={() => setSignupSuccess(false)}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Sign In
+                </Button>
+              </div>
             ) : showForgotPassword ? (
               <div className="space-y-4">
                 {resetEmailSent ? (

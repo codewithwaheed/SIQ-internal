@@ -45,7 +45,7 @@ const getNavigationItems = (userRole: string | null) => {
   const businessOwnerItems = [
     {
       title: 'Chat',
-      url: '/dashboard/chat',
+      url: '/dashboard',
       icon: MessageCircle,
       exact: true,
     },
@@ -77,8 +77,8 @@ const getNavigationItems = (userRole: string | null) => {
   ];
   const consultantItems = [
     {
-      title: 'Dashboard/chat',
-      url: '/dashboard/chat',
+      title: 'Dashboard',
+      url: '/dashboard',
       icon: Home,
       exact: true,
     },

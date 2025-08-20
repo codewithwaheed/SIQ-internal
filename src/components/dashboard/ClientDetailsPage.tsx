@@ -211,7 +211,7 @@ export const ClientDetailsPage = () => {
       <DashboardLayout title="Client Details" subtitle="Client not found">
         <div className="py-8 text-center">
           <p className="mb-4 text-muted-foreground">Client not found</p>
-          <Button onClick={() => navigate('/dashboard/chat')}>
+          <Button onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
@@ -228,7 +228,7 @@ export const ClientDetailsPage = () => {
       </div>
 
       <div className="section-card">
-        <Button variant="outline" onClick={() => navigate('/dashboard/chat')}>
+        <Button variant="outline" onClick={() => navigate('/dashboard')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Button>

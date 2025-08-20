@@ -82,7 +82,7 @@ export const UnifiedHeader = ({
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link
-            to={context === 'dashboard' ? '/dashboard/chat' : '/'}
+            to={context === 'dashboard' ? '/dashboard' : '/'}
             className="flex items-center"
             onClick={() => context === 'public' && window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
@@ -134,7 +134,7 @@ export const UnifiedHeader = ({
                 )}
                 {user && (
                   <Button asChild>
-                    <Link to="/dashboard/chat">Dashboard</Link>
+                    <Link to="/dashboard">Dashboard</Link>
                   </Button>
                 )}
               </div>
@@ -259,7 +259,7 @@ export const UnifiedHeader = ({
             {user && (
               <div className="pt-4">
                 <Button className="w-full" asChild>
-                  <Link to="/dashboard/chat">Dashboard</Link>
+                  <Link to="/dashboard">Dashboard</Link>
                 </Button>
               </div>
             )}
