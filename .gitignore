@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 schema.sql
+.vercel
+/scripts/publish_client.sh
