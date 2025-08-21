@@ -1,0 +1,139 @@
+import { Card, CardContent } from '@/components/ui/card';
+import { ContextManager } from '@/components/chat/ContextManager';
+import { ChatMessage } from '@/components/chat/ChatMessage';
+import { PolicyGenerationInterface } from '@/components/chat/PolicyGenerationInterface';
+import { ContextualEscalationCard } from '@/components/chat/ContextualEscalationCard';
+import { SmartEscalationTriggers } from '@/components/chat/SmartEscalationTriggers';
+import { POLICY_TEMPLATES } from '@/lib/policyGenerator';
+
+import type { Message, CurrentConversation } from './types';
+
+interface Props {
+  isDemo: boolean;
+  user: any;
+  uploadedDocuments: any[];
+  activeDocuments: string[];
+  onToggleDocument: (docId: string) => void;
+  onClearContext: () => void;
+  messages: Message[];
+  currentConversation: CurrentConversation | null;
+  onCopyMessage: (content: string) => void;
+  onMessageReaction: (id: string, reaction: 'up' | 'down') => void;
+  onSuggestionClick: (text: string) => void;
+  policyGenerationState: {
+    isActive: boolean;
+    policyType: any;
+    missingFields: string[];
+    isGenerating: boolean;
+    generatedPolicy: string | null;
+  };
+  onPolicyFieldsSubmit: (answers: Record<string, string>) => void;
+  onPolicyUseDefaults: () => void;
+  showContextualEscalation: boolean;
+  escalationRationale: string | null;
+  onCloseEscalationCard: () => void;
+  conversationContext: { documentCount: number; messageCount: number };
+  sessionStart: Date;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+}
+
+export function MessagesViewport({
+  isDemo,
+  user,
+  uploadedDocuments,
+  activeDocuments,
+  onToggleDocument,
+  onClearContext,
+  messages,
+  currentConversation,
+  onCopyMessage,
+  onMessageReaction,
+  onSuggestionClick,
+  policyGenerationState,
+  onPolicyFieldsSubmit,
+  onPolicyUseDefaults,
+  showContextualEscalation,
+  escalationRationale,
+  onCloseEscalationCard,
+  conversationContext,
+  sessionStart,
+  messagesEndRef,
+}: Props) {
+  return (
+    <main className="app-content flex-1 overflow-y-auto">
+      <div className="mx-auto min-h-full max-w-4xl space-y-4 p-3 sm:space-y-6 sm:p-4">
+        {!isDemo && user && uploadedDocuments.length > 0 && (
+          <ContextManager
+            documents={uploadedDocuments}
+            activeDocuments={activeDocuments}
+            onDocumentToggle={onToggleDocument}
+            onClearContext={onClearContext}
+            className="mb-4"
+          />
+        )}
+
+        {messages.map((message, index) => (
+          <ChatMessage
+            key={message.id || index}
+            message={message}
+            conversationId={currentConversation?.id}
+            isLatest={index === messages.length - 1}
+            isDemo={isDemo}
+            user={user}
+            messages={messages}
+            onCopyMessage={onCopyMessage}
+            onMessageReaction={onMessageReaction}
+            onSuggestionClick={onSuggestionClick}
+          />
+        ))}
+
+        {policyGenerationState.isActive && (
+          <div className="my-6">
+            <PolicyGenerationInterface
+              policyType={policyGenerationState.policyType || ''}
+              policyTitle={
+                policyGenerationState.policyType
+                  ? POLICY_TEMPLATES[policyGenerationState.policyType].title
+                  : ''
+              }
+              missingFields={policyGenerationState.missingFields}
+              completionPercentage={Math.round(
+                ((10 - policyGenerationState.missingFields.length) / 10) * 100,
+              )}
+              onFieldsSubmit={onPolicyFieldsSubmit}
+              onUseDefaults={onPolicyUseDefaults}
+              isGenerating={policyGenerationState.isGenerating}
+              generatedPolicy={policyGenerationState.generatedPolicy}
+              templateUsed={policyGenerationState.policyType || undefined}
+              messageId={
+                policyGenerationState.generatedPolicy
+                  ? messages.find((m) => m.content === policyGenerationState.generatedPolicy)?.id
+                  : undefined
+              }
+            />
+          </div>
+        )}
+
+        {!isDemo && user && showContextualEscalation && escalationRationale && (
+          <ContextualEscalationCard
+            messages={messages}
+            rationale={escalationRationale}
+            onClose={onCloseEscalationCard}
+          />
+        )}
+
+        {!isDemo && user && (
+          <SmartEscalationTriggers
+            messages={messages}
+            uploadedDocuments={uploadedDocuments}
+            conversationContext={conversationContext}
+            sessionStart={sessionStart}
+            onDismiss={() => {}}
+          />
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+    </main>
+  );
+}

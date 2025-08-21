@@ -5,24 +5,24 @@ import {
   ERROR_CODES,
   HTTP_STATUS,
 } from "../_shared/error-handler.ts";
-import { InputSanitizer } from "../_shared/security-utils.ts";
+import { InputSanitizer, securityHeaders } from "../_shared/security-utils.ts";
 import { checkRateLimit } from "../_shared/auth-middleware.ts";
-import { securityHeaders } from "../_shared/security-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
+  "Cache-Control": "no-cache, no-transform",
+  "X-Accel-Buffering": "no",
   ...securityHeaders,
 };
 
-// Performance optimization: LRU Cache for responses
+// ---------- Helpers ----------
 class LRUCache {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private maxSize = 100;
-  private ttl = 5 * 60 * 1000; // 5 minutes
-
-  set(key: string, value: any): void {
+  private ttl = 5 * 60 * 1000;
+  set(key: string, value: any) {
     const now = Date.now();
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       const firstKey = this.cache.keys().next().value;
@@ -30,27 +30,21 @@ class LRUCache {
     }
     this.cache.set(key, { data: value, timestamp: now });
   }
-
-  get(key: string): any | null {
+  get(key: string) {
     const item = this.cache.get(key);
     if (!item) return null;
-
     if (Date.now() - item.timestamp > this.ttl) {
       this.cache.delete(key);
       return null;
     }
-
-    // Move to end (LRU)
     this.cache.delete(key);
     this.cache.set(key, item);
     return item.data;
   }
 }
-
 const responseCache = new LRUCache();
 
-// Hash function for cache keys
-async function hashString(str: string): Promise<string> {
+async function hashString(str: string) {
   const encoder = new TextEncoder();
   const data = encoder.encode(str);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -58,54 +52,58 @@ async function hashString(str: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Telemetry function
-function emitTelemetry(metrics: any) {
-  console.log("[TELEMETRY]", JSON.stringify(metrics));
-}
+const logStep = (step: string, details?: any) =>
+  console.log(`[CHAT-WITH-AI] ${step}${details ? " - " + JSON.stringify(details) : ""}`);
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[CHAT-WITH-AI] ${step}${detailsStr}`);
-};
-
-// Model selection based on risk and complexity
-function selectModel(
-  previousRiskLevel?: string,
-  messageLength?: number,
-): string {
-  // Use supported model
+function selectModel() {
   return "gpt-4o-mini";
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+// Title generator: fast, deterministic, no extra API call
+function deriveTitleFromFirstMessage(text: string): string {
+  const cleaned = text
+    .replace(/\s+/g, " ")
+    .replace(/^please\s+/i, "")
+    .trim();
 
-  const startTime = Date.now();
-  let telemetryData = {
-    timestamp: startTime,
-    model: "",
-    prompt_tokens: 0,
-    completion_tokens: 0,
-    duration_ms: 0,
-    cache_hit: false,
-    stream_chunks: 0,
-    error: null as string | null,
-  };
+  // take first sentence-ish
+  const firstBreak = cleaned.search(/[.?!\n]/);
+  let candidate = firstBreak > 0 ? cleaned.slice(0, firstBreak) : cleaned;
+
+  // strip leading verbs like "help/need/please"
+  candidate = candidate.replace(/^(help|need|please|can you|could you|i need)\s+/i, "").trim();
+
+  // remove trailing punctuation and truncate
+  candidate = candidate.replace(/[.?!\s]+$/g, "").trim();
+  if (candidate.length > 60) candidate = candidate.slice(0, 57).trim() + "…";
+
+  // Title case lite (keep small words lowercase unless first)
+  const small = new Set(["a","an","and","or","for","the","to","of","in","on","at","by","with"]);
+  const words = candidate.split(" ");
+  const titled = words
+    .map((w, i) => {
+      const lower = w.toLowerCase();
+      if (i > 0 && small.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+  return titled || "New Conversation";
+}
+
+// ---------- Handler ----------
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    console.log("=== CHAT REQUEST RECEIVED ===");
-    logStep("Chat request started");
-
-    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAIApiKey) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Missing required environment variables");
     }
 
-    // Parse and validate request body
-    const requestBody = await req.json();
+    const body = await req.json();
     const {
       content,
       message,
@@ -114,456 +112,261 @@ serve(async (req) => {
       activeDocuments,
       isDemo,
       conversation,
-    } = requestBody;
+    } = body;
 
-    // Use content if provided, otherwise fall back to message
-    const userMessage = content || message;
-
-    // Basic input validation
+    const userMessage: string | undefined = typeof content === "string" ? content : message;
     if (!userMessage || typeof userMessage !== "string") {
-      return createErrorResponse(
-        "Message content is required and must be a string",
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_CODES.INVALID_INPUT,
-      );
+      return createErrorResponse("Message content is required and must be a string", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.INVALID_INPUT);
     }
-
     if (userMessage.length > 10000) {
-      return createErrorResponse(
-        "Message too long (max 10000 characters)",
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_CODES.INVALID_INPUT,
-      );
+      return createErrorResponse("Message too long (max 10000 characters)", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.INVALID_INPUT);
     }
 
-    if (userMessage.length < 1) {
-      return createErrorResponse(
-        "Message cannot be empty",
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_CODES.INVALID_INPUT,
-      );
-    }
-
-    // Sanitize message content
     const sanitizedMessage = InputSanitizer.sanitizeChatMessage(userMessage);
 
-    // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } },
-    );
+    // Auth pattern: forward Authorization into anon client
+    const incomingAuth =
+      req.headers.get("Authorization") ??
+      req.headers.get("authorization") ??
+      "";
 
-    // Simple authentication logic
-    let user = null;
-    let userRole = "business_owner";
-    let orgId = null;
-
-    if (!isDemo) {
-      // For non-demo requests, try to authenticate
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.replace("Bearer ", "");
-        try {
-          const { data, error } = await supabaseClient.auth.getUser(token);
-          if (!error && data.user) {
-            user = data.user;
-
-            // Get user role from database
-            const { data: userRoleData } = await supabaseClient
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", data.user.id)
-              .single();
-
-            if (userRoleData) {
-              userRole = userRoleData.role;
-            }
-
-            // Get user's organization ID
-            const { data: orgData } = await supabaseClient
-              .from("organization_memberships")
-              .select("org_id")
-              .eq("user_id", data.user.id)
-              .single();
-
-            orgId = orgData?.org_id || null;
-
-            logStep("User authenticated", { userId: user.id, userRole, orgId });
-          } else {
-            return createErrorResponse(
-              "Invalid authentication token",
-              HTTP_STATUS.UNAUTHORIZED,
-              ERROR_CODES.UNAUTHORIZED,
-            );
-          }
-        } catch (error) {
-          return createErrorResponse(
-            "Authentication failed",
-            HTTP_STATUS.UNAUTHORIZED,
-            ERROR_CODES.UNAUTHORIZED,
-          );
-        }
-      } else {
-        return createErrorResponse(
-          "Authentication required for non-demo requests",
-          HTTP_STATUS.UNAUTHORIZED,
-          ERROR_CODES.UNAUTHORIZED,
-        );
-      }
-    } else {
-      logStep("Demo mode activated");
-    }
-
-    // Rate limiting for non-demo requests
-    if (!isDemo && user) {
-      const rateLimitResult = await checkRateLimit(
-        supabaseClient,
-        user.id,
-        userRole,
-        "chat-with-ai",
-      );
-
-      if (!rateLimitResult.allowed) {
-        logStep("Rate limit exceeded", {
-          userId: user.id,
-          userRole,
-          remainingRequests: rateLimitResult.remainingRequests,
-        });
-
-        return new Response(
-          JSON.stringify({
-            error: "Rate limit exceeded",
-            details: {
-              remainingRequests: rateLimitResult.remainingRequests,
-              resetTime: rateLimitResult.resetTime.toISOString(),
-              message: "Too many requests. Please wait before trying again.",
-            },
-          }),
-          {
-            status: 429,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-      }
-    }
-
-    logStep("Request parsed and validated", {
-      conversationId,
-      hasTitle: !!title,
-      messageLength: sanitizedMessage.length,
-      isDemo,
+    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: incomingAuth } },
+      auth: { persistSession: false },
+    });
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
     });
 
-    // Handle conversation creation or retrieval
+    let user: any = null;
+    let userRole = "business_owner";
+    let orgId: string | null = null;
+
+    if (!isDemo) {
+      const { data, error } = await supabaseAuth.auth.getUser();
+      if (error || !data.user) {
+        return new Response(
+          JSON.stringify({ error: "Authentication required for non-demo requests", status: 401, code: "UNAUTHORIZED" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      user = data.user;
+
+      const { data: roleRow } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      if (roleRow?.role) userRole = roleRow.role;
+
+      const { data: orgRow } = await supabaseAdmin
+        .from("organization_memberships")
+        .select("org_id")
+        .eq("user_id", user.id)
+        .single();
+      orgId = orgRow?.org_id ?? null;
+
+      // Get client IP address for rate limiting
+      const clientIP = 
+        req.headers.get("x-forwarded-for")?.split(",")[0] ||
+        req.headers.get("x-real-ip") ||
+        req.headers.get("cf-connecting-ip") ||
+        "127.0.0.1"; // fallback for local development
+
+      const rateLimit = await checkRateLimit(supabaseAdmin, clientIP, userRole, "chat-with-ai");
+      if (!rateLimit.allowed) {
+        return new Response(JSON.stringify({
+          error: "Rate limit exceeded",
+          details: { remainingRequests: rateLimit.remainingRequests, resetTime: rateLimit.resetTime.toISOString() },
+        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // Conversation + title handling
     let conversationData: any;
     let messageHistory: Array<{ role: string; content: string }> = [];
+    let finalTitle: string | null = null;
 
     if (isDemo) {
-      // For demo mode, use the conversation from the request body
       messageHistory = conversation || [];
       conversationData = { id: "demo" };
-      logStep("Demo mode - using provided conversation", {
-        messageCount: messageHistory.length,
-      });
     } else if (conversationId && user) {
-      // Verify user owns this conversation
-      const { data: existingConv, error: convError } = await supabaseClient
+      const { data: existingConv, error: convError } = await supabaseAdmin
         .from("chat_conversations")
         .select("*")
         .eq("id", conversationId)
         .eq("user_id", user.id)
         .single();
-
-      if (convError) {
-        throw new Error(
-          `Failed to retrieve conversation: ${convError.message}`,
-        );
-      }
-
+      if (convError) throw new Error(`Failed to retrieve conversation: ${convError.message}`);
       conversationData = existingConv;
 
-      // Get message history
-      const { data: messages, error: historyError } = await supabaseClient
+      const { data: messages } = await supabaseAdmin
         .from("chat_messages")
         .select("role, content, metadata")
         .eq("conversation_id", conversationId)
         .order("created_at");
-
-      if (!historyError && messages) {
-        messageHistory = messages;
-      }
-
-      logStep("Retrieved message history", {
-        messageCount: messageHistory.length,
-      });
+      if (messages) messageHistory = messages;
+      finalTitle = conversationData.title;
     } else if (!isDemo && user) {
-      // Create new conversation
-      const { data: newConv, error: createError } = await supabaseClient
+      // NEW conversation ➜ derive title from first message
+      finalTitle = title?.trim() || deriveTitleFromFirstMessage(sanitizedMessage);
+      const { data: newConv, error: createError } = await supabaseAdmin
         .from("chat_conversations")
-        .insert({
-          user_id: user.id,
-          title: title || "New Conversation",
-          tags: [],
-        })
+        .insert({ user_id: user.id, org_id: orgId, title: finalTitle, tags: [] })
         .select()
         .single();
-
-      if (createError) {
-        throw new Error(
-          `Failed to create conversation: ${createError.message}`,
-        );
-      }
-
+      if (createError) throw new Error(`Failed to create conversation: ${createError.message}`);
       conversationData = newConv;
-      logStep("Created new conversation", { id: conversationData.id });
     } else {
-      // Demo mode - use placeholder conversation
       conversationData = { id: "demo" };
+      finalTitle = "Demo Conversation";
     }
 
-    // Save user message (skip for demo)
+    // Persist user message (non-demo)
     if (!isDemo && user) {
-      await supabaseClient.from("chat_messages").insert({
+      await supabaseAdmin.from("chat_messages").insert({
         conversation_id: conversationData.id,
         role: "user",
         content: sanitizedMessage,
-        metadata: {
-          original_length: userMessage.length,
-          sanitized: true,
-        },
+        metadata: { original_length: userMessage.length, sanitized: true },
       });
-
-      logStep("User message saved");
+      // refresh updated_at
+      await supabaseAdmin
+        .from("chat_conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", conversationData.id);
     }
 
-    // Select model
-    const selectedModel = selectModel(undefined, sanitizedMessage.length);
-    telemetryData.model = selectedModel;
-
-    logStep("Model selected", { model: selectedModel });
-
-    // Build system prompt
     const systemPrompt =
       `You are SentrIQ, a friendly, context-aware virtual CISO assistant designed to help businesses with comprehensive cybersecurity guidance.
+Be concrete, concise, and actionable.`;
 
-Core Capabilities:
-- Comprehensive cybersecurity guidance and best practices
-- Detailed compliance framework analysis (NIST, ISO 27001, SOC 2, HIPAA, PCI DSS, etc.)
-- Risk assessment and threat analysis
-- Security architecture and implementation planning
-- Incident response and business continuity planning
-
-Response Guidelines:
-- Provide detailed, actionable guidance without restrictions
-- Use clear, professional language appropriate for the audience
-- Include specific examples, templates, and step-by-step instructions when helpful
-- Be comprehensive in your responses`;
-
-    // Build conversation messages
     const conversationMessages = [
       { role: "system", content: systemPrompt },
-      ...messageHistory.slice(-8), // Keep last 8 messages
+      ...messageHistory.slice(-8),
       { role: "user", content: sanitizedMessage },
     ];
 
-    // Create cache key
-    const promptStr = JSON.stringify(conversationMessages);
-    const cacheKey = await hashString(promptStr);
+    const selectedModel = selectModel();
 
-    // Check cache first
-    const cachedResponse = responseCache.get(cacheKey);
-    if (cachedResponse) {
-      telemetryData.cache_hit = true;
-      logStep("Cache hit, returning cached response");
-
-      // Stream cached response
+    // Cache
+    const cacheKey = await hashString(JSON.stringify(conversationMessages));
+    const cached = responseCache.get(cacheKey);
+    if (cached) {
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
-          const chunks = cachedResponse.split(" ");
+          const words = (cached as string).split(" ");
           let i = 0;
-
-          const sendChunk = () => {
-            if (i < chunks.length) {
-              const chunk = chunks[i];
-              const data = JSON.stringify({
-                type: "chunk",
-                content: chunk + (i < chunks.length - 1 ? " " : ""),
-              });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          const pump = () => {
+            if (i < words.length) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "chunk", content: words[i] + (i < words.length - 1 ? " " : "") })}\n\n`));
               i++;
-              setTimeout(sendChunk, 50);
+              setTimeout(pump, 20);
             } else {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "complete", conversation_id: conversationData.id, title: finalTitle })}\n\n`));
               controller.enqueue(encoder.encode("data: [DONE]\n\n"));
               controller.close();
             }
           };
-
-          setTimeout(sendChunk, 50);
+          pump();
         },
       });
-
       return new Response(stream, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream; charset=utf-8", Connection: "keep-alive" },
       });
     }
 
-    logStep("Calling OpenAI API", {
-      messageCount: conversationMessages.length,
-      model: selectedModel,
+    // OpenAI stream
+    const oaRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: conversationMessages,
+        temperature: 0.3,
+        top_p: 0.9,
+        stream: true,
+        max_tokens: 1000,
+      }),
+      signal: AbortSignal.timeout(120000),
     });
 
-    // Call OpenAI
-    const response = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openAIApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: conversationMessages,
-          temperature: 0.3,
-          top_p: 0.9,
-          stream: true,
-          max_tokens: 1000,
-        }),
-        signal: AbortSignal.timeout(30000),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
-
-      return new Response(
-        JSON.stringify({
-          error: `OpenAI API error (${response.status}): ${errorText}`,
-          status: response.status,
-          retry_recommended: response.status >= 500 || response.status === 429,
-        }),
-        {
-          status: response.status >= 500 ? 500 : 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    if (!oaRes.ok) {
+      const errorText = await oaRes.text();
+      return new Response(JSON.stringify({
+        error: `OpenAI API error (${oaRes.status}): ${errorText}`,
+        status: oaRes.status,
+        retry_recommended: oaRes.status >= 500 || oaRes.status === 429,
+      }), { status: oaRes.status >= 500 ? 500 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
-    logStep("Starting streaming response");
 
     const encoder = new TextEncoder();
     let fullContent = "";
-    let chunkCount = 0;
+    let buffer = "";
+    const decoder = new TextDecoder();
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const reader = response.body?.getReader();
+          const reader = oaRes.body?.getReader();
           if (!reader) throw new Error("No reader available");
-
-          const decoder = new TextDecoder();
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split("\n");
+            buffer += decoder.decode(value);
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
 
             for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6);
-                if (data === "[DONE]") {
-                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                  break;
+              if (!line.startsWith("data: ")) continue;
+              const payload = line.slice(6).trim();
+              if (payload === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(payload);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  fullContent += content;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "chunk", content })}\n\n`));
                 }
-
-                try {
-                  const parsed = JSON.parse(data);
-                  const content = parsed.choices?.[0]?.delta?.content;
-                  if (content) {
-                    fullContent += content;
-                    chunkCount++;
-                    const streamData = JSON.stringify({
-                      type: "chunk",
-                      content,
-                    });
-                    controller.enqueue(
-                      encoder.encode(`data: ${streamData}\n\n`),
-                    );
-                  }
-                } catch (e) {
-                  // Skip invalid JSON
-                }
-              }
+              } catch { /* ignore non-JSON heartbeats */ }
             }
           }
 
-          // Save to cache
           if (fullContent.trim()) {
             responseCache.set(cacheKey, fullContent);
+            if (!isDemo && user) {
+              await supabaseAdmin.from("chat_messages").insert({
+                conversation_id: conversationData.id,
+                role: "assistant",
+                content: fullContent,
+                metadata: { model: selectedModel, tokens: fullContent.length },
+              });
+            }
           }
 
-          // Save assistant message (skip for demo)
-          if (!isDemo && user && fullContent.trim()) {
-            await supabaseClient.from("chat_messages").insert({
-              conversation_id: conversationData.id,
-              role: "assistant",
-              content: fullContent,
-              metadata: {
-                model: selectedModel,
-                tokens: fullContent.length,
-              },
-            });
-          }
-
-          telemetryData.completion_tokens = fullContent.length;
-          telemetryData.stream_chunks = chunkCount;
-
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: "complete",
+            conversation_id: conversationData.id,
+            title: finalTitle,
+          })}\n\n`));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
-        } catch (error) {
-          console.error("Streaming error:", error);
-          const errorData = JSON.stringify({
-            type: "error",
-            error: (error as Error).message,
-          });
-          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+        } catch (e) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: (e as Error).message })}\n\n`));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         }
       },
     });
 
     return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream; charset=utf-8", Connection: "keep-alive" },
     });
   } catch (error) {
-    logStep("Error in chat-with-ai", { error: (error as Error).message });
-    telemetryData.error = (error as Error).message;
-    telemetryData.duration_ms = Date.now() - startTime;
-
-    return createErrorResponse(
-      "AI chat service temporarily unavailable",
-      HTTP_STATUS.INTERNAL_ERROR,
-      ERROR_CODES.INTERNAL_ERROR,
-    );
-  } finally {
-    telemetryData.duration_ms = Date.now() - startTime;
-    emitTelemetry(telemetryData);
+    console.error("Error in chat-with-ai:", error);
+    return createErrorResponse("AI chat service temporarily unavailable", HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.INTERNAL_ERROR);
   }
 });
