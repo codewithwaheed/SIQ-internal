@@ -1,8 +1,17 @@
 import { useState } from 'react';
-import { ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, MessageSquare, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -13,10 +22,21 @@ interface MessageRatingProps {
   className?: string;
 }
 
+// Predefined feedback tags for negative rating
+const FEEDBACK_TAGS = [
+  { id: 'bad_response', label: 'Poor response quality' },
+  { id: 'irrelevant', label: 'Not relevant to my question' },
+  { id: 'incomplete', label: 'Incomplete information' },
+  { id: 'inaccurate', label: 'Contains inaccurate information' },
+  { id: 'too_vague', label: 'Too vague or generic' },
+  { id: 'unhelpful', label: 'Not helpful' },
+];
+
 export const MessageRating = ({ messageId, conversationId, className }: MessageRatingProps) => {
   const [rating, setRating] = useState<'positive' | 'negative' | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
@@ -25,16 +45,17 @@ export const MessageRating = ({ messageId, conversationId, className }: MessageR
     // If clicking the same rating, remove it
     if (rating === ratingType) {
       setRating(null);
-      setShowFeedback(false);
+      setShowFeedbackDialog(false);
       setFeedbackText('');
+      setSelectedTags([]);
       return;
     }
 
     setRating(ratingType);
 
-    // Show feedback input for negative ratings
+    // Show feedback dialog for negative ratings
     if (ratingType === 'negative') {
-      setShowFeedback(true);
+      setShowFeedbackDialog(true);
       return;
     }
 
@@ -59,6 +80,7 @@ export const MessageRating = ({ messageId, conversationId, className }: MessageR
           conversationId,
           ratingType,
           feedbackText: feedbackText.trim() || undefined,
+          tags: selectedTags.length > 0 ? selectedTags : undefined,
         },
         headers: {
           Authorization: `Bearer ${session.session.access_token}`,
@@ -70,27 +92,22 @@ export const MessageRating = ({ messageId, conversationId, className }: MessageR
       }
 
       setIsSubmitted(true);
-      setShowFeedback(false);
-
-      toast({
-        title: 'Thanks for your feedback!',
-        description:
-          ratingType === 'positive'
-            ? 'Your positive rating helps us improve.'
-            : 'Your feedback will help us provide better responses.',
-      });
-    } catch (error: any) {
+      setShowFeedbackDialog(false);
+    } catch (error: unknown) {
       console.error('Rating submission error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      
       toast({
         title: 'Failed to submit rating',
-        description: error.message || 'Please try again later.',
+        description: errorMessage || 'Please try again later.',
         variant: 'destructive',
       });
 
       // Reset state on error
       setRating(null);
-      setShowFeedback(false);
+      setShowFeedbackDialog(false);
       setFeedbackText('');
+      setSelectedTags([]);
     } finally {
       setIsSubmitting(false);
     }
@@ -102,28 +119,32 @@ export const MessageRating = ({ messageId, conversationId, className }: MessageR
     }
   };
 
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const resetFeedbackDialog = () => {
+    setShowFeedbackDialog(false);
+    setFeedbackText('');
+    setSelectedTags([]);
+    if (rating === 'negative') {
+      setRating(null);
+    }
+  };
+
   if (isSubmitted) {
     return (
-      <div className={cn('flex items-center gap-2 text-xs text-muted-foreground', className)}>
-        <MessageSquare className="h-3 w-3" />
-        <span>Thanks for your feedback!</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn('space-y-2', className)}>
-      {/* Rating Buttons */}
-      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className={cn('flex items-center gap-1', className)}>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => handleRating('positive')}
-          disabled={isSubmitting}
+          disabled
           className={cn(
-            'h-7 w-7 p-0 hover:bg-green-100 dark:hover:bg-green-900/20',
+            'h-7 w-7 p-0',
             rating === 'positive' &&
-              'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+              'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
           )}
         >
           <ThumbsUp className="h-3 w-3" />
@@ -132,64 +153,120 @@ export const MessageRating = ({ messageId, conversationId, className }: MessageR
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => handleRating('negative')}
-          disabled={isSubmitting}
+          disabled
           className={cn(
-            'h-7 w-7 p-0 hover:bg-red-100 dark:hover:bg-red-900/20',
-            rating === 'negative' && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+            'h-7 w-7 p-0',
+            rating === 'negative' && 
+              'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
           )}
         >
           <ThumbsDown className="h-3 w-3" />
         </Button>
       </div>
+    );
+  }
 
-      {/* Feedback Input for Negative Ratings */}
-      {showFeedback && rating === 'negative' && (
-        <Card className="mt-2 animate-fade-in">
-          <CardContent className="space-y-3 p-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                What could be improved? (Optional)
-              </label>
-              <Textarea
-                placeholder="e.g., Too vague, missing details, not relevant to my question..."
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                className="mt-1 resize-none text-sm"
-                rows={2}
-                maxLength={500}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                {feedbackText.length}/500 characters
-              </p>
+  return (
+    <div className={cn('space-y-2', className)}>
+      {/* Rating Buttons */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleRating('positive')}
+          disabled={isSubmitting}
+          className={cn(
+            'h-7 w-7 p-0 transition-colors hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-400',
+            rating === 'positive' &&
+              'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+          )}
+        >
+          <ThumbsUp className="h-3 w-3" />
+        </Button>
+
+        <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleRating('negative')}
+              disabled={isSubmitting}
+              className={cn(
+                'h-7 w-7 p-0 transition-colors hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/20 dark:hover:text-red-400',
+                rating === 'negative' && 
+                  'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+              )}
+            >
+              <ThumbsDown className="h-3 w-3" />
+            </Button>
+          </DialogTrigger>
+          
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Help us improve</DialogTitle>
+              <DialogDescription>
+                Your feedback helps us provide better responses. What could be improved?
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Feedback Tags */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Select issues (optional):</label>
+                <div className="grid grid-cols-1 gap-3">
+                  {FEEDBACK_TAGS.map((tag) => (
+                    <div key={tag.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={tag.id}
+                        checked={selectedTags.includes(tag.id)}
+                        onCheckedChange={() => handleTagToggle(tag.id)}
+                      />
+                      <label
+                        htmlFor={tag.id}
+                        className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {tag.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Additional Feedback */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Additional feedback (optional):</label>
+                <Textarea
+                  placeholder="Tell us more about what could be improved..."
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  className="resize-none"
+                  rows={3}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {feedbackText.length}/500 characters
+                </p>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setShowFeedback(false);
-                  setRating(null);
-                  setFeedbackText('');
-                }}
+                variant="outline"
+                onClick={resetFeedbackDialog}
                 disabled={isSubmitting}
-                className="text-xs"
               >
                 Cancel
               </Button>
               <Button
-                size="sm"
                 onClick={handleFeedbackSubmit}
                 disabled={isSubmitting}
-                className="text-xs"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };
