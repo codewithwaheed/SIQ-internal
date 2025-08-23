@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { History, Search, Trash2, MessageSquare, Plus, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +35,7 @@ type Props = {
   searchTerm: string;
   setSearchTerm: (v: string) => void;
   startNewConversation: () => void;
-  loadConversation: (conversationId: string) => void;
+  loadConversation: (conversationId: string) => void; // kept for compatibility
   deleteConversation: (conversationId: string) => Promise<void> | void;
   onBackToChat: () => void;
 };
@@ -53,6 +54,15 @@ export const ChatHistoryPanel = ({
   onBackToChat,
 }: Props) => {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const openConversation = (id: string) => {
+    // Route-based navigation, then close panel
+    navigate(`/dashboard/chat/c/${id}`);
+    onBackToChat?.();
+    // call old loader for backward-compat (no-op if it just navigates)
+    loadConversation?.(id);
+  };
 
   return (
     <div className={`mx-auto max-w-4xl ${className}`}>
@@ -112,8 +122,8 @@ export const ChatHistoryPanel = ({
               ) : (
                 filteredConversations.map((conv) => {
                   const msgCount =
-                    conv.chat_messages && conv.chat_messages[0]?.count != null
-                      ? conv.chat_messages[0].count
+                    conv.chat_messages && (conv.chat_messages as any)[0]?.count != null
+                      ? (conv.chat_messages as any)[0].count
                       : undefined;
 
                   return (
@@ -121,7 +131,7 @@ export const ChatHistoryPanel = ({
                       key={conv.id}
                       className="group flex cursor-pointer items-center justify-between rounded-lg border border-transparent p-3 transition-colors hover:border-border hover:bg-muted/40"
                     >
-                      <div className="min-w-0 flex-1" onClick={() => loadConversation(conv.id)}>
+                      <div className="min-w-0 flex-1" onClick={() => openConversation(conv.id)}>
                         <div className="flex items-center gap-2">
                           <h3 className="truncate text-sm font-medium">{conv.title}</h3>
                           {typeof msgCount === 'number' && (

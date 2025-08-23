@@ -17,29 +17,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
 );
 
-interface ChatMessage {
-  id: string;
-  conversation_id: string;
-  content: string;
-  role: "user" | "assistant" | "consultant" | "system";
-  timestamp: string;
-  metadata?: Record<string, any>;
-}
-
-interface Conversation {
-  id: string;
-  user_id: string;
-  title: string;
-  status: "active" | "escalated" | "resolved" | "archived";
-  escalation_id?: string;
-  last_message_at?: string;
-  created_at: string;
-  updated_at: string;
-  org_id: string;
-  tags?: string[];
-}
-
-// local helper for titles (same rules as chat-with-ai)
+// -------- Title helper (same rules as chat-with-ai) --------
 function deriveTitle(text: string): string {
   const cleaned = (text || "")
     .replace(/\s+/g, " ")
@@ -73,18 +51,18 @@ Deno.serve(async (req) => {
       const url = new URL(request.url);
       const pathSegments = url.pathname.split("/").filter(Boolean);
       const chatApiIndex = pathSegments.indexOf("chat-api");
-      const relevantSegments = chatApiIndex >= 0
+      const relevant = chatApiIndex >= 0
         ? pathSegments.slice(chatApiIndex + 1)
         : pathSegments;
 
-      if (relevantSegments.length === 1 && relevantSegments[0] === "conversations") {
+      if (relevant.length === 1 && relevant[0] === "conversations") {
         return await handleConversations(request, context);
       } else if (
-        relevantSegments.length === 3 &&
-        relevantSegments[0] === "conversations" &&
-        relevantSegments[2] === "messages"
+        relevant.length === 3 &&
+        relevant[0] === "conversations" &&
+        relevant[2] === "messages"
       ) {
-        const conversationId = relevantSegments[1];
+        const conversationId = relevant[1];
         return await handleMessages(request, conversationId, context);
       } else {
         return createErrorResponse("Invalid endpoint", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND);
@@ -110,7 +88,7 @@ async function handleMessages(req: Request, conversationId: string, context: Sec
   }
   switch (req.method) {
     case "GET":
-      return await getMessages(conversationId, context);
+      return await getMessages(req, conversationId, context);
     case "POST":
       return await sendMessage(req, conversationId, context);
     default:
@@ -154,7 +132,6 @@ async function createConversation(req: Request, context: SecurityContext) {
   const body = await req.json().catch(() => ({}));
   let { title, initialMessage } = body as { title?: string; initialMessage?: string };
 
-  // Make title optional; auto-derive when absent using initialMessage
   if (typeof initialMessage === "string") {
     initialMessage = InputSanitizer.sanitizeChatMessage(initialMessage);
   }
@@ -196,7 +173,15 @@ async function createConversation(req: Request, context: SecurityContext) {
   return new Response(JSON.stringify(response), { status: HTTP_STATUS.CREATED, headers: { "Content-Type": "application/json" } });
 }
 
-async function getMessages(conversationId: string, context: SecurityContext) {
+/**
+ * GET /chat-api/conversations/:id/messages
+ * Supports keyset pagination:
+ *   - limit (default 20, max 100)
+ *   - before (ISO timestamp) -> returns messages with timestamp < before
+ * Returns ascending order for easy rendering + page metadata.
+ */
+async function getMessages(req: Request, conversationId: string, context: SecurityContext) {
+  // Access guard
   const { data: conversation, error: convError } = await supabase
     .from("chat_conversations")
     .select("id, user_id, org_id")
@@ -210,18 +195,47 @@ async function getMessages(conversationId: string, context: SecurityContext) {
     return createErrorResponse("Access denied to conversation", HTTP_STATUS.FORBIDDEN, ERROR_CODES.PERMISSION_DENIED);
   }
 
-  const { data: messages, error: msgError } = await supabase
+  const url = new URL(req.url);
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 100);
+  const before = url.searchParams.get("before"); // ISO timestamp string
+
+  // Base query: newest-first to leverage index, then reverse in code.
+  let query = supabase
     .from("chat_messages")
     .select("*")
-    .eq("conversation_id", conversationId)
-    .order("timestamp", { ascending: true });
+    .eq("conversation_id", conversationId);
 
+  if (before) {
+    query = query.lt("timestamp", before);
+  }
+
+  query = query.order("timestamp", { ascending: false }).limit(limit);
+
+  const { data: rows, error: msgError } = await query;
   if (msgError) {
     console.error("Error fetching messages:", msgError);
     return createErrorResponse("Failed to fetch messages", HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR);
   }
 
-  const payload = sanitizeResponse({ messages: messages || [] }, context.userRole);
+  // Reverse to chronological ascending for rendering
+  const messages = (rows ?? []).slice().reverse();
+
+  // Simple has_more heuristic: if we got 'limit' rows, assume there could be more.
+  const has_more = (rows?.length ?? 0) === limit;
+  const next_before = messages.length ? messages[0].timestamp : null; // pass the oldest in the page
+
+  const payload = sanitizeResponse(
+    {
+      messages,
+      page: {
+        limit,
+        has_more,
+        next_before, // pass this back to fetch the next older page
+      },
+    },
+    context.userRole,
+  );
+
   return new Response(JSON.stringify(payload), { headers: { "Content-Type": "application/json" } });
 }
 
@@ -243,7 +257,6 @@ async function sendMessage(req: Request, conversationId: string, context: Securi
     return createErrorResponse("Message content is invalid", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.INVALID_INPUT);
   }
 
-  // Basic access guard
   const { data: conv } = await supabase
     .from("chat_conversations")
     .select("id,user_id,org_id,status,consultant_id")
