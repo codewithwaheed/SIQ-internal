@@ -267,7 +267,7 @@ const Auth = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-center text-2xl">Welcome</CardTitle>
+            <CardTitle className="text-center text-2xl">{showForgotPassword ? "Reset Password" : "Welcome"}</CardTitle>
             <CardDescription className="text-center">
               {showForgotPassword
                 ? 'Enter your email to reset your password'

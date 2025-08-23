@@ -1,4 +1,4 @@
-import { ArrowUp, History, Upload, Crown, Square } from 'lucide-react';
+import { ArrowUp, History, Upload, Crown, Square, FileClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -64,7 +64,7 @@ export const MessageInputBox = ({
   };
 
   const access = checkFeatureAccess('document_upload');
-  const premiumIcon = <Crown className="absolute -right-1 -top-1 h-3 w-3 text-blue-500" />;
+  const premiumIcon = <Crown className="absolute -right-1 -top-1 h-3 w-3 text-yellow-500" />;
 
   return (
     <div className="w-full p-3 sm:p-4">
@@ -81,28 +81,37 @@ export const MessageInputBox = ({
                   size="icon"
                   variant="ghost"
                   onClick={onShowChatHistory}
-                  className="relative h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
+                  className="relative bg-gray-50 h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
                 >
-                  <History className="h-5 w-5 sm:h-4 sm:w-4" />
+                  {/* <History className="h-5 w-5 sm:h-4 sm:w-4" /> */}
+                  <FileClock className="h-5 w-5 sm:h-4 sm:w-4" />
                 </Button>
               </Tooltip>
 
               {/* Direct Upload Button with Immediate Dialog */}
               {onDocumentUploaded ? (
-                <DocumentUpload
-                  onDocumentUploaded={onDocumentUploaded}
-                  trigger={
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="relative h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
-                    >
-                      <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
-                      {!access.hasAccess && uploadedDocuments.length === 0 && premiumIcon}
-                    </Button>
-                  }
-                />
-              ) : (
+                 <DocumentUpload
+                 onDocumentUploaded={onDocumentUploaded}
+                 trigger={
+                   <div className="relative">
+                     <Button
+                       size="icon"
+                       variant="ghost"
+                       className="relative bg-gray-50  h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
+                     >
+                       <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
+                     </Button>
+             
+                     {/* Crown badge (only when no access + no docs uploaded) */}
+                     {!access.hasAccess && uploadedDocuments.length === 0 && (
+                       <span className="absolute top-1 right-2 flex h-3 w-3 items-center justify-center rounded-full">
+                         <span className="text-[10px] text-white">{premiumIcon}</span>
+                       </span>
+                     )}
+                   </div>
+                 }
+               />
+              ) : ( 
                 <Tooltip
                   content={`Upload Documents${uploadedDocuments.length > 0 ? ` (${uploadedDocuments.length} uploaded)` : ''}`}
                 >

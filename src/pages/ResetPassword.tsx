@@ -104,7 +104,7 @@ const Auth = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-center text-2xl">Welcome</CardTitle>
+            <CardTitle className="text-center text-2xl">Reset Password</CardTitle>
             <CardDescription className="text-center">
             Reset your password
             </CardDescription>
