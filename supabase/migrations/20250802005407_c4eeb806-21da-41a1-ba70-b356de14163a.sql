@@ -21,20 +21,7 @@ ADD COLUMN resolution_notes TEXT,
 ADD COLUMN consultant_response_count INTEGER DEFAULT 0;
 
 -- Insert sample consultants
-INSERT INTO public.profiles (user_id, email, first_name, last_name, company_name, expertise_areas, availability_status)
-VALUES 
-  ('00000000-0000-0000-0000-000000000001', 'jane.doe@sentrIQ.com', 'Jane', 'Doe', 'SentrIQ Consulting', 
-   ARRAY['compliance', 'NIST', 'risk-assessment', 'audit'], 'online'),
-  ('00000000-0000-0000-0000-000000000002', 'mike.security@sentrIQ.com', 'Mike', 'Security', 'SentrIQ Consulting', 
-   ARRAY['incident-response', 'malware', 'network-security', 'forensics'], 'online'),
-  ('00000000-0000-0000-0000-000000000003', 'sarah.cloud@sentrIQ.com', 'Sarah', 'Cloud', 'SentrIQ Consulting', 
-   ARRAY['cloud-security', 'AWS', 'Azure', 'container-security'], 'offline')
-ON CONFLICT (email) DO NOTHING;
-
--- Insert corresponding user roles for consultants
-INSERT INTO public.user_roles (user_id, role)
-VALUES 
-  ('00000000-0000-0000-0000-000000000001', 'consultant'),
-  ('00000000-0000-0000-0000-000000000002', 'consultant'),
-  ('00000000-0000-0000-0000-000000000003', 'consultant')
-ON CONFLICT (user_id, role) DO NOTHING;
+-- Sample consultant seeds intentionally skipped for local/dev to avoid
+-- inserting auth-linked records from cloud environments. If you want
+-- these sample users locally, create matching rows in auth.users first
+-- or enable these inserts manually.

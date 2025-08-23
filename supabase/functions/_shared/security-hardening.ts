@@ -143,10 +143,8 @@ export async function withSecurity(
 
     // Rate limiting
     if (options.rateLimitKey) {
-      const identifier =
-        securityContext.userId === 'anonymous'
-          ? ipAddress || '127.0.0.1' // Use IP for anonymous users, fallback to localhost
-          : securityContext.userId; // Use userId for authenticated users
+      // Always use IP address for rate limiting, regardless of authentication status
+      const identifier = ipAddress || '127.0.0.1';
 
       const rateLimitResult = await checkRateLimit(
         supabase,

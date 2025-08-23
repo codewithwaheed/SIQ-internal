@@ -1,4 +1,4 @@
-import { AiChatInterface } from '@/components/chat/AiChatInterface';
+import { AiChatInterface } from '@/components/chat/ai/AiChatInterface';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const BusinessOwnerDashboard = () => {

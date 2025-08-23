@@ -20,7 +20,7 @@ import { ContactExpertPage } from '@/components/dashboard/ContactExpertPage';
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/dashboard/AppSidebar';
-import { AiChatInterface } from '@/components/chat/AiChatInterface';
+import { AiChatInterface } from '@/components/chat/ai/AiChatInterface';
 
 const Dashboard = () => {
   const { userRole, needsOnboarding, completeOnboarding } = useAuth();

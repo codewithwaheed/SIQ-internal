@@ -15,16 +15,19 @@ CREATE TABLE public.subscribers (
 ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
 
 -- Create policy for users to view their own subscription info
+DROP POLICY IF EXISTS "select_own_subscription" ON public.subscribers;
 CREATE POLICY "select_own_subscription" ON public.subscribers
 FOR SELECT
 USING (user_id = auth.uid() OR email = auth.email());
 
 -- Create policy for edge functions to update subscription info
+DROP POLICY IF EXISTS "update_own_subscription" ON public.subscribers;
 CREATE POLICY "update_own_subscription" ON public.subscribers
 FOR UPDATE
 USING (true);
 
 -- Create policy for edge functions to insert subscription info
+DROP POLICY IF EXISTS "insert_subscription" ON public.subscribers;
 CREATE POLICY "insert_subscription" ON public.subscribers
 FOR INSERT
 WITH CHECK (true);

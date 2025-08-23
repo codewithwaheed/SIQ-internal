@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+schema.sql
+.vercel
+/scripts/publish_client.sh

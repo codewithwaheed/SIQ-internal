@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import {
   Copy,
-  ThumbsUp,
-  ThumbsDown,
+  Check,
   FileText,
   Lock,
   AlertTriangle,
   Shield,
   Target,
+  Crown,
+  UserCheck,
 } from 'lucide-react';
 import { renderSafeMarkdown, createSafeHtml } from '@/lib/sanitization';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,8 @@ import { EscalationButton } from './EscalationButton';
 import { PersistentEscalationCTA } from './PersistentEscalationCTA';
 import { AnimatedMessage } from '@/components/ui/feedback';
 import { MessageRating } from './MessageRating';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -39,7 +42,7 @@ interface ChatMessageProps {
   conversationId?: string;
   isLatest: boolean;
   isDemo: boolean;
-  user: any;
+  user: { id: string; email?: string } | null;
   messages: Message[];
   onCopyMessage: (content: string) => void;
   onMessageReaction: (messageId: string, reaction: 'up' | 'down') => void;
@@ -56,7 +59,23 @@ export const ChatMessage = ({
   onMessageReaction,
   onSuggestionClick,
 }: ChatMessageProps) => {
-  const [showActions, setShowActions] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyMessage = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setIsCopied(true);
+      onCopyMessage(content);
+      
+      // Reset copy state after 2 seconds
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+      onCopyMessage(content); // Fallback
+    }
+  };
 
   // Use secure markdown rendering
   const renderMarkdown = (content: string) => {
@@ -88,8 +107,6 @@ export const ChatMessage = ({
         {/* AI Message Bubble */}
         <div
           className="group relative"
-          onMouseEnter={() => setShowActions(true)}
-          onMouseLeave={() => setShowActions(false)}
         >
           <div className="hover-lift rounded-2xl border border-border/30 bg-muted/30 p-3 shadow-sm transition-all duration-200 sm:p-4 lg:p-6">
             <div className="prose prose-sm max-w-none text-foreground sm:prose-base prose-headings:mb-2 prose-headings:mt-4 prose-p:mb-2 prose-p:leading-relaxed prose-strong:font-semibold prose-em:italic prose-ol:mb-2 prose-ul:mb-2 prose-li:mb-1">
@@ -175,55 +192,72 @@ export const ChatMessage = ({
 
           {/* Action Bar - Mobile Optimized */}
           <div
-            className={`mt-3 flex items-center justify-between transition-opacity duration-200 sm:mt-4 ${showActions ? 'opacity-100' : 'opacity-0 sm:opacity-0'}`}
+            className={`mt-3 flex items-center justify-between transition-opacity duration-200 sm:mt-4`}
           >
             <div className="flex flex-wrap items-center gap-1 sm:gap-2">
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => onCopyMessage(message.content)}
-                className="button-press h-8 touch-manipulation px-2 text-xs text-muted-foreground hover:text-foreground sm:h-8 sm:px-3"
+                onClick={() => handleCopyMessage(message.content)}
+                className={cn(
+                  'h-7 w-7 p-0 transition-colors hover:bg-muted',
+                  isCopied 
+                    ? 'text-muted-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
               >
-                <Copy className="mr-1 h-3 w-3" />
-                <span className="hidden sm:inline">Copy</span>
+                {isCopied ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
               </Button>
 
               {/* New MessageRating component */}
               {message.id && conversationId && (
                 <MessageRating messageId={message.id} conversationId={conversationId} />
               )}
-            </div>
 
-            {!isDemo && user && (
-              <div className="hidden sm:block">
-                <EscalationButton
-                  messages={messages.map((msg) => ({
-                    role: msg.role,
-                    content: msg.content,
-                    timestamp: msg.timestamp,
-                    id: msg.id,
-                  }))}
-                  variant="inline"
-                />
-              </div>
-            )}
+              {!isDemo && user && (
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative h-8 w-8 transition-all duration-200 hover:scale-105">
+                        {/* Custom styled background */}
+                        <div className="absolute inset-0 rounded-md border border-amber-200/50 hover:border-amber-300 dark:border-amber-800/50 dark:hover:border-amber-600 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 hover:bg-gradient-to-r hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 hover:text-amber-800 dark:hover:text-amber-400"></div>
+                        
+                        {/* Hidden EscalationButton for functionality only */}
+                        <div className="absolute inset-0 opacity-0">
+                          <EscalationButton
+                            messages={messages.map((msg) => ({
+                              role: msg.role,
+                              content: msg.content,
+                              timestamp: msg.timestamp,
+                              id: msg.id,
+                            }))}
+                            variant="inline"
+                          />
+                        </div>
+                        
+                        {/* Custom icons overlay */}
+                        <UserCheck className="absolute inset-0 m-auto h-3.5 w-3.5 text-amber-800 dark:text-amber-400 pointer-events-none z-10" />
+                        <Crown className="absolute -top-1 -right-1 h-2.5 w-2.5 text-amber-600 dark:text-amber-400 animate-pulse pointer-events-none z-10" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="text-center">
+                        <p className="font-medium">Talk to Security Expert</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                          <Crown className="h-3 w-3" />
+                          Premium Feature
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           </div>
-
-          {/* Mobile-only Escalation Button */}
-          {!isDemo && user && (
-            <div className="mt-3 border-t border-border/20 pt-3 sm:hidden">
-              <EscalationButton
-                messages={messages.map((msg) => ({
-                  role: msg.role,
-                  content: msg.content,
-                  timestamp: msg.timestamp,
-                  id: msg.id,
-                }))}
-                variant="inline"
-              />
-            </div>
-          )}
-        </div>
 
         {/* Document Context Card - Removed */}
 
@@ -250,6 +284,8 @@ export const ChatMessage = ({
               </div>
             </div>
           )}
+
+        </div>
 
         {/* Timestamp */}
         <p className="text-xs text-muted-foreground">{message.timestamp}</p>
