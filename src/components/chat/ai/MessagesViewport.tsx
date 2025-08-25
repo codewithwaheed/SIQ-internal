@@ -36,6 +36,8 @@ interface Props {
   messagesEndRef: React.RefObject<HTMLDivElement>;
   initialLoading?: boolean;
   olderLoading?: boolean;
+  // NEW: sentinel ref (from controller)
+  topSentinelRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function MessagesViewport({
@@ -61,6 +63,7 @@ export function MessagesViewport({
   messagesEndRef,
   initialLoading = false,
   olderLoading = false,
+  topSentinelRef,
 }: Props) {
   const SkeletonRow = () => (
     <div className="animate-pulse">
@@ -70,7 +73,7 @@ export function MessagesViewport({
   );
 
   return (
-    <main className="app-content flex-1 ">
+    <main className="app-content flex-1">
       <div className="mx-auto min-h-full max-w-4xl space-y-4 p-3 sm:space-y-6 sm:p-4">
         {olderLoading && (
           <div className="flex items-center justify-center py-2 text-xs text-muted-foreground">
@@ -98,6 +101,9 @@ export function MessagesViewport({
           </div>
         ) : (
           <>
+            {/* Sentinel to trigger "load older" when scrolled to top of message list */}
+            {messages.length > 0 && <div ref={topSentinelRef} className="h-px" />}
+
             {messages.map((message, index) => (
               <ChatMessage
                 key={message.id || index}
@@ -133,7 +139,8 @@ export function MessagesViewport({
                   templateUsed={policyGenerationState.policyType || undefined}
                   messageId={
                     policyGenerationState.generatedPolicy
-                      ? messages.find((m) => m.content === policyGenerationState.generatedPolicy)?.id
+                      ? messages.find((m) => m.content === policyGenerationState.generatedPolicy)
+                          ?.id
                       : undefined
                   }
                 />

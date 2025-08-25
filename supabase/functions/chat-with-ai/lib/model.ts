@@ -1,5 +1,5 @@
 export function selectModel(): string {
-  return "gpt-4o-mini"; // adjust if you need
+  return 'gpt-4o-mini'; // adjust if needed
 }
 
 export function callOpenAIStream(
@@ -7,11 +7,11 @@ export function callOpenAIStream(
   model: string,
   messages: Array<{ role: string; content: string }>,
 ): Promise<Response> {
-  return fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
+  return fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       model,

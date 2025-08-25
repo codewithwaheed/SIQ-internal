@@ -14,7 +14,6 @@ import { DocumentUpload } from '@/components/chat/DocumentUpload';
 export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterfaceProps) => {
   const c = useAiChatController(isDemo);
 
-  // History panel
   if (c.showChatHistory) {
     return (
       <ChatHistoryPanel
@@ -33,7 +32,6 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
     );
   }
 
-  // Empty hero (no initial load AND no messages)
   if (!c.initialLoading && c.messages.length === 0) {
     return (
       <EmptyStateHero
@@ -76,12 +74,11 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
     );
   }
 
-  // Main chat
   return (
-    <div className={`page flex h-full flex-col ${c.sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {/* The ONLY scroll container. Make it relative so sticky works reliably. */}
+    <div className={`page p flex h-full flex-col ${c.sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* SINGLE scroll container. Padding-bottom leaves room for composer, so actions aren't hidden */}
       <div
-        className="app-content relative flex-1 overflow-y-auto"
+        className="app-content relative flex-1 overflow-y-auto pb-28 md:pb-32"
         ref={c.messagesContainerRef}
         onScroll={c.handleScroll}
         aria-busy={c.initialLoading ? 'true' : 'false'}
@@ -98,16 +95,16 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
           setEditTitleValue={c.setEditTitleValue}
         />
 
-        {/* FULL-WIDTH, TALLER SKELETON (no tiny “bubble”) */}
+        {/* Bolder, multi-row skeleton so it’s clearly visible */}
         {c.initialLoading && (
           <div className="mx-auto w-full max-w-4xl px-3 pb-6 pt-3">
             <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
+              {[...Array(4)].map((_, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-full bg-muted/60" />
+                  <div className="h-8 w-8 rounded-full bg-primary/10" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 w-28 rounded bg-muted/60" />
-                    <div className="h-16 w-full rounded-lg bg-muted/60" />
+                    <div className="h-3 w-28 rounded bg-primary/10" />
+                    <div className="h-20 w-full rounded-lg bg-primary/10" />
                   </div>
                 </div>
               ))}
@@ -145,9 +142,13 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               conversationContext={c.conversationContext}
               sessionStart={c.sessionStart}
               messagesEndRef={c.messagesEndRef}
+              topSentinelRef={c.topSentinelRef}
             />
 
-            <NewMessageIndicator show={c.showNewMessageIndicator} onClick={c.scrollToBottomAndMarkRead} />
+            <NewMessageIndicator
+              show={c.showNewMessageIndicator}
+              onClick={c.scrollToBottomAndMarkRead}
+            />
             <DocumentUploadTray
               show={c.showDocumentUpload}
               user={c.user}
@@ -158,6 +159,7 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
         )}
       </div>
 
+      {/* Composer sits OUTSIDE the scroll container (fixed-like). */}
       <div className="chat-composer">
         <div className="composer-shell" ref={c.composerRef}>
           <div className="inner">

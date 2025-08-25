@@ -31,13 +31,11 @@ export function ChatHeader({
 }: Props) {
   return (
     /**
-     * IMPORTANT:
-     * - sticky MUST be inside the same scrolling element (the overflow-y-auto container)
-     * - give it a z-index and full width so it layers above messages
-     * - keep height compact via small paddings / text sizes
+     * Must be inside the same scroll container that has overflow-y-auto.
+     * Sticky + top + high z-index keeps it fixed like the composer.
      */
-    <div className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-2 sm:px-3 py-1.5">
+    <div className="sticky top-0 z-[60] w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="mx-auto flex max-w-4xl items-center justify-between px-2 py-1.5 sm:px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="hidden shrink-0 sm:block">
             <AiAvatar />
@@ -50,17 +48,17 @@ export function ChatHeader({
               </h2>
 
               {currentConversation && (
-                <div className="min-w-0 flex items-center gap-1">
+                <div className="flex min-w-0 items-center gap-1">
                   <span className="select-none text-muted-foreground">•</span>
 
                   {editingTitle ? (
-                    <div className="min-w-0 flex items-center gap-1">
+                    <div className="relative z-[61] flex min-w-0 items-center gap-1">
                       <Input
                         value={editTitleValue}
                         onChange={(e) => setEditTitleValue(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
-                        className="h-7 w-44 min-w-0 text-xs"
-                        placeholder="Title…"
+                        className="h-7 w-56 min-w-0 truncate bg-background text-xs"
+                        placeholder="Conversation title…"
                         autoFocus
                       />
                       <Button
@@ -87,9 +85,9 @@ export function ChatHeader({
                       type="button"
                       onClick={startEditingTitle}
                       className="group inline-flex min-w-0 items-center gap-1"
-                      title="Edit title"
+                      title="Edit conversation title"
                     >
-                      <span className="max-w-[14rem] truncate text-[12px] text-foreground/90 sm:max-w-[18rem]">
+                      <span className="max-w-[16rem] truncate text-[12px] text-foreground/90 sm:max-w-[20rem]">
                         {currentConversation.title}
                       </span>
                       <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

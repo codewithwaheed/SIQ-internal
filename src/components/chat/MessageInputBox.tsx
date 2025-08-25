@@ -1,14 +1,12 @@
-import { ArrowUp, History, Upload, Crown, Square, FileClock } from 'lucide-react';
+import { ArrowUp, Upload, Crown, Square, FileClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip } from '@/components/ui/custom-tooltip';
 import { DocumentUpload } from './DocumentUpload';
-import { InlineUpgradeNudge, UpgradePrompt } from '@/components/ui/feature-gate';
+import { UpgradePrompt } from '@/components/ui/feature-gate';
 import { useFeatureGating } from '@/hooks/useFeatureGating';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface MessageInputBoxProps {
   input: string;
@@ -38,7 +36,6 @@ export const MessageInputBox = ({
   user,
   conversations,
   uploadedDocuments,
-  messages,
   onInputChange,
   onSendMessage,
   onKeyPress,
@@ -49,80 +46,104 @@ export const MessageInputBox = ({
   abortController,
   onStopGeneration,
   isEscalated = false,
-  escalationInfo,
 }: MessageInputBoxProps) => {
   const { checkFeatureAccess } = useFeatureGating();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const access = checkFeatureAccess('document_upload');
+
+  // Auto-expand (1–6 lines)
+  useEffect(() => {
+    if (!inputRef.current) return;
+    const el = inputRef.current;
+    el.style.height = '0px';
+    const line = 20;
+    const max = 6 * line + 16;
+    el.style.height = Math.max(Math.min(el.scrollHeight, max), 44) + 'px';
+  }, [input, inputRef]);
 
   const handleUploadClick = () => {
-    const access = checkFeatureAccess('document_upload');
-    if (access.hasAccess) {
-      onShowDocumentUpload();
-    } else {
-      setUpgradeOpen(true);
-    }
+    const feature = checkFeatureAccess('document_upload');
+    if (feature.hasAccess) onShowDocumentUpload();
+    else setUpgradeOpen(true);
   };
 
-  const access = checkFeatureAccess('document_upload');
-  const premiumIcon = <Crown className="absolute -right-1 -top-1 h-3 w-3 text-yellow-500" />;
+  // Darker neutral by default; brand + white on hover; perfectly centered
+  const iconBtn = cn(
+    'inline-flex items-center justify-center',
+    'h-11 w-11 sm:h-10 sm:w-10 rounded-xl transition-all',
+    'bg-muted/80 text-foreground/80', // darker idle
+    'hover:bg-primary hover:text-primary-foreground',
+    'active:scale-[0.98] focus-visible:ring-0',
+  );
+
+  const sendBtn = (enabled: boolean) =>
+    cn(
+      'inline-flex items-center justify-center h-11 w-11 sm:h-10 sm:w-10 rounded-xl transition-all',
+      enabled
+        ? 'bg-primary text-primary-foreground shadow hover:scale-[1.03] hover:bg-primary/90'
+        : 'bg-muted/70 text-foreground/50 cursor-not-allowed',
+    );
 
   return (
-    <div className="w-full p-3 sm:p-4">
-      <div className="flex w-full items-end gap-2 sm:gap-3">
-        {/* Left Actions - Mobile Optimized */}
+    <div className="w-full px-2 pb-[env(safe-area-inset-bottom)] pt-2 sm:px-3">
+      {/* Align EVERYTHING vertically centered */}
+      <div className="mx-auto flex w-full max-w-4xl items-center gap-2 sm:gap-3">
+        {/* Left actions */}
         <div className="flex items-center gap-1 sm:gap-2">
           {!isDemo && user && (
             <>
-              {/* History Button with Badge - Larger Touch Target */}
               <Tooltip
-                content={`Chat History${conversations.length > 0 ? ` (${conversations.length})` : ''}`}
+                content={`Chat History${conversations.length ? ` (${conversations.length})` : ''}`}
               >
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={onShowChatHistory}
-                  className="relative bg-gray-50 h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
+                  aria-label="Open chat history"
+                  className={iconBtn}
                 >
-                  {/* <History className="h-5 w-5 sm:h-4 sm:w-4" /> */}
                   <FileClock className="h-5 w-5 sm:h-4 sm:w-4" />
                 </Button>
               </Tooltip>
 
-              {/* Direct Upload Button with Immediate Dialog */}
               {onDocumentUploaded ? (
-                 <DocumentUpload
-                 onDocumentUploaded={onDocumentUploaded}
-                 trigger={
-                   <div className="relative">
-                     <Button
-                       size="icon"
-                       variant="ghost"
-                       className="relative bg-gray-50  h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
-                     >
-                       <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
-                     </Button>
-             
-                     {/* Crown badge (only when no access + no docs uploaded) */}
-                     {!access.hasAccess && uploadedDocuments.length === 0 && (
-                       <span className="absolute top-1 right-2 flex h-3 w-3 items-center justify-center rounded-full">
-                         <span className="text-[10px] text-white">{premiumIcon}</span>
-                       </span>
-                     )}
-                   </div>
-                 }
-               />
-              ) : ( 
+                <DocumentUpload
+                  onDocumentUploaded={onDocumentUploaded}
+                  trigger={
+                    <div className="relative">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Upload documents"
+                        className={iconBtn}
+                      >
+                        <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
+                      </Button>
+                      {!access.hasAccess && uploadedDocuments.length === 0 && (
+                        <span className="absolute -right-1 -top-1">
+                          <Crown className="h-3 w-3 text-yellow-500" />
+                        </span>
+                      )}
+                    </div>
+                  }
+                />
+              ) : (
                 <Tooltip
-                  content={`Upload Documents${uploadedDocuments.length > 0 ? ` (${uploadedDocuments.length} uploaded)` : ''}`}
+                  content={`Upload Documents${uploadedDocuments.length ? ` (${uploadedDocuments.length})` : ''}`}
                 >
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={handleUploadClick}
-                    className="relative h-10 w-10 touch-manipulation rounded-xl text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:h-9 sm:w-9"
+                    aria-label="Upload documents"
+                    className={iconBtn}
                   >
                     <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
-                    {!access.hasAccess && uploadedDocuments.length === 0 && premiumIcon}
+                    {!access.hasAccess && uploadedDocuments.length === 0 && (
+                      <span className="absolute -right-1 -top-1">
+                        <Crown className="h-3 w-3 text-yellow-500" />
+                      </span>
+                    )}
                   </Button>
                 </Tooltip>
               )}
@@ -130,35 +151,46 @@ export const MessageInputBox = ({
           )}
         </div>
 
-        {/* Input Area - Mobile Optimized */}
+        {/* Textarea — slightly darker background, no heavy border */}
         <div className="relative min-w-0 flex-1">
           <Textarea
             ref={inputRef}
             placeholder={
               loading
                 ? isEscalated
-                  ? 'Expert is responding...'
-                  : 'AI is responding...'
+                  ? 'Expert is responding…'
+                  : 'AI is responding…'
                 : isEscalated
-                  ? 'Type your message to the cybersecurity expert...'
-                  : 'What cybersecurity challenge can I help you solve today?'
+                  ? 'Message your cybersecurity expert…'
+                  : 'Ask anything about security, compliance, or policies…'
             }
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={onKeyPress}
             disabled={loading}
-            className="max-h-[120px] min-h-[48px] touch-manipulation resize-none rounded-xl border border-border/30 bg-background px-3 py-3 text-base transition-all placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring sm:px-4"
+            rows={1}
+            className={cn(
+              'max-h-[160px] min-h-[44px] w-full resize-none rounded-2xl',
+              'border-0 bg-muted/70 shadow-inner', // darker input background
+              'px-3 py-2.5 text-[15px] leading-5 sm:px-4 sm:py-3',
+              'placeholder:text-muted-foreground/70',
+              'focus-visible:ring-1 focus-visible:ring-primary/30',
+            )}
+            aria-label="Type your message"
           />
         </div>
 
-        {/* Right Actions - Mobile Optimized */}
+        {/* Right actions */}
         <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
-          {/* Send/Stop Button - Dynamic based on loading state */}
           {loading && abortController ? (
             <Button
               size="icon"
               onClick={onStopGeneration}
-              className="h-12 w-12 touch-manipulation rounded-xl bg-destructive text-destructive-foreground transition-all duration-200 hover:bg-destructive/90 sm:h-10 sm:w-10"
+              aria-label="Stop generating"
+              className={cn(
+                'inline-flex h-11 w-11 items-center justify-center rounded-xl transition-all sm:h-10 sm:w-10',
+                'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+              )}
             >
               <Square className="h-5 w-5 sm:h-4 sm:w-4" />
             </Button>
@@ -167,13 +199,8 @@ export const MessageInputBox = ({
               size="icon"
               onClick={onSendMessage}
               disabled={loading || !input.trim()}
-              className={`h-12 w-12 touch-manipulation rounded-xl transition-all duration-200 sm:h-10 sm:w-10 ${
-                loading
-                  ? 'cursor-not-allowed bg-muted text-muted-foreground'
-                  : input.trim()
-                    ? 'bg-primary text-primary-foreground shadow-md hover:scale-105 hover:bg-primary/90 hover:shadow-lg'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
+              aria-label="Send message"
+              className={sendBtn(!loading && !!input.trim())}
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent sm:h-4 sm:w-4" />
@@ -185,7 +212,15 @@ export const MessageInputBox = ({
         </div>
       </div>
 
-      {/* Upgrade Prompt for Document Upload */}
+      {/* helper text */}
+      <p className="mx-auto mt-1.5 w-full max-w-4xl text-center text-[11px] text-muted-foreground sm:text-xs">
+        Press <kbd className="rounded border px-1">Enter</kbd> to send •{' '}
+        <span className="whitespace-nowrap">
+          <kbd className="rounded border px-1">Shift</kbd> +{' '}
+          <kbd className="rounded border px-1">Enter</kbd> for a new line
+        </span>
+      </p>
+
       <UpgradePrompt
         feature="document_upload"
         open={upgradeOpen}

@@ -17,12 +17,7 @@ import {
   type PolicyType,
 } from '@/lib/policyGenerator';
 import { callFn, callFnStream } from '@/lib/call-fn';
-import type {
-  Message,
-  Conversation,
-  CurrentConversation,
-  PolicyGenerationState,
-} from '../types';
+import type { Message, Conversation, CurrentConversation, PolicyGenerationState } from '../types';
 
 export function useAiChatController(isDemo: boolean) {
   const navigate = useNavigate();
@@ -41,6 +36,7 @@ export function useAiChatController(isDemo: boolean) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -57,6 +53,8 @@ export function useAiChatController(isDemo: boolean) {
   const [olderLoading, setOlderLoading] = useState(false);
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  // NEW: don't let the top sentinel trigger until we've scrolled to bottom once
+  const [paginationArmed, setPaginationArmed] = useState(false);
 
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState<any[]>([]);
@@ -87,10 +85,12 @@ export function useAiChatController(isDemo: boolean) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState('');
 
-  // --- NEW: prevent flicker when we navigate programmatically after streaming ---
+  // prevent flicker when navigating after streaming
   const suppressNextRouteLoadRef = useRef(false);
-  // --- NEW: avoid reloading on focus for same conversation ---
+  // avoid reloading on focus for same conversation
   const lastLoadedConvRef = useRef<string | null>(null);
+  // detect returning from ChatHistory (to auto-scroll bottom)
+  const prevShowHistoryRef = useRef<boolean>(false);
 
   const [policyGenerationState, setPolicyGenerationState] = useState<PolicyGenerationState>({
     isActive: false,
@@ -103,15 +103,22 @@ export function useAiChatController(isDemo: boolean) {
     isGenerating: false,
   });
 
-  // ----- layout bindings -----
+  // Bind composer auto-height
   useEffect(() => {
-    if (composerRef.current) {
-      const cleanup = bindComposerHeight(composerRef.current);
-      return cleanup;
-    }
+    if (composerRef.current) return bindComposerHeight(composerRef.current);
   }, []);
 
-  // ?new=true compatibility (start fresh)
+  // Arm pagination after we leave ChatHistory view
+  useEffect(() => {
+    if (prevShowHistoryRef.current && !showChatHistory) {
+      // Returning from history ➜ jump to bottom immediately, then arm pagination
+      scrollToBottomAfterRender(false);
+      setTimeout(() => setPaginationArmed(true), 120);
+    }
+    prevShowHistoryRef.current = showChatHistory;
+  }, [showChatHistory]);
+
+  // ?new=true compatibility
   useEffect(() => {
     const newParam = searchParams.get('new');
     if (newParam === 'true') {
@@ -121,16 +128,17 @@ export function useAiChatController(isDemo: boolean) {
     }
   }, [searchParams, setSearchParams]);
 
-  // Scroll reactions
+  // track assistant count
   useEffect(() => {
     if (messages.filter((m) => m.role === 'assistant').length > lastAssistantReplyCount) {
       setLastAssistantReplyCount(messages.filter((m) => m.role === 'assistant').length);
     }
   }, [messages, lastAssistantReplyCount]);
 
+  // auto-scroll when near bottom
   useEffect(() => {
     if (isNearBottom) {
-      scrollToBottom();
+      scrollToBottom({ smooth: true });
       setShowNewMessageIndicator(false);
     } else if (messages.length > 0) {
       setShowNewMessageIndicator(true);
@@ -141,7 +149,7 @@ export function useAiChatController(isDemo: boolean) {
   useEffect(() => {
     if (!user || isDemo) return;
 
-    // Load sidebar lists once; don't show loading for this
+    // load side data
     loadUserDocuments();
     loadConversations();
 
@@ -149,29 +157,27 @@ export function useAiChatController(isDemo: boolean) {
     const routeId = params.conversationId;
 
     if (pathname.endsWith('/chat/new')) {
-      // fresh composer
       startNewConversation();
       return;
     }
 
     if (routeId) {
-      // Avoid reloading if we're already on this conversation with messages
       if (routeId === currentConversationId && messages.length > 0) return;
 
-      // If we just navigated programmatically after streaming, don't flash loading/fetch
       if (suppressNextRouteLoadRef.current) {
         suppressNextRouteLoadRef.current = false;
         setCurrentConversationId(routeId);
         lastLoadedConvRef.current = routeId;
-        // keep existing messages; just ensure we scroll to bottom
-        setTimeout(() => scrollToBottom(), 0);
+        // Ensure bottom without animation; arm pagination after
+        setTimeout(() => {
+          scrollToBottom({ smooth: false });
+          setTimeout(() => setPaginationArmed(true), 120);
+        }, 0);
         return;
       }
 
-      // Avoid reloading on tab refocus if same route already loaded
       if (lastLoadedConvRef.current === routeId && messages.length > 0) return;
 
-      // Normal initial load
       openConversationByRoute(routeId);
     } else if (pathname.endsWith('/chat')) {
       setCurrentConversationId(null);
@@ -180,13 +186,42 @@ export function useAiChatController(isDemo: boolean) {
     }
   }, [user, isDemo, location.pathname, params.conversationId]);
 
-  // Auto-resize input
+  // auto-resize input
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
       inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
     }
   }, [input]);
+
+  // -------- IntersectionObserver for top sentinel (robust "load older") --------
+  useEffect(() => {
+    const root = messagesContainerRef.current;
+    const sentinel = topSentinelRef.current;
+    if (!root || !sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (!paginationArmed || initialLoading || olderLoading || !hasMoreOlder) return;
+
+        // Only when the user is actually near the top
+        const scrollTop = root.scrollTop;
+        if (entry.isIntersecting && scrollTop <= 40) {
+          loadOlderMessages();
+        }
+      },
+      {
+        root,
+        rootMargin: '0px 0px 0px 0px', // no early prefetch on initial render
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreOlder, olderLoading, initialLoading, paginationArmed]);
 
   // ----- data loaders -----
   const loadUserDocuments = async () => {
@@ -213,30 +248,34 @@ export function useAiChatController(isDemo: boolean) {
     }
   };
 
-  // helper: scroll after React has painted the new list
-  const scrollToBottomAfterRender = () => {
+  // helper: scroll after paint (optionally smooth)
+  const scrollToBottomAfterRender = (smooth = true) => {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => scrollToBottom());
+      requestAnimationFrame(() => scrollToBottom({ smooth }));
     });
   };
 
   const openConversationByRoute = async (conversationId: string) => {
     setInitialLoading(true);
+    setPaginationArmed(false); // disarm while we switch convs
     setMessages([]);
     setCurrentConversationId(conversationId);
     setBeforeCursor(null);
     setHasMoreOlder(false);
 
     try {
-      const { data } = await callFn<{ messages: any[]; page?: { next_before: string | null; has_more: boolean } }>(
-        `chat-api/conversations/${conversationId}/messages?limit=20`,
-        { method: 'GET' },
-      );
+      const { data } = await callFn<{
+        messages: any[];
+        page?: { next_before: string | null; has_more: boolean };
+      }>(`chat-api/conversations/${conversationId}/messages?limit=20`, { method: 'GET' });
 
       const loaded = (data?.messages || []).map((m: any) => ({
         role: (m.role === 'consultant' ? 'assistant' : m.role) as 'user' | 'assistant',
         content: m.content,
-        timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date(m.timestamp).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
         id: m.id,
       })) as Message[];
 
@@ -249,15 +288,19 @@ export function useAiChatController(isDemo: boolean) {
 
       lastLoadedConvRef.current = conversationId;
 
-      // Ensure we land at the last message
+      // End initial load, jump to bottom (no animation), then arm pagination
       setInitialLoading(false);
-      scrollToBottomAfterRender();
-
+      scrollToBottomAfterRender(false);
+      setTimeout(() => setPaginationArmed(true), 120);
       setShowChatHistory(false);
     } catch (error) {
       console.error('Error loading conversation (route):', error);
       setInitialLoading(false);
-      toast({ title: 'Error', description: 'Failed to load conversation.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: 'Failed to load conversation.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -270,7 +313,10 @@ export function useAiChatController(isDemo: boolean) {
     const prevScrollTop = container?.scrollTop ?? 0;
 
     try {
-      const { data } = await callFn<{ messages: any[]; page?: { next_before: string | null; has_more: boolean } }>(
+      const { data } = await callFn<{
+        messages: any[];
+        page?: { next_before: string | null; has_more: boolean };
+      }>(
         `chat-api/conversations/${currentConversationId}/messages?limit=20&before=${encodeURIComponent(
           beforeCursor,
         )}`,
@@ -280,7 +326,10 @@ export function useAiChatController(isDemo: boolean) {
       const older = (data?.messages || []).map((m: any) => ({
         role: (m.role === 'consultant' ? 'assistant' : m.role) as 'user' | 'assistant',
         content: m.content,
-        timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date(m.timestamp).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
         id: m.id,
       })) as Message[];
 
@@ -288,6 +337,7 @@ export function useAiChatController(isDemo: boolean) {
       setBeforeCursor(data?.page?.next_before ?? null);
       setHasMoreOlder(!!data?.page?.has_more);
 
+      // keep viewport anchored at the same message
       setTimeout(() => {
         const newScrollHeight = container?.scrollHeight ?? 0;
         if (container) container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
@@ -300,7 +350,10 @@ export function useAiChatController(isDemo: boolean) {
   };
 
   // ----- UI helpers -----
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (opts?: { smooth?: boolean }) =>
+    messagesEndRef.current?.scrollIntoView({
+      behavior: opts?.smooth === false ? 'auto' : 'smooth',
+    });
 
   const handleScroll = () => {
     if (!messagesContainerRef.current) return;
@@ -310,13 +363,14 @@ export function useAiChatController(isDemo: boolean) {
     setIsNearBottom(nearBottom);
     if (nearBottom) setShowNewMessageIndicator(false);
 
-    if (el.scrollTop < 60 && hasMoreOlder && !olderLoading && !initialLoading) {
+    // Fallback trigger if someone scrolls fast to the very top
+    if (paginationArmed && el.scrollTop < 60 && hasMoreOlder && !olderLoading && !initialLoading) {
       loadOlderMessages();
     }
   };
 
   const scrollToBottomAndMarkRead = () => {
-    scrollToBottom();
+    scrollToBottom({ smooth: true });
     setShowNewMessageIndicator(false);
     setIsNearBottom(true);
   };
@@ -330,6 +384,7 @@ export function useAiChatController(isDemo: boolean) {
     setEditTitleValue('');
     setBeforeCursor(null);
     setHasMoreOlder(false);
+    setPaginationArmed(false);
 
     if (location.pathname !== '/dashboard/chat/new') {
       navigate('/dashboard/chat/new', { replace: true });
@@ -346,7 +401,11 @@ export function useAiChatController(isDemo: boolean) {
       toast({ title: 'Conversation deleted', description: 'The conversation has been removed.' });
     } catch (error) {
       console.error('Error deleting conversation:', error);
-      toast({ title: 'Error', description: 'Failed to delete conversation.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: 'Failed to delete conversation.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -384,7 +443,11 @@ export function useAiChatController(isDemo: boolean) {
       });
     } catch (error: any) {
       console.error('Error sending message to consultant:', error);
-      toast({ title: 'Error', description: 'Failed to send message. Please try again.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -392,7 +455,11 @@ export function useAiChatController(isDemo: boolean) {
 
   const handleRetry = async (originalMessage: string) => {
     if (retryCount >= 3) {
-      toast({ title: 'Max retries reached', description: 'Please try again later.', variant: 'destructive' });
+      toast({
+        title: 'Max retries reached',
+        description: 'Please try again later.',
+        variant: 'destructive',
+      });
       return;
     }
     setRetryCount((prev) => prev + 1);
@@ -435,11 +502,18 @@ export function useAiChatController(isDemo: boolean) {
 
       setCurrentConversation((prev) => (prev ? { ...prev, title: newTitle, tags: newTags } : null));
       loadConversations();
-      toast({ title: 'Title updated', description: 'Conversation title has been updated successfully.' });
+      toast({
+        title: 'Title updated',
+        description: 'Conversation title has been updated successfully.',
+      });
       setEditingTitle(false);
     } catch (error) {
       console.error('Error updating title:', error);
-      toast({ title: 'Error', description: 'Failed to update conversation title.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: 'Failed to update conversation title.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -462,7 +536,10 @@ export function useAiChatController(isDemo: boolean) {
   };
 
   // ---------- Policy helpers ----------
-  const handlePolicyGenerationFlow = async (intent: 'unspecified' | 'specified', userMessage: string) => {
+  const handlePolicyGenerationFlow = async (
+    intent: 'unspecified' | 'specified',
+    userMessage: string,
+  ) => {
     const userChatMessage: Message = {
       role: 'user',
       content: userMessage,
@@ -506,7 +583,11 @@ export function useAiChatController(isDemo: boolean) {
     }
   };
 
-  const initiatePolicyGeneration = async (policyType: PolicyType, _userMessage: string, customTitle?: string) => {
+  const initiatePolicyGeneration = async (
+    policyType: PolicyType,
+    _userMessage: string,
+    customTitle?: string,
+  ) => {
     try {
       const template = await loadPolicyTemplate(policyType);
       const userProfile = user
@@ -534,13 +615,19 @@ export function useAiChatController(isDemo: boolean) {
       }
     } catch (error) {
       console.error('Error initiating policy generation:', error);
-      toast({ title: 'Error', description: 'Failed to load policy template. Please try again.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: 'Failed to load policy template. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
   const handlePolicyFieldsSubmit = async (answers: Record<string, string>) => {
     const updatedAnswers = { ...policyGenerationState.userAnswers, ...answers };
-    const userProfile = user ? { business_name: user.user_metadata?.company_name || 'Your Organization' } : {};
+    const userProfile = user
+      ? { business_name: user.user_metadata?.company_name || 'Your Organization' }
+      : {};
     setPolicyGenerationState((prev) => ({ ...prev, userAnswers: updatedAnswers }));
 
     try {
@@ -553,17 +640,26 @@ export function useAiChatController(isDemo: boolean) {
         if (requirements.missingFields.length === 0) {
           await generatePolicyDocument(policyGenerationState.template, userProfile, updatedAnswers);
         } else {
-          setPolicyGenerationState((prev) => ({ ...prev, missingFields: requirements.missingFields }));
+          setPolicyGenerationState((prev) => ({
+            ...prev,
+            missingFields: requirements.missingFields,
+          }));
         }
       }
     } catch (err) {
       console.error('Error analyzing policy requirements:', err);
-      toast({ title: 'Error', description: 'Unable to process your answers. Try again.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: 'Unable to process your answers. Try again.',
+        variant: 'destructive',
+      });
     }
   };
 
   const handlePolicyUseDefaults = async () => {
-    const userProfile = user ? { business_name: user.user_metadata?.company_name || 'Your Organization' } : {};
+    const userProfile = user
+      ? { business_name: user.user_metadata?.company_name || 'Your Organization' }
+      : {};
     if (policyGenerationState.template) {
       await generatePolicyDocument(policyGenerationState.template, userProfile, {});
     }
@@ -596,13 +692,17 @@ export function useAiChatController(isDemo: boolean) {
       });
     } catch (error) {
       console.error('Error generating policy:', error);
-      toast({ title: 'Generation Failed', description: 'Failed to generate policy. Please try again.', variant: 'destructive' });
+      toast({
+        title: 'Generation Failed',
+        description: 'Failed to generate policy. Please try again.',
+        variant: 'destructive',
+      });
       setPolicyGenerationState((prev) => ({ ...prev, isGenerating: false }));
     }
   };
   // ---------- Policy helpers END ----------
 
-  // ---- hydrate: fetch the real assistant message id after streaming completes ----
+  // hydrate: fetch the real assistant message id after streaming completes
   const hydrateAssistantId = async (convId: string): Promise<string | undefined> => {
     try {
       const { data } = await callFn<{ messages: any[] }>(
@@ -633,18 +733,30 @@ export function useAiChatController(isDemo: boolean) {
     const inputMessage = messageToSend || input;
 
     if (!inputMessage || inputMessage.trim().length < 2) {
-      toast({ title: 'Invalid Input', description: 'Please enter at least 2 characters.', variant: 'destructive' });
+      toast({
+        title: 'Invalid Input',
+        description: 'Please enter at least 2 characters.',
+        variant: 'destructive',
+      });
       return;
     }
 
     const validation = validateMessage(inputMessage);
     if (!validation.isValid) {
-      toast({ title: 'Invalid Message', description: validation.threats.join(', '), variant: 'destructive' });
+      toast({
+        title: 'Invalid Message',
+        description: validation.threats.join(', '),
+        variant: 'destructive',
+      });
       return;
     }
     const sanitizedMessage = validation.sanitizedContent || inputMessage;
     if (!sanitizedMessage || sanitizedMessage.trim().length < 3) {
-      toast({ title: 'Invalid Input', description: 'Please enter a meaningful request.', variant: 'destructive' });
+      toast({
+        title: 'Invalid Input',
+        description: 'Please enter a meaningful request.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -683,7 +795,9 @@ export function useAiChatController(isDemo: boolean) {
     setConversationContext((prev) => ({ ...prev, messageCount: prev.messageCount + 1 }));
 
     const typingTimeout = setTimeout(() => {
-      setMessages((prev) => prev.map((m) => (m.id === streamingMessageId ? { ...m, content: '' } : m)));
+      setMessages((prev) =>
+        prev.map((m) => (m.id === streamingMessageId ? { ...m, content: '' } : m)),
+      );
     }, 150);
 
     let timeoutCleared = false;
@@ -728,7 +842,11 @@ export function useAiChatController(isDemo: boolean) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === streamingMessageId
-              ? { ...msg, content: "I couldn't process that request. Please try again.", isStreaming: false }
+              ? {
+                  ...msg,
+                  content: "I couldn't process that request. Please try again.",
+                  isStreaming: false,
+                }
               : msg,
           ),
         );
@@ -744,7 +862,8 @@ export function useAiChatController(isDemo: boolean) {
       let buffer = '';
 
       const autoScrollIfAtBottom = () => {
-        if (isNearBottom && messagesContainerRef.current) setTimeout(() => scrollToBottom(), 50);
+        if (isNearBottom && messagesContainerRef.current)
+          setTimeout(() => scrollToBottom({ smooth: true }), 50);
       };
 
       while (true) {
@@ -773,7 +892,9 @@ export function useAiChatController(isDemo: boolean) {
 
               streamedContent += data.content || '';
               setMessages((prev) =>
-                prev.map((msg) => (msg.id === streamingMessageId ? { ...msg, content: streamedContent } : msg)),
+                prev.map((msg) =>
+                  msg.id === streamingMessageId ? { ...msg, content: streamedContent } : msg,
+                ),
               );
 
               if (data.conversation_id && !currentConversationId) {
@@ -784,7 +905,6 @@ export function useAiChatController(isDemo: boolean) {
             } else if (data.type === 'complete') {
               const finalContent = streamedContent;
 
-              // finalize streaming message
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === streamingMessageId
@@ -792,21 +912,28 @@ export function useAiChatController(isDemo: boolean) {
                         ...msg,
                         content: finalContent,
                         isStreaming: false,
-                        suggestions: [
+                        suggestions: data?.suggestions ?? [
                           'Tell me more about this',
                           'What are the next steps?',
                           'How do I implement this?',
                         ],
                         documents: uploadedDocuments.slice(0, 2).map((doc) => doc.title),
+                        metadata:
+                          data?.risk_level || data?.framework_tags || data?.next_actions
+                            ? {
+                                risk_level: data?.risk_level,
+                                framework_tags: data?.framework_tags,
+                                next_actions: data?.next_actions,
+                              }
+                            : undefined,
                       }
                     : msg,
                 ),
               );
 
-              // ensure route + state, but QUIETLY (no loading flicker)
               const newConvId = data.conversation_id || currentConversationId;
               if (newConvId && (!currentConversationId || currentConversationId !== newConvId)) {
-                suppressNextRouteLoadRef.current = true; // <-- prevents loader on next effect run
+                suppressNextRouteLoadRef.current = true;
                 setCurrentConversationId(newConvId);
                 navigate(`/dashboard/chat/c/${newConvId}`, { replace: true });
               }
@@ -818,7 +945,6 @@ export function useAiChatController(isDemo: boolean) {
                 });
               }
 
-              // hydrate the real assistant message id (so feedback works)
               if (newConvId) {
                 const realId = await hydrateAssistantId(newConvId);
                 if (realId) {
@@ -834,7 +960,7 @@ export function useAiChatController(isDemo: boolean) {
 
               setLoading(false);
               setAbortController(null);
-              
+
               return;
             } else if (data.type === 'error') {
               throw new Error(data.error);
@@ -849,7 +975,11 @@ export function useAiChatController(isDemo: boolean) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id?.startsWith('streaming_')
-              ? { ...msg, content: 'Could you clarify your question or provide more detail?', isStreaming: false }
+              ? {
+                  ...msg,
+                  content: 'Could you clarify your question or provide more detail?',
+                  isStreaming: false,
+                }
               : msg,
           ),
         );
@@ -859,7 +989,7 @@ export function useAiChatController(isDemo: boolean) {
       }
 
       setConversationContext((prev) => ({ ...prev, messageCount: prev.messageCount + 1 }));
-      setTimeout(() => scrollToBottom(), 100);
+      setTimeout(() => scrollToBottom({ smooth: true }), 100);
     } catch (error: any) {
       clearTimeout(typingTimeout);
       if (firstChunkTimeout) {
@@ -867,7 +997,9 @@ export function useAiChatController(isDemo: boolean) {
         setFirstChunkTimeout(null);
       }
 
-      try { await reader?.cancel(); } catch {}
+      try {
+        await reader?.cancel();
+      } catch {}
 
       setLoading(false);
       setAbortController(null);
@@ -887,7 +1019,9 @@ export function useAiChatController(isDemo: boolean) {
 
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id?.startsWith('streaming_') ? { ...msg, content: fallbackContent, isStreaming: false } : msg,
+          msg.id?.startsWith('streaming_')
+            ? { ...msg, content: fallbackContent, isStreaming: false }
+            : msg,
         ),
       );
 
@@ -895,7 +1029,7 @@ export function useAiChatController(isDemo: boolean) {
     }
   };
 
-  // Enter to send (if your MessageInputBox forwards it)
+  // Enter to send
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -914,7 +1048,10 @@ export function useAiChatController(isDemo: boolean) {
     });
   }, [conversations, searchTerm, selectedTag]);
 
-  const allTags = useMemo(() => [...new Set(conversations.flatMap((conv) => conv.tags || []))], [conversations]);
+  const allTags = useMemo(
+    () => [...new Set(conversations.flatMap((conv) => conv.tags || []))],
+    [conversations],
+  );
 
   const userFirstName =
     user?.user_metadata?.first_name ||
@@ -945,6 +1082,7 @@ export function useAiChatController(isDemo: boolean) {
     sidebarCollapsed,
     messagesEndRef,
     messagesContainerRef,
+    topSentinelRef,
     inputRef,
     composerRef,
 
@@ -995,7 +1133,10 @@ export function useAiChatController(isDemo: boolean) {
     // pagination/loading
     initialLoading,
     olderLoading,
+    editingTitle,
+    editTitleValue,
 
+    setEditTitleValue,
     loadConversation,
     loadConversations,
     startNewConversation,

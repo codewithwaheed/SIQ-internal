@@ -65,7 +65,7 @@ export const ChatMessage = ({
     }
   };
 
-  // secure markdown rendering (kept)
+  // secure markdown rendering (kept for future use)
   const renderMarkdown = (content: string) => renderSafeMarkdown(content);
 
   if (message.role === 'user') {
@@ -101,14 +101,26 @@ export const ChatMessage = ({
       <div className="min-w-0 max-w-[85%] flex-1 space-y-3 sm:max-w-[70%] sm:space-y-4 lg:max-w-3xl">
         {/* AI Message Bubble */}
         <div className="group relative">
-          <div className="hover-lift rounded-2xl border border-border/30 bg-white/60 p-3 shadow-sm transition-all duration-200 sm:p-4 lg:p-6">
+          <div
+            className={cn(
+              'rounded-2xl border border-border/30 bg-white/60 p-3 shadow-sm transition-all duration-200 sm:p-4 lg:p-6',
+              // shrink the bubble while streaming with no content yet
+              message.isStreaming && !message.content ? 'inline-block w-auto' : '',
+            )}
+          >
             <div className="prose prose-sm max-w-none sm:prose-base prose-headings:mb-2 prose-headings:mt-4 prose-p:mb-2 prose-p:leading-relaxed prose-strong:font-semibold prose-em:italic prose-ol:mb-2 prose-ul:mb-2 prose-li:mb-1">
               {message.isStreaming && !message.content ? (
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="inline-flex items-center gap-2 text-muted-foreground">
                   <div className="flex gap-1">
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-foreground/60"></div>
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-foreground/60" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-foreground/60" style={{ animationDelay: '0.4s' }}></div>
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-foreground/60" />
+                    <div
+                      className="h-2 w-2 animate-pulse rounded-full bg-foreground/60"
+                      style={{ animationDelay: '0.2s' }}
+                    />
+                    <div
+                      className="h-2 w-2 animate-pulse rounded-full bg-foreground/60"
+                      style={{ animationDelay: '0.4s' }}
+                    />
                   </div>
                   <span className="text-sm">vCISO is thinking…</span>
                 </div>
@@ -118,7 +130,7 @@ export const ChatMessage = ({
 
               {message.isStreaming && message.content && (
                 <div className="ml-1 inline-flex items-center gap-1">
-                  <div className="h-3 w-1 animate-pulse bg-foreground/50"></div>
+                  <div className="h-3 w-1 animate-pulse bg-foreground/50" />
                 </div>
               )}
             </div>
@@ -159,7 +171,9 @@ export const ChatMessage = ({
 
                 {message.metadata.next_actions && message.metadata.next_actions.length > 0 && (
                   <div className="space-y-2">
-                    <span className="text-xs font-medium text-muted-foreground">Recommended Next Steps:</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Recommended Next Steps:
+                    </span>
                     <ul className="ml-4 space-y-1 text-sm">
                       {message.metadata.next_actions.map((action, idx) => (
                         <li key={idx} className="list-disc text-muted-foreground">
@@ -183,8 +197,11 @@ export const ChatMessage = ({
                   onClick={() => handleCopyMessage(message.content)}
                   className={cn(
                     'h-7 w-7 p-0 transition-colors hover:bg-muted',
-                    isCopied ? 'text-muted-foreground' : 'text-muted-foreground hover:text-foreground'
+                    isCopied
+                      ? 'text-muted-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
                   )}
+                  aria-label="Copy message"
                 >
                   {isCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 </Button>
@@ -198,7 +215,7 @@ export const ChatMessage = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="relative h-8 w-8 transition-all duration-200 hover:scale-105">
-                          <div className="absolute inset-0 rounded-md border border-amber-200/50 hover:border-amber-300 dark:border-amber-800/50 dark:hover:border-amber-600 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 hover:bg-gradient-to-r hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 hover:text-amber-800 dark:hover:text-amber-400"></div>
+                          <div className="absolute inset-0 rounded-md border border-amber-200/50 bg-gradient-to-br from-amber-50 to-orange-50 hover:border-amber-300 hover:bg-gradient-to-r hover:from-amber-100 hover:to-orange-100 hover:text-amber-800 dark:border-amber-800/50 dark:from-amber-950/30 dark:to-orange-950/30 dark:hover:border-amber-600 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 dark:hover:text-amber-400" />
                           <div className="absolute inset-0 opacity-0">
                             <EscalationButton
                               messages={messages.map((msg) => ({
@@ -211,7 +228,7 @@ export const ChatMessage = ({
                             />
                           </div>
                           <UserCheck className="pointer-events-none absolute inset-0 m-auto h-4 w-4 text-amber-800 dark:text-amber-400" />
-                          <Crown className="pointer-events-none absolute -top-1 -right-1 h-3 w-3 animate-pulse text-amber-600 dark:text-amber-400" />
+                          <Crown className="pointer-events-none absolute -right-1 -top-1 h-3 w-3 animate-pulse text-amber-600 dark:text-amber-400" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -230,12 +247,12 @@ export const ChatMessage = ({
             </div>
           )}
 
-          {/* Suggestions — only once stream is fully done */}
+          {/* Suggestions — only once stream is fully done; add breathing room */}
           {message.role === 'assistant' &&
             isLatest &&
             message.suggestions &&
             !messages.some((m) => m.isStreaming) && (
-              <div className="space-y-2 sm:space-y-2">
+              <div className="mt-4 space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {message.suggestions.map((suggestion, idx) => (
                     <Button
