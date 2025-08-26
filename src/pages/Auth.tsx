@@ -280,7 +280,7 @@ const Auth = () => {
           )}
           <CardContent>
             {signupSuccess ? (
-              <div className="space-y-4 text-center">
+              <div className="mt-3 space-y-4 text-center">
                 <CheckCircle className="mx-auto h-10 w-10 text-success" />
                 <h2 className="text-xl font-semibold">Thanks for signing up!</h2>
                 <p className="text-muted-foreground">

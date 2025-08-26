@@ -181,9 +181,121 @@ Based on exact brand colors and Poppins typography
 }
 
 /* Layout System - Use dynamic viewport to avoid iOS 100vh bugs */
+/* Let the React app own the viewport height */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Prevent the document from scrolling; our component will scroll instead */
 html,
 body {
-  height: 100%;
+  overflow: hidden;
+}
+
+/* Make the scroll container span the viewport width even inside a centered .page */
+.app-content.full-bleed-viewport {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-left: var(--page-side-pad);
+  padding-right: var(--page-side-pad);
+}
+
+/* ======== Full-bleed scroll container: keep scrollbar flush-right ======== */
+.app-content.full-bleed-viewport {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-left: var(--page-side-pad);
+  padding-right: var(--page-side-pad);
+  background: hsl(var(--background)); /* makes the track visible */
+  scrollbar-gutter: stable both-edges; /* reserve gutter (Chrome/Edge/FF) */
+  overscroll-behavior-y: contain; /* reduce bounce */
+}
+
+/* ======== Cross-browser scrollbar styling on the chat scroll area ======== */
+/* Firefox */
+.app-content {
+  scrollbar-width: thin;
+  /* thumb color, then track color */
+  scrollbar-color: hsl(var(--brand-blue)) hsl(0 0% 96%);
+}
+
+/* Hide native scrollbars on the chat scroll container */
+.app-content.hide-native-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+.app-content.hide-native-scrollbar::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Rail pinned to the far-right INSIDE the scroll container */
+.custom-scrollbar-rail {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: max(6px, env(safe-area-inset-right));
+  width: 12px;
+  border-radius: 999px;
+  background: hsl(0 0% 92% / 0.95);
+  box-shadow: inset 0 0 0 1px hsl(var(--border));
+  opacity: 0; /* toggled by JS when scrollable */
+  transition: opacity 120ms ease-out;
+  pointer-events: auto;
+  z-index: 40; /* above content inside container */
+}
+
+.custom-scrollbar-thumb {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 0;
+  min-height: 36px; /* guard against tiny sizes */
+  border-radius: 999px;
+  background: hsl(var(--brand-blue)); /* bright contrast color */
+  border: 2px solid rgba(255, 255, 255, 0.85); /* crisp edge on light bg */
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: grab;
+  touch-action: none;
+  z-index: 41; /* above the rail */
+}
+.custom-scrollbar-thumb:active {
+  cursor: grabbing;
+  background: hsl(var(--brand-medium-blue));
+}
+
+/* Dark theme contrast */
+.dark .custom-scrollbar-rail {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.dark .custom-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.dark .custom-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 1);
+}
+
+.no-smooth {
+  scroll-behavior: auto !important;
+}
+
+/* 
+Make the scroll container span the viewport (scrollbar on far right)
+while keeping inner content centered by using negative side margins.
+*/
+.app-content.full-viewport-scroll {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
 /* === PAGE SHELL === */

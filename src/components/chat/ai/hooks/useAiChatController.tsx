@@ -1,3 +1,6 @@
+// useAiChatController.tsx
+// NOTE: keep the export shape stable to avoid Vite Fast Refresh warnings.
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -19,7 +22,7 @@ import {
 import { callFn, callFnStream } from '@/lib/call-fn';
 import type { Message, Conversation, CurrentConversation, PolicyGenerationState } from '../types';
 
-export function useAiChatController(isDemo: boolean) {
+export default function useAiChatController(isDemo: boolean) {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ conversationId?: string }>();
@@ -30,16 +33,24 @@ export function useAiChatController(isDemo: boolean) {
   const { toast } = useToast();
   const { user } = useAuth();
   const { validateMessage, checkAuthentication, validateSession } = useChatSecurity();
-  const { messages: realTimeMessages } = useRealTimeChat();
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const composerRef = useRef<HTMLDivElement>(null);
-  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const { messages: _rt } = useRealTimeChat();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // ------- Refs
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+
+  const suppressNextRouteLoadRef = useRef(false);
+  const lastLoadedConvRef = useRef<string | null>(null);
+  const hasAnchoredBottomRef = useRef(false);
+  const reachedTopRef = useRef(false);
+  const mutationKindRef = useRef<'prepend' | 'append' | null>(null);
+
+  // ------- State
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [messageToSend, setMessageToSend] = useState('');
@@ -48,12 +59,10 @@ export function useAiChatController(isDemo: boolean) {
   const [retryCount, setRetryCount] = useState(0);
   const [firstChunkTimeout, setFirstChunkTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // pagination + loading states
   const [initialLoading, setInitialLoading] = useState(false);
   const [olderLoading, setOlderLoading] = useState(false);
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
-  // NEW: don't let the top sentinel trigger until we've scrolled to bottom once
   const [paginationArmed, setPaginationArmed] = useState(false);
 
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
@@ -85,13 +94,6 @@ export function useAiChatController(isDemo: boolean) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState('');
 
-  // prevent flicker when navigating after streaming
-  const suppressNextRouteLoadRef = useRef(false);
-  // avoid reloading on focus for same conversation
-  const lastLoadedConvRef = useRef<string | null>(null);
-  // detect returning from ChatHistory (to auto-scroll bottom)
-  const prevShowHistoryRef = useRef<boolean>(false);
-
   const [policyGenerationState, setPolicyGenerationState] = useState<PolicyGenerationState>({
     isActive: false,
     policyType: null,
@@ -103,22 +105,15 @@ export function useAiChatController(isDemo: boolean) {
     isGenerating: false,
   });
 
-  // Bind composer auto-height
+  // ----- layout bindings -----
   useEffect(() => {
-    if (composerRef.current) return bindComposerHeight(composerRef.current);
+    if (composerRef.current) {
+      const cleanup = bindComposerHeight(composerRef.current);
+      return cleanup;
+    }
   }, []);
 
-  // Arm pagination after we leave ChatHistory view
-  useEffect(() => {
-    if (prevShowHistoryRef.current && !showChatHistory) {
-      // Returning from history ➜ jump to bottom immediately, then arm pagination
-      scrollToBottomAfterRender(false);
-      setTimeout(() => setPaginationArmed(true), 120);
-    }
-    prevShowHistoryRef.current = showChatHistory;
-  }, [showChatHistory]);
-
-  // ?new=true compatibility
+  // ?new=true compatibility (start fresh)
   useEffect(() => {
     const newParam = searchParams.get('new');
     if (newParam === 'true') {
@@ -128,28 +123,41 @@ export function useAiChatController(isDemo: boolean) {
     }
   }, [searchParams, setSearchParams]);
 
-  // track assistant count
+  // track new assistant replies
   useEffect(() => {
-    if (messages.filter((m) => m.role === 'assistant').length > lastAssistantReplyCount) {
-      setLastAssistantReplyCount(messages.filter((m) => m.role === 'assistant').length);
+    const assistantCount = messages.filter((m) => m.role === 'assistant').length;
+    if (assistantCount > lastAssistantReplyCount) {
+      setLastAssistantReplyCount(assistantCount);
     }
   }, [messages, lastAssistantReplyCount]);
 
-  // auto-scroll when near bottom
+  // Auto scroll when near bottom; only show pill for appends
   useEffect(() => {
     if (isNearBottom) {
-      scrollToBottom({ smooth: true });
+      scrollToBottom();
       setShowNewMessageIndicator(false);
     } else if (messages.length > 0) {
-      setShowNewMessageIndicator(true);
+      if (mutationKindRef.current === 'append') {
+        setShowNewMessageIndicator(true);
+      }
     }
+    mutationKindRef.current = null;
   }, [messages, isNearBottom]);
+
+  // When returning from history list, snap to bottom and then arm pagination
+  const prevShowHistoryRef = useRef(false);
+  useEffect(() => {
+    if (prevShowHistoryRef.current && !showChatHistory) {
+      scrollToBottomAfterRender(false);
+      setTimeout(armAfterBottom, 50);
+    }
+    prevShowHistoryRef.current = showChatHistory;
+  }, [showChatHistory]);
 
   // Initial boot + route-based load
   useEffect(() => {
     if (!user || isDemo) return;
 
-    // load side data
     loadUserDocuments();
     loadConversations();
 
@@ -168,10 +176,9 @@ export function useAiChatController(isDemo: boolean) {
         suppressNextRouteLoadRef.current = false;
         setCurrentConversationId(routeId);
         lastLoadedConvRef.current = routeId;
-        // Ensure bottom without animation; arm pagination after
         setTimeout(() => {
           scrollToBottom({ smooth: false });
-          setTimeout(() => setPaginationArmed(true), 120);
+          setTimeout(armAfterBottom, 30);
         }, 0);
         return;
       }
@@ -184,9 +191,10 @@ export function useAiChatController(isDemo: boolean) {
       setMessages([]);
       setInitialLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isDemo, location.pathname, params.conversationId]);
 
-  // auto-resize input
+  // Auto-resize input
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
@@ -194,37 +202,8 @@ export function useAiChatController(isDemo: boolean) {
     }
   }, [input]);
 
-  // -------- IntersectionObserver for top sentinel (robust "load older") --------
-  useEffect(() => {
-    const root = messagesContainerRef.current;
-    const sentinel = topSentinelRef.current;
-    if (!root || !sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-        if (!paginationArmed || initialLoading || olderLoading || !hasMoreOlder) return;
-
-        // Only when the user is actually near the top
-        const scrollTop = root.scrollTop;
-        if (entry.isIntersecting && scrollTop <= 40) {
-          loadOlderMessages();
-        }
-      },
-      {
-        root,
-        rootMargin: '0px 0px 0px 0px', // no early prefetch on initial render
-        threshold: 0.01,
-      },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMoreOlder, olderLoading, initialLoading, paginationArmed]);
-
   // ----- data loaders -----
-  const loadUserDocuments = async () => {
+  async function loadUserDocuments() {
     try {
       const { data, error } = await supabase
         .from('documents')
@@ -234,9 +213,9 @@ export function useAiChatController(isDemo: boolean) {
     } catch (error) {
       console.error('Error loading documents:', error);
     }
-  };
+  }
 
-  const loadConversations = async () => {
+  async function loadConversations() {
     try {
       const { data } = await callFn<{ conversations: Conversation[]; pagination: any }>(
         'chat-api/conversations?limit=200&offset=0',
@@ -246,22 +225,51 @@ export function useAiChatController(isDemo: boolean) {
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
-  };
+  }
 
-  // helper: scroll after paint (optionally smooth)
+  // --- Scroll helpers & pagination arming ---
+  const scrollToBottom = (opts?: { smooth?: boolean }) =>
+    messagesEndRef.current?.scrollIntoView({
+      behavior: opts?.smooth === false ? 'auto' : 'smooth',
+    });
+
   const scrollToBottomAfterRender = (smooth = true) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => scrollToBottom({ smooth }));
     });
   };
 
-  const openConversationByRoute = async (conversationId: string) => {
+  const armAfterBottom = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
+    if (atBottom) {
+      hasAnchoredBottomRef.current = true;
+      setPaginationArmed(true);
+    } else {
+      requestAnimationFrame(() => {
+        const el2 = messagesContainerRef.current;
+        if (!el2) return;
+        const atBottom2 = el2.scrollHeight - el2.scrollTop - el2.clientHeight < 4;
+        if (atBottom2) {
+          hasAnchoredBottomRef.current = true;
+          setPaginationArmed(true);
+        }
+      });
+    }
+  };
+
+  // ----- Open conversation by route -----
+  async function openConversationByRoute(conversationId: string) {
     setInitialLoading(true);
-    setPaginationArmed(false); // disarm while we switch convs
     setMessages([]);
     setCurrentConversationId(conversationId);
     setBeforeCursor(null);
     setHasMoreOlder(false);
+    setPaginationArmed(false);
+    hasAnchoredBottomRef.current = false;
+    reachedTopRef.current = false;
+    mutationKindRef.current = null;
 
     try {
       const { data } = await callFn<{
@@ -282,16 +290,16 @@ export function useAiChatController(isDemo: boolean) {
       setMessages(loaded);
       setBeforeCursor(data?.page?.next_before ?? null);
       setHasMoreOlder(!!data?.page?.has_more);
+      reachedTopRef.current = !(data?.page?.has_more && data?.page?.next_before);
 
       const conv = conversations.find((c) => c.id === conversationId) || null;
       if (conv) setCurrentConversation({ id: conv.id, title: conv.title, tags: conv.tags || [] });
 
       lastLoadedConvRef.current = conversationId;
 
-      // End initial load, jump to bottom (no animation), then arm pagination
       setInitialLoading(false);
       scrollToBottomAfterRender(false);
-      setTimeout(() => setPaginationArmed(true), 120);
+      setTimeout(armAfterBottom, 50);
       setShowChatHistory(false);
     } catch (error) {
       console.error('Error loading conversation (route):', error);
@@ -302,15 +310,25 @@ export function useAiChatController(isDemo: boolean) {
         variant: 'destructive',
       });
     }
-  };
+  }
 
-  const loadOlderMessages = async () => {
-    if (!currentConversationId || !beforeCursor || olderLoading) return;
+  // ----- Load older messages (pagination) -----
+  async function loadOlderMessages() {
+    if (!currentConversationId || !beforeCursor || olderLoading || reachedTopRef.current) return;
     setOlderLoading(true);
 
     const container = messagesContainerRef.current;
     const prevScrollHeight = container?.scrollHeight ?? 0;
     const prevScrollTop = container?.scrollTop ?? 0;
+
+    const disableSmooth = () => {
+      if (!container) return () => {};
+      const prev = container.style.scrollBehavior;
+      container.style.scrollBehavior = 'auto';
+      return () => {
+        container.style.scrollBehavior = prev || '';
+      };
+    };
 
     try {
       const { data } = await callFn<{
@@ -323,58 +341,127 @@ export function useAiChatController(isDemo: boolean) {
         { method: 'GET' },
       );
 
-      const older = (data?.messages || []).map((m: any) => ({
-        role: (m.role === 'consultant' ? 'assistant' : m.role) as 'user' | 'assistant',
-        content: m.content,
-        timestamp: new Date(m.timestamp).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        id: m.id,
-      })) as Message[];
+      const rows = data?.messages || [];
+      const nextBefore = data?.page?.next_before ?? null;
+      const hasMore = !!data?.page?.has_more;
 
-      setMessages((prev) => [...older, ...prev]);
-      setBeforeCursor(data?.page?.next_before ?? null);
-      setHasMoreOlder(!!data?.page?.has_more);
+      if (rows.length > 0) {
+        const older = rows.map((m: any) => ({
+          role: (m.role === 'consultant' ? 'assistant' : m.role) as 'user' | 'assistant',
+          content: m.content,
+          timestamp: new Date(m.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          id: m.id,
+        })) as Message[];
 
-      // keep viewport anchored at the same message
-      setTimeout(() => {
-        const newScrollHeight = container?.scrollHeight ?? 0;
-        if (container) container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
-      }, 0);
+        mutationKindRef.current = 'prepend';
+        setMessages((prev) => [...older, ...prev]);
+
+        const restore = disableSmooth();
+        requestAnimationFrame(() => {
+          const newScrollHeight = container?.scrollHeight ?? 0;
+          if (container) {
+            container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop - 10;
+          }
+          restore();
+        });
+      }
+
+      setBeforeCursor(nextBefore);
+      setHasMoreOlder(hasMore);
+      if (!hasMore || !nextBefore) {
+        reachedTopRef.current = true;
+      }
+
+      setShowNewMessageIndicator(false);
     } catch (e) {
       console.error('Failed to load older messages', e);
     } finally {
       setOlderLoading(false);
     }
-  };
+  }
 
-  // ----- UI helpers -----
-  const scrollToBottom = (opts?: { smooth?: boolean }) =>
-    messagesEndRef.current?.scrollIntoView({
-      behavior: opts?.smooth === false ? 'auto' : 'smooth',
-    });
+  // ----- IntersectionObserver for top sentinel -----
+  useEffect(() => {
+    const root = messagesContainerRef.current;
+    const target = topSentinelRef.current;
+    if (!root || !target) return;
 
+    if (
+      !paginationArmed ||
+      initialLoading ||
+      olderLoading ||
+      !hasMoreOlder ||
+      reachedTopRef.current
+    )
+      return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const e = entries[0];
+        if (!e?.isIntersecting) return;
+        const el = messagesContainerRef.current;
+        if (!el) return;
+        if (el.scrollTop <= 30 && !olderLoading && hasMoreOlder && !reachedTopRef.current) {
+          loadOlderMessages();
+        }
+      },
+      {
+        root,
+        rootMargin: '150px 0px 0px 0px',
+        threshold: 0,
+      },
+    );
+
+    io.observe(target);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    paginationArmed,
+    hasMoreOlder,
+    olderLoading,
+    initialLoading,
+    beforeCursor,
+    currentConversationId,
+  ]);
+
+  // ----- Scroll handler -----
   const handleScroll = () => {
-    if (!messagesContainerRef.current) return;
     const el = messagesContainerRef.current;
+    if (!el) return;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    setIsNearBottom(nearBottom);
-    if (nearBottom) setShowNewMessageIndicator(false);
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    setIsNearBottom(atBottom);
+    if (atBottom) {
+      setShowNewMessageIndicator(false);
+      if (!hasAnchoredBottomRef.current) {
+        hasAnchoredBottomRef.current = true;
+        setPaginationArmed(true);
+      }
+    }
 
-    // Fallback trigger if someone scrolls fast to the very top
-    if (paginationArmed && el.scrollTop < 60 && hasMoreOlder && !olderLoading && !initialLoading) {
+    if (
+      paginationArmed &&
+      hasAnchoredBottomRef.current &&
+      el.scrollTop < 60 &&
+      hasMoreOlder &&
+      !olderLoading &&
+      !initialLoading &&
+      !reachedTopRef.current
+    ) {
       loadOlderMessages();
     }
   };
 
   const scrollToBottomAndMarkRead = () => {
-    scrollToBottom({ smooth: true });
+    scrollToBottom();
     setShowNewMessageIndicator(false);
     setIsNearBottom(true);
   };
 
+  // ----- Conversation management -----
   const startNewConversation = () => {
     setMessages([]);
     setCurrentConversationId(null);
@@ -385,13 +472,16 @@ export function useAiChatController(isDemo: boolean) {
     setBeforeCursor(null);
     setHasMoreOlder(false);
     setPaginationArmed(false);
+    hasAnchoredBottomRef.current = false;
+    reachedTopRef.current = false;
+    mutationKindRef.current = null;
 
     if (location.pathname !== '/dashboard/chat/new') {
       navigate('/dashboard/chat/new', { replace: true });
     }
   };
 
-  const deleteConversation = async (conversationId: string) => {
+  async function deleteConversation(conversationId: string) {
     try {
       const { error } = await supabase.from('chat_conversations').delete().eq('id', conversationId);
       if (error) throw error;
@@ -407,7 +497,7 @@ export function useAiChatController(isDemo: boolean) {
         variant: 'destructive',
       });
     }
-  };
+  }
 
   const handleDocumentUploaded = (document: any) => {
     setUploadedDocuments((prev) => [document, ...prev]);
@@ -419,14 +509,17 @@ export function useAiChatController(isDemo: boolean) {
     });
   };
 
-  const handleMessageToConsultant = async (messageContent: string) => {
+  // ----- Consultant message -----
+  async function handleMessageToConsultant(messageContent: string) {
     const userMessage: Message = {
       role: 'user',
       content: messageContent,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
+    mutationKindRef.current = 'append';
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setMessageToSend('');
     setLoading(true);
 
     try {
@@ -451,8 +544,9 @@ export function useAiChatController(isDemo: boolean) {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
+  // ----- Retry/stop -----
   const handleRetry = async (originalMessage: string) => {
     if (retryCount >= 3) {
       toast({
@@ -464,6 +558,7 @@ export function useAiChatController(isDemo: boolean) {
     }
     setRetryCount((prev) => prev + 1);
     setInput(originalMessage);
+    setMessageToSend('');
     await new Promise((r) => setTimeout(r, Math.pow(2, retryCount) * 1000));
     handleSendMessage();
   };
@@ -475,6 +570,7 @@ export function useAiChatController(isDemo: boolean) {
     }
   };
 
+  // ----- Clipboard / reactions / suggestions -----
   const copyMessage = (content: string) => {
     navigator.clipboard.writeText(content);
     toast({ title: 'Copied', description: 'Message copied to clipboard' });
@@ -489,10 +585,12 @@ export function useAiChatController(isDemo: boolean) {
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
+    setMessageToSend('');
     inputRef.current?.focus();
   };
 
-  const updateConversationTitle = async (newTitle: string, newTags: string[]) => {
+  // ----- Title editing -----
+  async function updateConversationTitle(newTitle: string, newTags: string[]) {
     if (!currentConversationId || !newTitle.trim()) return;
     try {
       const { error } = await callFn('update-chat-title', {
@@ -515,7 +613,7 @@ export function useAiChatController(isDemo: boolean) {
         variant: 'destructive',
       });
     }
-  };
+  }
 
   const startEditingTitle = () => {
     if (currentConversation) {
@@ -545,8 +643,10 @@ export function useAiChatController(isDemo: boolean) {
       content: userMessage,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
+    mutationKindRef.current = 'append';
     setMessages((prev) => [...prev, userChatMessage]);
     setInput('');
+    setMessageToSend('');
 
     if (intent === 'unspecified') {
       const policySelectionMessage: Message = {
@@ -561,6 +661,7 @@ export function useAiChatController(isDemo: boolean) {
           'Other (specify type)',
         ],
       };
+      mutationKindRef.current = 'append';
       setMessages((prev) => [...prev, policySelectionMessage]);
     } else {
       const policyInfo = getPolicyTypeFromInput(userMessage);
@@ -578,6 +679,7 @@ export function useAiChatController(isDemo: boolean) {
             'Mobile Device Policy',
           ],
         };
+        mutationKindRef.current = 'append';
         setMessages((prev) => [...prev, fallbackMessage]);
       }
     }
@@ -679,6 +781,7 @@ export function useAiChatController(isDemo: boolean) {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         metadata: { risk_level: 'low', framework_tags: ['policy', 'governance'], confidence: 0.95 },
       };
+      mutationKindRef.current = 'append';
       setMessages((prev) => [...prev, policyMessage]);
       setPolicyGenerationState((prev) => ({
         ...prev,
@@ -700,9 +803,8 @@ export function useAiChatController(isDemo: boolean) {
       setPolicyGenerationState((prev) => ({ ...prev, isGenerating: false }));
     }
   };
-  // ---------- Policy helpers END ----------
 
-  // hydrate: fetch the real assistant message id after streaming completes
+  // hydrate assistant id
   const hydrateAssistantId = async (convId: string): Promise<string | undefined> => {
     try {
       const { data } = await callFn<{ messages: any[] }>(
@@ -714,15 +816,16 @@ export function useAiChatController(isDemo: boolean) {
         const m = list[i];
         if (m.role === 'assistant') return m.id as string;
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
     return undefined;
   };
 
   // ----- Send message (streaming) -----
   const handleSendMessage = async () => {
-    if (!input.trim() || loading) return;
+    if (loading) return;
+
+    const raw = input.trim().length ? input : messageToSend.trim();
+    if (!raw) return;
 
     if (!checkAuthentication()) {
       window.location.href = '/auth';
@@ -730,9 +833,7 @@ export function useAiChatController(isDemo: boolean) {
     }
     if (!(await validateSession())) return;
 
-    const inputMessage = messageToSend || input;
-
-    if (!inputMessage || inputMessage.trim().length < 2) {
+    if (raw.length < 2) {
       toast({
         title: 'Invalid Input',
         description: 'Please enter at least 2 characters.',
@@ -741,7 +842,7 @@ export function useAiChatController(isDemo: boolean) {
       return;
     }
 
-    const validation = validateMessage(inputMessage);
+    const validation = validateMessage(raw);
     if (!validation.isValid) {
       toast({
         title: 'Invalid Message',
@@ -750,8 +851,8 @@ export function useAiChatController(isDemo: boolean) {
       });
       return;
     }
-    const sanitizedMessage = validation.sanitizedContent || inputMessage;
-    if (!sanitizedMessage || sanitizedMessage.trim().length < 3) {
+    const sanitizedMessage = (validation.sanitizedContent || raw).trim();
+    if (sanitizedMessage.length < 3) {
       toast({
         title: 'Invalid Input',
         description: 'Please enter a meaningful request.',
@@ -773,12 +874,14 @@ export function useAiChatController(isDemo: boolean) {
 
     const userMessage: Message = {
       role: 'user',
-      content: inputMessage,
+      content: sanitizedMessage,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
+    mutationKindRef.current = 'append';
     setMessages((prev) => [...prev, userMessage]);
 
     const streamingMessageId = `streaming_${Date.now()}`;
+    mutationKindRef.current = 'append';
     setMessages((prev) => [
       ...prev,
       {
@@ -791,6 +894,8 @@ export function useAiChatController(isDemo: boolean) {
     ]);
 
     setInput('');
+    setMessageToSend('');
+
     setLoading(true);
     setConversationContext((prev) => ({ ...prev, messageCount: prev.messageCount + 1 }));
 
@@ -810,7 +915,7 @@ export function useAiChatController(isDemo: boolean) {
           title: 'Server busy',
           description: 'Please try again in a moment.',
           variant: 'destructive',
-          action: { label: 'Retry', onClick: () => handleRetry(inputMessage) } as any,
+          action: { label: 'Retry', onClick: () => handleRetry(sanitizedMessage) } as any,
         });
       }
     }, 10000);
@@ -826,8 +931,8 @@ export function useAiChatController(isDemo: boolean) {
       const response = await callFnStream('chat-with-ai', {
         method: 'POST',
         body: {
-          content: inputMessage,
-          message: inputMessage,
+          content: sanitizedMessage,
+          message: sanitizedMessage,
           conversationId: currentConversationId || undefined,
           userId: user?.id,
           activeDocuments: activeDocuments.length ? activeDocuments : undefined,
@@ -862,8 +967,7 @@ export function useAiChatController(isDemo: boolean) {
       let buffer = '';
 
       const autoScrollIfAtBottom = () => {
-        if (isNearBottom && messagesContainerRef.current)
-          setTimeout(() => scrollToBottom({ smooth: true }), 50);
+        if (isNearBottom && messagesContainerRef.current) setTimeout(() => scrollToBottom(), 50);
       };
 
       while (true) {
@@ -912,20 +1016,12 @@ export function useAiChatController(isDemo: boolean) {
                         ...msg,
                         content: finalContent,
                         isStreaming: false,
-                        suggestions: data?.suggestions ?? [
+                        suggestions: [
                           'Tell me more about this',
                           'What are the next steps?',
                           'How do I implement this?',
                         ],
                         documents: uploadedDocuments.slice(0, 2).map((doc) => doc.title),
-                        metadata:
-                          data?.risk_level || data?.framework_tags || data?.next_actions
-                            ? {
-                                risk_level: data?.risk_level,
-                                framework_tags: data?.framework_tags,
-                                next_actions: data?.next_actions,
-                              }
-                            : undefined,
                       }
                     : msg,
                 ),
@@ -938,11 +1034,7 @@ export function useAiChatController(isDemo: boolean) {
                 navigate(`/dashboard/chat/c/${newConvId}`, { replace: true });
               }
               if (data.title) {
-                setCurrentConversation({
-                  id: newConvId!,
-                  title: data.title,
-                  tags: [],
-                });
+                setCurrentConversation({ id: newConvId!, title: data.title, tags: [] });
               }
 
               if (newConvId) {
@@ -960,7 +1052,6 @@ export function useAiChatController(isDemo: boolean) {
 
               setLoading(false);
               setAbortController(null);
-
               return;
             } else if (data.type === 'error') {
               throw new Error(data.error);
@@ -989,7 +1080,7 @@ export function useAiChatController(isDemo: boolean) {
       }
 
       setConversationContext((prev) => ({ ...prev, messageCount: prev.messageCount + 1 }));
-      setTimeout(() => scrollToBottom({ smooth: true }), 100);
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error: any) {
       clearTimeout(typingTimeout);
       if (firstChunkTimeout) {
@@ -1025,11 +1116,11 @@ export function useAiChatController(isDemo: boolean) {
         ),
       );
 
-      setInput(messageToSend || input);
+      setInput(raw);
+      setMessageToSend('');
     }
   };
 
-  // Enter to send
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -1037,6 +1128,7 @@ export function useAiChatController(isDemo: boolean) {
     }
   };
 
+  // ----- Derived lists -----
   const filteredConversations = useMemo(() => {
     return conversations.filter((conv) => {
       const matchesSearch =
@@ -1079,6 +1171,7 @@ export function useAiChatController(isDemo: boolean) {
   };
 
   return {
+    // layout/refs
     sidebarCollapsed,
     messagesEndRef,
     messagesContainerRef,
@@ -1086,6 +1179,7 @@ export function useAiChatController(isDemo: boolean) {
     inputRef,
     composerRef,
 
+    // data
     messages,
     setMessages,
     input,
@@ -1133,10 +1227,9 @@ export function useAiChatController(isDemo: boolean) {
     // pagination/loading
     initialLoading,
     olderLoading,
-    editingTitle,
-    editTitleValue,
+    hasMoreOlder,
 
-    setEditTitleValue,
+    // actions
     loadConversation,
     loadConversations,
     startNewConversation,
@@ -1157,7 +1250,11 @@ export function useAiChatController(isDemo: boolean) {
     cancelEditingTitle,
     saveTitle,
 
-    // policy handlers
+    // title editing state
+    editingTitle,
+    editTitleValue,
+    setEditTitleValue,
+
     handlePolicyFieldsSubmit,
     handlePolicyUseDefaults,
   };

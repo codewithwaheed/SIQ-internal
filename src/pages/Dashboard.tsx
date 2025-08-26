@@ -14,7 +14,7 @@ const Dashboard = () => {
         <div className="flex min-h-screen w-full bg-gradient-background">
           <AppSidebar />
           {/* All dashboard children render here via nested routes */}
-          <main className="flex-1 overflow-hidden">
+          <main onScroll={() => console.log('scrolling')} className="flex-1 overflow-hidden">
             <Outlet />
           </main>
         </div>

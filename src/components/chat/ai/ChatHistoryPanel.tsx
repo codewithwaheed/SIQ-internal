@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { History, Search, Trash2, MessageSquare, Plus, ArrowLeft } from 'lucide-react';
+import {
+  History,
+  Search,
+  Trash2,
+  MessageSquare,
+  Plus,
+  ArrowLeft,
+  CheckCircle2,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +46,8 @@ type Props = {
   loadConversation: (conversationId: string) => void; // kept for compatibility
   deleteConversation: (conversationId: string) => Promise<void> | void;
   onBackToChat: () => void;
+  /** NEW: highlight & disable the currently open conversation */
+  currentConversationId?: string;
 };
 
 export const ChatHistoryPanel = ({
@@ -52,15 +62,15 @@ export const ChatHistoryPanel = ({
   loadConversation,
   deleteConversation,
   onBackToChat,
+  currentConversationId,
 }: Props) => {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const openConversation = (id: string) => {
-    // Route-based navigation, then close panel
+    if (id === currentConversationId) return; // disable clicking the active convo
     navigate(`/dashboard/chat/c/${id}`);
     onBackToChat?.();
-    // call old loader for backward-compat (no-op if it just navigates)
     loadConversation?.(id);
   };
 
@@ -70,14 +80,12 @@ export const ChatHistoryPanel = ({
         <CardHeader className="space-y-6">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-3 text-base font-medium">
-              <ArrowLeft className="h-5 w-5 cursor-pointer" onClick={onBackToChat}/>
+              <ArrowLeft className="h-5 w-5 cursor-pointer" onClick={onBackToChat} />
               Chat History
             </CardTitle>
             <div className="flex justify-end">
-              <Button
-                onClick={startNewConversation}
-              >
-                <Plus className="h-5 w-5" />  New Chat
+              <Button onClick={startNewConversation}>
+                <Plus className="h-5 w-5" /> New Chat
               </Button>
             </div>
           </div>
@@ -126,25 +134,41 @@ export const ChatHistoryPanel = ({
                       ? (conv.chat_messages as any)[0].count
                       : undefined;
 
+                  const isActive = currentConversationId === conv.id;
+
                   return (
                     <div
                       key={conv.id}
-                      className="group flex cursor-pointer items-center justify-between rounded-lg border border-transparent p-3 transition-colors hover:border-border hover:bg-muted/40"
+                      className={[
+                        'group flex items-center justify-between rounded-lg border p-3 transition-colors',
+                        isActive
+                          ? 'border-primary/40 bg-primary/5'
+                          : 'cursor-pointer border-transparent hover:border-border hover:bg-muted/40',
+                      ].join(' ')}
                     >
-                      <div className="min-w-0 flex-1" onClick={() => openConversation(conv.id)}>
+                      {/* Left: title/metadata — disable click on the active item */}
+                      <div
+                        className={
+                          isActive ? 'pointer-events-none min-w-0 flex-1' : 'min-w-0 flex-1'
+                        }
+                        onClick={() => openConversation(conv.id)}
+                      >
                         <div className="flex items-center gap-2">
                           <h3 className="truncate text-sm font-medium">{conv.title}</h3>
+                          {isActive && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                              <CheckCircle2 className="h-3 w-3" /> Open
+                            </span>
+                          )}
                           {typeof msgCount === 'number' && (
-                            <span className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+                            <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
                               <MessageSquare className="h-3 w-3" />
                               {msgCount}
                             </span>
                           )}
                         </div>
                         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                          Updated{' '}
-                          {new Date(conv.updated_at).toLocaleDateString()}{' '}
-                          •{' '}
+                          Updated {new Date(conv.updated_at).toLocaleDateString()} •{' '}
                           {new Date(conv.updated_at).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -161,7 +185,7 @@ export const ChatHistoryPanel = ({
                         )}
                       </div>
 
-                      {/* Delete (confirm first) */}
+                      {/* Delete (confirm first) — still allowed on active item */}
                       <AlertDialog
                         open={pendingDeleteId === conv.id}
                         onOpenChange={(open) => !open && setPendingDeleteId(null)}
@@ -170,7 +194,10 @@ export const ChatHistoryPanel = ({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="ml-3 opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                            className={[
+                              'ml-3 text-muted-foreground transition-opacity hover:text-destructive',
+                              isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                            ].join(' ')}
                             onClick={(e) => {
                               e.stopPropagation();
                               setPendingDeleteId(conv.id);

@@ -6,10 +6,11 @@ import { ComposerShell } from './ComposerShell';
 import { DocumentUploadTray } from './DocumentUploadTray';
 import { NewMessageIndicator } from './NewMessageIndicator';
 
-import { useAiChatController } from './hooks/useAiChatController';
+import useAiChatController from './hooks/useAiChatController';
 import type { AiChatInterfaceProps } from './types';
 import { PersistentEscalationCTA } from '@/components/chat/PersistentEscalationCTA';
 import { DocumentUpload } from '@/components/chat/DocumentUpload';
+import AlwaysVisibleScrollbar from '../ALwaysVisibleScrollBar';
 
 export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterfaceProps) => {
   const c = useAiChatController(isDemo);
@@ -28,74 +29,94 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
         loadConversation={c.loadConversation}
         deleteConversation={c.deleteConversation}
         onBackToChat={() => c.setShowChatHistory(false)}
+        /** highlight current conversation in the list */
+        currentConversationId={c.currentConversationId || undefined}
       />
     );
   }
 
   if (!c.initialLoading && c.messages.length === 0) {
     return (
-      <EmptyStateHero
-        sidebarCollapsed={c.sidebarCollapsed}
-        userFirstName={c.userFirstName}
-        timeOfDay={c.timeOfDay}
-        suggestedPrompts={c.suggestedPrompts}
-        isDemo={c.isDemo}
-        user={c.user}
-        showDocumentUpload={c.showDocumentUpload}
-        onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
-        onPromptClick={(p) => {
-          c.setInput(p);
-          c.setMessageToSend(p);
-        }}
-        composerRef={c.composerRef}
-        input={c.input}
-        documentUploadSlot={<DocumentUpload onDocumentUploaded={c.handleDocumentUploaded} />}
-      >
-        <ComposerShell
-          input={c.input}
-          setInput={c.setInput}
-          loading={c.loading}
+      <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
+        <EmptyStateHero
+          sidebarCollapsed={c.sidebarCollapsed}
+          userFirstName={c.userFirstName}
+          timeOfDay={c.timeOfDay}
+          suggestedPrompts={c.suggestedPrompts}
           isDemo={c.isDemo}
           user={c.user}
-          conversations={c.conversations}
-          uploadedDocuments={c.uploadedDocuments}
-          messages={c.messages}
-          onSendMessage={c.handleSendMessage}
-          onKeyPress={c.handleKeyPress}
-          onShowChatHistory={() => c.setShowChatHistory(true)}
+          showDocumentUpload={c.showDocumentUpload}
           onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
-          onDocumentUploaded={c.handleDocumentUploaded}
-          inputRef={c.inputRef}
-          abortController={c.abortController}
-          onStopGeneration={c.handleStopGeneration}
-          setMessageToSend={c.setMessageToSend}
-        />
-      </EmptyStateHero>
+          onPromptClick={(p) => {
+            c.setInput(p);
+            c.setMessageToSend(p);
+          }}
+          composerRef={c.composerRef}
+          input={c.input}
+          documentUploadSlot={<DocumentUpload onDocumentUploaded={c.handleDocumentUploaded} />}
+        >
+          <ComposerShell
+            input={c.input}
+            setInput={c.setInput}
+            loading={c.loading}
+            isDemo={c.isDemo}
+            user={c.user}
+            conversations={c.conversations}
+            uploadedDocuments={c.uploadedDocuments}
+            messages={c.messages}
+            onSendMessage={c.handleSendMessage}
+            onKeyPress={c.handleKeyPress}
+            onShowChatHistory={() => c.setShowChatHistory(true)}
+            onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
+            onDocumentUploaded={c.handleDocumentUploaded}
+            inputRef={c.inputRef}
+            abortController={c.abortController}
+            onStopGeneration={c.handleStopGeneration}
+            setMessageToSend={c.setMessageToSend}
+          />
+        </EmptyStateHero>
+      </div>
     );
   }
 
   return (
-    <div className={`page p flex h-full flex-col ${c.sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {/* SINGLE scroll container. Padding-bottom leaves room for composer, so actions aren't hidden */}
+    <div
+      style={{ paddingTop: '10px' }}
+      className={`page flex h-[100dvh] min-h-0 flex-col overflow-hidden pt-0 ${c.sidebarCollapsed ? 'sidebar-collapsed' : ''} ${className}`}
+    >
+      {/* SINGLE scroll container. Padding-bottom leaves room for composer */}
       <div
-        className="app-content relative flex-1 overflow-y-auto pb-28 md:pb-32"
+        className="app-content full-bleed-viewport relative min-h-0 flex-1 overflow-y-auto pb-28 md:pb-32"
         ref={c.messagesContainerRef}
         onScroll={c.handleScroll}
         aria-busy={c.initialLoading ? 'true' : 'false'}
       >
-        <ChatHeader
-          isDemo={c.isDemo}
-          user={c.user}
-          currentConversation={c.currentConversation}
-          editingTitle={c.editingTitle}
-          editTitleValue={c.editTitleValue}
-          startEditingTitle={c.startEditingTitle}
-          cancelEditingTitle={c.cancelEditingTitle}
-          saveTitle={c.saveTitle}
-          setEditTitleValue={c.setEditTitleValue}
-        />
+        {/* Sticky header */}
+        <div className="sticky top-0 z-20 border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <ChatHeader
+            isDemo={c.isDemo}
+            user={c.user}
+            currentConversation={c.currentConversation}
+            editingTitle={c.editingTitle}
+            editTitleValue={c.editTitleValue}
+            startEditingTitle={c.startEditingTitle}
+            cancelEditingTitle={c.cancelEditingTitle}
+            saveTitle={c.saveTitle}
+            setEditTitleValue={c.setEditTitleValue}
+          />
+        </div>
 
-        {/* Bolder, multi-row skeleton so it’s clearly visible */}
+        {/* NEW: tiny loader strip while older messages are fetching */}
+        {c.olderLoading && (
+          <div className="sticky top-[52px] z-10 mb-2 flex justify-center">
+            <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground shadow">
+              <span className="h-3 w-3 animate-spin rounded-full border border-muted-foreground/40 border-t-transparent" />
+              <span>Loading earlier messages…</span>
+            </div>
+          </div>
+        )}
+
+        {/* Skeleton */}
         {c.initialLoading && (
           <div className="mx-auto w-full max-w-4xl px-3 pb-6 pt-3">
             <div className="space-y-4">
@@ -127,6 +148,7 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               onClearContext={() => c.setActiveDocuments([])}
               messages={c.messages}
               currentConversation={c.currentConversation}
+              conversationId={c.currentConversationId}
               onCopyMessage={c.copyMessage}
               onMessageReaction={c.handleMessageReaction}
               onSuggestionClick={c.handleSuggestionClick}
@@ -189,6 +211,12 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
       {!c.isDemo && c.user && c.messages.length > 2 && (
         <PersistentEscalationCTA messages={c.messages} position="floating" />
       )}
+
+      {/* Always-visible scrollbar */}
+      <AlwaysVisibleScrollbar
+        containerRef={c.messagesContainerRef as any}
+        watch={c.messages.length}
+      />
     </div>
   );
 };

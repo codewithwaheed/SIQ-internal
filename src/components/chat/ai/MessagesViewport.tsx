@@ -4,7 +4,6 @@ import { PolicyGenerationInterface } from '@/components/chat/PolicyGenerationInt
 import { ContextualEscalationCard } from '@/components/chat/ContextualEscalationCard';
 import { SmartEscalationTriggers } from '@/components/chat/SmartEscalationTriggers';
 import { POLICY_TEMPLATES } from '@/lib/policyGenerator';
-
 import type { Message, CurrentConversation } from './types';
 
 interface Props {
@@ -16,6 +15,7 @@ interface Props {
   onClearContext: () => void;
   messages: Message[];
   currentConversation: CurrentConversation | null;
+  conversationId?: string | null; // helps show feedback icons on hard refresh
   onCopyMessage: (content: string) => void;
   onMessageReaction: (id: string, reaction: 'up' | 'down') => void;
   onSuggestionClick: (text: string) => void;
@@ -34,10 +34,9 @@ interface Props {
   conversationContext: { documentCount: number; messageCount: number };
   sessionStart: Date;
   messagesEndRef: React.RefObject<HTMLDivElement>;
+  topSentinelRef: React.RefObject<HTMLDivElement>;
   initialLoading?: boolean;
   olderLoading?: boolean;
-  // NEW: sentinel ref (from controller)
-  topSentinelRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function MessagesViewport({
@@ -49,6 +48,7 @@ export function MessagesViewport({
   onClearContext,
   messages,
   currentConversation,
+  conversationId,
   onCopyMessage,
   onMessageReaction,
   onSuggestionClick,
@@ -61,9 +61,9 @@ export function MessagesViewport({
   conversationContext,
   sessionStart,
   messagesEndRef,
+  topSentinelRef,
   initialLoading = false,
   olderLoading = false,
-  topSentinelRef,
 }: Props) {
   const SkeletonRow = () => (
     <div className="animate-pulse">
@@ -73,8 +73,11 @@ export function MessagesViewport({
   );
 
   return (
-    <main className="app-content flex-1">
-      <div className="mx-auto min-h-full max-w-4xl space-y-4 p-3 sm:space-y-6 sm:p-4">
+    <main className="app-content-inner">
+      <div className="mx-auto max-w-4xl space-y-4 px-3 py-3 sm:space-y-6 sm:px-4">
+        {/* TOP SENTINEL for infinite scroll */}
+        <div ref={topSentinelRef} aria-hidden />
+
         {olderLoading && (
           <div className="flex items-center justify-center py-2 text-xs text-muted-foreground">
             Loading older messages…
@@ -87,7 +90,7 @@ export function MessagesViewport({
             activeDocuments={activeDocuments}
             onDocumentToggle={onToggleDocument}
             onClearContext={onClearContext}
-            className="mb-4"
+            className="mb-2"
           />
         )}
 
@@ -101,14 +104,11 @@ export function MessagesViewport({
           </div>
         ) : (
           <>
-            {/* Sentinel to trigger "load older" when scrolled to top of message list */}
-            {messages.length > 0 && <div ref={topSentinelRef} className="h-px" />}
-
             {messages.map((message, index) => (
               <ChatMessage
                 key={message.id || index}
                 message={message}
-                conversationId={currentConversation?.id}
+                conversationId={conversationId ?? currentConversation?.id}
                 isLatest={index === messages.length - 1}
                 isDemo={isDemo}
                 user={user}

@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AiChatInterface } from './AiChatInterface';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
-import { useAiChatController } from './hooks/useAiChatController';
+import useAiChatController from './hooks/useAiChatController';
 
 type Props = {
   isDemo?: boolean;
@@ -14,13 +14,16 @@ export function ChatRoutes({ isDemo = false, className = '' }: Props) {
   return (
     <Routes>
       {/* /dashboard/chat */}
-      <Route index element={<AiChatInterface isDemo={isDemo} className={className} controller={c} />} />
+      <Route index element={<AiChatInterface isDemo={isDemo} className={className} />} />
 
       {/* /dashboard/chat/new */}
-      <Route path="new" element={<AiChatInterface isDemo={isDemo} className={className} controller={c} />} />
+      <Route path="new" element={<AiChatInterface isDemo={isDemo} className={className} />} />
 
       {/* /dashboard/chat/c/:conversationId */}
-      <Route path="c/:conversationId" element={<AiChatInterface isDemo={isDemo} className={className} controller={c} />} />
+      <Route
+        path="c/:conversationId"
+        element={<AiChatInterface isDemo={isDemo} className={className} />}
+      />
 
       {/* /dashboard/chat/history */}
       <Route
@@ -38,6 +41,7 @@ export function ChatRoutes({ isDemo = false, className = '' }: Props) {
             loadConversation={(id) => c.loadConversation(id)}
             deleteConversation={c.deleteConversation}
             onBackToChat={() => c.navigateToChatHome()}
+            currentConversationId={c.currentConversationId || undefined}
           />
         }
       />
