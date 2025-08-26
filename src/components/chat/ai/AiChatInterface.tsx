@@ -10,7 +10,7 @@ import useAiChatController from './hooks/useAiChatController';
 import type { AiChatInterfaceProps } from './types';
 import { PersistentEscalationCTA } from '@/components/chat/PersistentEscalationCTA';
 import { DocumentUpload } from '@/components/chat/DocumentUpload';
-import AlwaysVisibleScrollbar from '../ALwaysVisibleScrollBar';
+import AlwaysVisibleScrollbar from './AlwaysVisibleScrollbar';
 
 export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterfaceProps) => {
   const c = useAiChatController(isDemo);
