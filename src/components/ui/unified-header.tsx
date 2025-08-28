@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Menu, X, LogOut, Settings, User } from 'lucide-react';
-import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -14,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 
 interface UnifiedHeaderProps {
   context: 'public' | 'dashboard';
@@ -28,14 +29,13 @@ export const UnifiedHeader = ({
 }: UnifiedHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, profile, userRole, signOut } = useAuth();
+  const { state } = useSidebar();
+  const collapsed = state === 'collapsed';
 
   const scrollToPricing = () => {
     const pricingSection = document.getElementById('pricing-section');
-    if (pricingSection) {
-      pricingSection.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      window.location.href = '/#pricing-section';
-    }
+    if (pricingSection) pricingSection.scrollIntoView({ behavior: 'smooth' });
+    else window.location.href = '/#pricing-section';
   };
 
   const getRoleColor = (role: string) => {
@@ -64,44 +64,53 @@ export const UnifiedHeader = ({
     }
   };
 
-  const getUserInitials = () => {
-    if (profile?.first_name && profile?.last_name) {
-      return `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase();
-    }
-    return user?.email?.[0]?.toUpperCase() || 'U';
-  };
+  const getUserInitials = () =>
+    profile?.first_name && profile?.last_name
+      ? `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase()
+      : user?.email?.[0]?.toUpperCase() || 'U';
 
-  const headerClasses = `
-    ${transparent ? 'bg-transparent' : 'bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60'} 
-    border-b border-border sticky top-0 z-50
-  `;
+  const headerClasses = cn(
+    transparent
+      ? 'bg-transparent'
+      : 'bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60',
+    'border-b border-border sticky top-0 z-50 w-full',
+    // Avoid overlap with the sidebar on desktop when in dashboard
+    // Match Sidebar widths: 16rem expanded (pl-64), 3rem collapsed (pl-12)
+    context === 'dashboard' && (collapsed ? 'md:pl-12' : 'md:pl-64'),
+  );
 
   return (
     <nav className={headerClasses}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link
-            to={context === 'dashboard' ? '/dashboard' : '/'}
-            className="flex items-center"
-            onClick={() => context === 'public' && window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <img
-              src="/lovable-uploads/6362c9bd-c403-4a72-abae-4de6f5238518.png"
-              alt="SentrIQ Labs"
-              className="h-8"
-            />
-          </Link>
+          <div className="flex items-center gap-2">
+            {/* Mobile sidebar toggle (dashboard only) */}
+            {context === 'dashboard' && (
+              <div className="md:hidden">
+                <SidebarTrigger />
+              </div>
+            )}
+
+            {/* Logo — mobile only (hidden on desktop as requested) */}
+            <Link
+              to={context === 'dashboard' ? '/dashboard' : '/'}
+              className="flex items-center md:hidden"
+              onClick={() => context === 'public' && window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
+              <img
+                src="/lovable-uploads/6362c9bd-c403-4a72-abae-4de6f5238518.png"
+                alt="SentrIQ Labs"
+                className="h-8"
+              />
+            </Link>
+          </div>
 
           {/* Public Navigation */}
           {context === 'public' && (
             <>
               {/* Desktop Menu */}
               <div className="hidden items-center space-x-8 md:flex">
-                <Link
-                  to="/features"
-                  className="text-foreground transition-colors hover:text-primary"
-                >
+                <Link to="/features" className="text-foreground transition-colors hover:text-primary">
                   Features
                 </Link>
                 <button
@@ -116,10 +125,7 @@ export const UnifiedHeader = ({
                 <Link to="/faq" className="text-foreground transition-colors hover:text-primary">
                   FAQ
                 </Link>
-                <Link
-                  to="/contact"
-                  className="text-foreground transition-colors hover:text-primary"
-                >
+                <Link to="/contact" className="text-foreground transition-colors hover:text-primary">
                   Contact
                 </Link>
                 {showAuth && !user && (
@@ -148,12 +154,10 @@ export const UnifiedHeader = ({
             </>
           )}
 
-          {/* Dashboard Navigation */}
+          {/* Dashboard Navigation (avatar, role) */}
           {context === 'dashboard' && user && (
             <div className="flex items-center space-x-4">
-              {userRole && (
-                <Badge className={getRoleColor(userRole)}>{getRoleLabel(userRole)}</Badge>
-              )}
+              {userRole && <Badge className={getRoleColor(userRole)}>{getRoleLabel(userRole)}</Badge>}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

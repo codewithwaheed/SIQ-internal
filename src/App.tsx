@@ -207,6 +207,7 @@ const App = () => {
                   <Route path="help" element={<HelpFeedbackPage />} />
                   <Route path="contact-expert" element={<ContactExpertPage />} />
                   <Route path="escalate" element={<EscalationPage />} />
+                  <Route path="policies" element={<PolicyLibrary />} />
                   <Route path="client/:clientId" element={<ClientDetailsPage />} />
 
                   {/* fallback within /dashboard */}

@@ -214,27 +214,26 @@ export const ChatMessage = ({
                   <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="relative h-8 w-8 transition-all duration-200 hover:scale-105">
-                          <div className="absolute inset-0 rounded-md border border-amber-200/50 bg-gradient-to-br from-amber-50 to-orange-50 hover:border-amber-300 hover:bg-gradient-to-r hover:from-amber-100 hover:to-orange-100 hover:text-amber-800 dark:border-amber-800/50 dark:from-amber-950/30 dark:to-orange-950/30 dark:hover:border-amber-600 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 dark:hover:text-amber-400" />
-                          <div className="absolute inset-0 opacity-0">
-                            <EscalationButton
-                              messages={messages.map((msg) => ({
-                                role: msg.role,
-                                content: msg.content,
-                                timestamp: msg.timestamp,
-                                id: msg.id,
-                              }))}
-                              variant="inline"
-                            />
-                          </div>
-                          <UserCheck className="pointer-events-none absolute inset-0 m-auto h-4 w-4 text-amber-800 dark:text-amber-400" />
-                          <Crown className="pointer-events-none absolute -right-1 -top-1 h-3 w-3 animate-pulse text-amber-600 dark:text-amber-400" />
-                        </div>
+                        {/* trigger is JUST the icon tile, no invisible overlay */}
+                        <EscalationButton
+                          variant="inline-icon"
+                          conversationId={conversationId}
+                          messages={messages.map((m) => ({
+                            role: m.role,
+                            content: m.content,
+                            timestamp: m.timestamp,
+                            id: m.id,
+                          }))}
+                          className="shrink-0"
+                          ariaLabel="Talk to Security Expert"
+                        />
                       </TooltipTrigger>
-                      <TooltipContent>
+
+                      {/* SAME tooltip UI as before */}
+                      <TooltipContent side="top" align="center" className="z-50">
                         <div className="text-center">
                           <p className="font-medium">Talk to Security Expert</p>
-                          <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                          <p className="flex items-center justify-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                             <Crown className="h-3 w-3" />
                             Premium Feature
                           </p>

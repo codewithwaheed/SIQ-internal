@@ -9,12 +9,10 @@ interface Props {
   loading: boolean;
   isDemo: boolean;
   user: any;
-  conversations: Conversation[];
   uploadedDocuments: any[];
   messages: Message[];
   onSendMessage: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
-  onShowChatHistory: () => void;
   onToggleDocumentUpload: () => void;
   onDocumentUploaded: (doc: any) => void;
   inputRef: React.RefObject<HTMLTextAreaElement>;
@@ -29,12 +27,10 @@ export function ComposerShell({
   loading,
   isDemo,
   user,
-  conversations,
   uploadedDocuments,
   messages,
   onSendMessage,
   onKeyPress,
-  onShowChatHistory,
   onToggleDocumentUpload,
   onDocumentUploaded,
   inputRef,
@@ -50,13 +46,11 @@ export function ComposerShell({
         loading={loading}
         isDemo={isDemo}
         user={user}
-        conversations={conversations}
         uploadedDocuments={uploadedDocuments}
         messages={messages}
         onInputChange={setInput}
         onSendMessage={onSendMessage}
         onKeyPress={onKeyPress}
-        onShowChatHistory={onShowChatHistory}
         onShowDocumentUpload={onToggleDocumentUpload}
         onDocumentUploaded={onDocumentUploaded}
         inputRef={inputRef}

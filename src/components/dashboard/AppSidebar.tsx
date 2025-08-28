@@ -78,7 +78,7 @@ export function AppSidebar() {
   const { userRole, signOut, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === 'collapsed';
   const currentPath = location.pathname;
 
@@ -95,8 +95,15 @@ export function AppSidebar() {
     navigate('/dashboard/chat/new', { replace: false });
   };
 
+  const closeMobileIfNeeded = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
   return (
-    <Sidebar className={`border-r border-border/20 transition-all duration-300 ${collapsed ? 'w-16' : 'w-80'}`} collapsible="icon">
+    <Sidebar
+      className={`border-r border-border/20 transition-all duration-300 ${collapsed ? 'w-12' : 'w-64'}`}
+      collapsible="icon"
+    >
       <SidebarHeader className="border-b border-border/10 p-6">
         <div className="flex items-center justify-between">
           <SidebarTrigger />
@@ -121,13 +128,18 @@ export function AppSidebar() {
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <button
-              onClick={startNewConversation}
-              className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-3'} rounded-xl bg-primary/10 px-3 py-3 text-primary transition hover:bg-primary/20`}
-            >
-              <Plus className="h-5 w-5" />
-              {!collapsed && <span className="text-sm font-medium">New Chat</span>}
-            </button>
+            {!collapsed && (
+              <button
+                onClick={() => {
+                  startNewConversation();
+                  closeMobileIfNeeded();
+                }}
+                className="flex w-full items-center gap-3 rounded-xl bg-primary/10 px-3 py-3 text-primary transition hover:bg-primary/20"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="text-sm font-medium">New Chat</span>
+              </button>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -144,6 +156,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild className="w-full">
                     <NavLink
                       to={item.url}
+                      onClick={closeMobileIfNeeded}
                       className={({ isActive: linkIsActive }) =>
                         `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} group rounded-xl px-3 py-3 transition-all duration-200 ${
                           linkIsActive || isActive(item.url, 'exact' in item ? item.exact : false)
@@ -176,6 +189,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild className="w-full">
                       <NavLink
                         to={item.url}
+                        onClick={closeMobileIfNeeded}
                         className={({ isActive: linkIsActive }) =>
                           `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} group rounded-xl px-3 py-3 transition-all duration-200 ${
                             linkIsActive || isActive(item.url)
@@ -201,6 +215,7 @@ export function AppSidebar() {
           <SidebarMenuButton asChild className="w-full">
             <NavLink
               to="/dashboard/settings"
+              onClick={closeMobileIfNeeded}
               className={({ isActive: linkIsActive }) =>
                 `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} group rounded-xl px-3 py-3 transition-all duration-200 ${
                   linkIsActive ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-foreground hover:shadow-sm'
@@ -213,7 +228,10 @@ export function AppSidebar() {
           </SidebarMenuButton>
 
           <button
-            onClick={signOut}
+            onClick={() => {
+              closeMobileIfNeeded();
+              signOut();
+            }}
             className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} group w-full rounded-xl px-3 py-3 text-left text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground hover:shadow-sm`}
           >
             <LogOut className={`h-5 w-5 flex-shrink-0 transition-transform duration-200 ${collapsed ? '' : 'group-hover:scale-110'}`} />

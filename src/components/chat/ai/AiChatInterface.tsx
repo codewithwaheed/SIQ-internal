@@ -11,10 +11,14 @@ import type { AiChatInterfaceProps } from './types';
 import { PersistentEscalationCTA } from '@/components/chat/PersistentEscalationCTA';
 import { DocumentUpload } from '@/components/chat/DocumentUpload';
 import AlwaysVisibleScrollbar from './AlwaysVisibleScrollbar';
+import { useEffect } from 'react';
 
 export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterfaceProps) => {
   const c = useAiChatController(isDemo);
-
+  useEffect(() => {
+    document.body.classList.add('no-doc-scroll');
+    return () => document.body.classList.remove('no-doc-scroll');
+  }, []);
   if (c.showChatHistory) {
     return (
       <ChatHistoryPanel
@@ -37,44 +41,69 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
 
   if (!c.initialLoading && c.messages.length === 0) {
     return (
-      <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
-        <EmptyStateHero
-          sidebarCollapsed={c.sidebarCollapsed}
-          userFirstName={c.userFirstName}
-          timeOfDay={c.timeOfDay}
-          suggestedPrompts={c.suggestedPrompts}
-          isDemo={c.isDemo}
-          user={c.user}
-          showDocumentUpload={c.showDocumentUpload}
-          onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
-          onPromptClick={(p) => {
-            c.setInput(p);
-            c.setMessageToSend(p);
-          }}
-          composerRef={c.composerRef}
-          input={c.input}
-          documentUploadSlot={<DocumentUpload onDocumentUploaded={c.handleDocumentUploaded} />}
+      <div
+        className={`flex h-[100dvh] min-h-0 flex-col overflow-hidden ${
+          c.sidebarCollapsed ? 'sidebar-collapsed' : ''
+        }`}
+      >
+        {/* Scroll container with sticky ChatHeader for empty-state view */}
+        <div
+          className="app-content hide-native-scrollbar relative min-h-0 flex-1 overflow-y-auto pb-28 md:pb-32"
+          ref={c.messagesContainerRef}
+          onScroll={c.handleScroll}
         >
-          <ComposerShell
-            input={c.input}
-            setInput={c.setInput}
-            loading={c.loading}
+          <div className="sticky top-0 z-20 border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <ChatHeader
+              isDemo={c.isDemo}
+              user={c.user}
+              currentConversation={c.currentConversation}
+              editingTitle={c.editingTitle}
+              editTitleValue={c.editTitleValue}
+              conversations={c.conversations}
+              startEditingTitle={c.startEditingTitle}
+              cancelEditingTitle={c.cancelEditingTitle}
+              saveTitle={c.saveTitle}
+              setEditTitleValue={c.setEditTitleValue}
+              onShowChatHistory={() => c.setShowChatHistory(true)}
+            />
+          </div>
+
+          <EmptyStateHero
+            sidebarCollapsed={c.sidebarCollapsed}
+            userFirstName={c.userFirstName}
+            timeOfDay={c.timeOfDay}
+            suggestedPrompts={c.suggestedPrompts}
             isDemo={c.isDemo}
             user={c.user}
-            conversations={c.conversations}
-            uploadedDocuments={c.uploadedDocuments}
-            messages={c.messages}
-            onSendMessage={c.handleSendMessage}
-            onKeyPress={c.handleKeyPress}
-            onShowChatHistory={() => c.setShowChatHistory(true)}
+            showDocumentUpload={c.showDocumentUpload}
             onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
-            onDocumentUploaded={c.handleDocumentUploaded}
-            inputRef={c.inputRef}
-            abortController={c.abortController}
-            onStopGeneration={c.handleStopGeneration}
-            setMessageToSend={c.setMessageToSend}
-          />
-        </EmptyStateHero>
+            onPromptClick={(p) => {
+              c.setInput(p);
+              c.setMessageToSend(p);
+            }}
+            composerRef={c.composerRef}
+            input={c.input}
+            documentUploadSlot={<DocumentUpload onDocumentUploaded={c.handleDocumentUploaded} />}
+          >
+            <ComposerShell
+              input={c.input}
+              setInput={c.setInput}
+              loading={c.loading}
+              isDemo={c.isDemo}
+              user={c.user}
+              uploadedDocuments={c.uploadedDocuments}
+              messages={c.messages}
+              onSendMessage={c.handleSendMessage}
+              onKeyPress={c.handleKeyPress}
+              onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
+              onDocumentUploaded={c.handleDocumentUploaded}
+              inputRef={c.inputRef}
+              abortController={c.abortController}
+              onStopGeneration={c.handleStopGeneration}
+              setMessageToSend={c.setMessageToSend}
+            />
+          </EmptyStateHero>
+        </div>
       </div>
     );
   }
@@ -82,11 +111,13 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
   return (
     <div
       style={{ paddingTop: '10px' }}
-      className={`page flex h-[100dvh] min-h-0 flex-col overflow-hidden pt-0 ${c.sidebarCollapsed ? 'sidebar-collapsed' : ''} ${className}`}
+      className={`flex h-[100dvh] min-h-0 w-full max-w-none flex-col overflow-hidden pt-0 ${
+        c.sidebarCollapsed ? 'sidebar-collapsed' : ''
+      } ${className}`}
     >
       {/* SINGLE scroll container. Padding-bottom leaves room for composer */}
       <div
-        className="app-content full-bleed-viewport relative min-h-0 flex-1 overflow-y-auto pb-28 md:pb-32"
+        className="app-content hide-native-scrollbar relative min-h-0 flex-1 overflow-y-auto pb-28 md:pb-32"
         ref={c.messagesContainerRef}
         onScroll={c.handleScroll}
         aria-busy={c.initialLoading ? 'true' : 'false'}
@@ -99,10 +130,12 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
             currentConversation={c.currentConversation}
             editingTitle={c.editingTitle}
             editTitleValue={c.editTitleValue}
+            conversations={c.conversations}
             startEditingTitle={c.startEditingTitle}
             cancelEditingTitle={c.cancelEditingTitle}
             saveTitle={c.saveTitle}
             setEditTitleValue={c.setEditTitleValue}
+            onShowChatHistory={() => c.setShowChatHistory(true)}
           />
         </div>
 

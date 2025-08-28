@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AiAvatar } from '@/components/ui/ai-avatar';
-import { Edit3, Check, X, UserCheck } from 'lucide-react';
+import { Edit3, Check, X, UserCheck, History } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { EscalationIntakeForm } from '@/components/chat/EscalationIntakeForm';
 import type { CurrentConversation } from './types';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 interface Props {
   isDemo: boolean;
@@ -12,10 +13,12 @@ interface Props {
   currentConversation: CurrentConversation | null;
   editingTitle: boolean;
   editTitleValue: string;
+  conversations?: any[];
   startEditingTitle: () => void;
   cancelEditingTitle: () => void;
   saveTitle: () => void;
   setEditTitleValue: (v: string) => void;
+  onShowChatHistory?: () => void;
 }
 
 export function ChatHeader({
@@ -24,19 +27,26 @@ export function ChatHeader({
   currentConversation,
   editingTitle,
   editTitleValue,
+  conversations = [],
   startEditingTitle,
   cancelEditingTitle,
   saveTitle,
   setEditTitleValue,
+  onShowChatHistory,
 }: Props) {
   return (
     /**
      * Must be inside the same scroll container that has overflow-y-auto.
      * Sticky + top + high z-index keeps it fixed like the composer.
      */
-    <div className="sticky top-0 z-[60] w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-2 py-1.5 sm:px-3">
+    <div className="sticky top-0 z-[60] w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pt-2 sm:pt-3">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-2 py-1.5 sm:px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
+          {/* Mobile sidebar toggle */}
+          <div className="md:hidden">
+            <SidebarTrigger />
+          </div>
+
           <div className="hidden shrink-0 sm:block">
             <AiAvatar />
           </div>
@@ -104,14 +114,32 @@ export function ChatHeader({
         </div>
 
         {!isDemo && user && (
-          <div className="flex flex-shrink-0 items-center">
+          <div className="flex flex-shrink-0 items-center gap-2">
+            {onShowChatHistory && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onShowChatHistory}
+                aria-label="View chat history"
+                className="group h-8 rounded-lg bg-muted px-3 text-xs text-foreground transition-all hover:bg-black hover:text-white sm:px-3"
+              >
+                <History className="h-3.5 w-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Chat History</span>
+                {conversations.length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground group-hover:bg-white/20 group-hover:text-white">
+                    {conversations.length}
+                  </span>
+                )}
+              </Button>
+            )}
+
             <Dialog>
               <DialogTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   aria-label="Talk to a Cybersecurity Expert"
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                  className="h-8 w-8 rounded-lg p-0 text-muted-foreground transition-all hover:bg-black hover:text-white"
                 >
                   <UserCheck className="h-4 w-4" />
                 </Button>

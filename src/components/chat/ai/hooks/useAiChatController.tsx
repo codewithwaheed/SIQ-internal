@@ -1,4 +1,3 @@
-// useAiChatController.tsx
 // NOTE: keep the export shape stable to avoid Vite Fast Refresh warnings.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -133,6 +132,7 @@ export default function useAiChatController(isDemo: boolean) {
 
   // Auto scroll when near bottom; only show pill for appends
   useEffect(() => {
+    if (loading) return;
     if (isNearBottom) {
       scrollToBottom();
       setShowNewMessageIndicator(false);
@@ -142,7 +142,7 @@ export default function useAiChatController(isDemo: boolean) {
       }
     }
     mutationKindRef.current = null;
-  }, [messages, isNearBottom]);
+  }, [messages, isNearBottom, loading]);
 
   // When returning from history list, snap to bottom and then arm pagination
   const prevShowHistoryRef = useRef(false);
@@ -442,6 +442,7 @@ export default function useAiChatController(isDemo: boolean) {
       }
     }
 
+    // near-top fallback trigger
     if (
       paginationArmed &&
       hasAnchoredBottomRef.current &&
@@ -872,6 +873,21 @@ export default function useAiChatController(isDemo: boolean) {
       return;
     }
 
+    // Heuristic: surface the contextual escalation card for high-risk keywords
+    if (
+      /\b(breach|incident|ransom|phish|malware|outage|downtime|compromise)\b/i.test(
+        sanitizedMessage,
+      )
+    ) {
+      setShowContextualEscalation(true);
+      setEscalationRationale(
+        'Potential high-risk terms detected. Consider escalation or immediate steps.',
+      );
+    } else {
+      setShowContextualEscalation(false);
+      setEscalationRationale(null);
+    }
+
     const userMessage: Message = {
       role: 'user',
       content: sanitizedMessage,
@@ -895,6 +911,8 @@ export default function useAiChatController(isDemo: boolean) {
 
     setInput('');
     setMessageToSend('');
+    // Bring the new streaming bubble into view once
+    scrollToBottomAfterRender(true);
 
     setLoading(true);
     setConversationContext((prev) => ({ ...prev, messageCount: prev.messageCount + 1 }));
@@ -926,6 +944,14 @@ export default function useAiChatController(isDemo: boolean) {
 
     let firstChunkReceived = false;
     let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+
+    // Helper: tolerant SSE payload extractor (accepts `data:{}` and `data: {}`)
+    const getDataPayload = (line: string) => {
+      if (!line.startsWith('data:')) return null;
+      let payload = line.slice(5);
+      if (payload.startsWith(' ')) payload = payload.slice(1);
+      return payload.trim();
+    };
 
     try {
       const response = await callFnStream('chat-with-ai', {
@@ -966,22 +992,22 @@ export default function useAiChatController(isDemo: boolean) {
       const decoder = new TextDecoder();
       let buffer = '';
 
-      const autoScrollIfAtBottom = () => {
-        if (isNearBottom && messagesContainerRef.current) setTimeout(() => scrollToBottom(), 50);
-      };
-
+      // --- tolerant SSE loop ---
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value);
+        buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ') || line.trim() === 'data: [DONE]') continue;
+        for (const rawLine of lines) {
+          const line = rawLine.trim();
+          const payload = getDataPayload(line);
+          if (payload == null) continue;
+          if (payload === '[DONE]') continue;
 
           try {
-            const data = JSON.parse(line.slice(6));
+            const data = JSON.parse(payload);
 
             if (data.type === 'chunk') {
               clearTimeout(typingTimeout);
@@ -994,37 +1020,62 @@ export default function useAiChatController(isDemo: boolean) {
                 }
               }
 
-              streamedContent += data.content || '';
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === streamingMessageId ? { ...msg, content: streamedContent } : msg,
-                ),
-              );
+              const piece = data.content ?? '';
+              if (piece) {
+                streamedContent += piece;
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === streamingMessageId ? { ...msg, content: streamedContent } : msg,
+                  ),
+                );
+              }
 
               if (data.conversation_id && !currentConversationId) {
                 setCurrentConversationId(data.conversation_id);
               }
-
-              autoScrollIfAtBottom();
+              // no auto-follow here (user can scroll freely)
             } else if (data.type === 'complete') {
               const finalContent = streamedContent;
 
+              // Map server-provided followups/extras if present
+              const serverSuggestions = Array.isArray(data.suggestions)
+                ? (data.suggestions as string[])
+                : undefined;
+              const serverNextActions = Array.isArray(data.next_actions)
+                ? (data.next_actions as string[])
+                : undefined;
+              const serverFrameworkTags = Array.isArray(data.framework_tags)
+                ? (data.framework_tags as string[])
+                : undefined;
+              const serverRiskLevel =
+                typeof data.risk_level === 'string' ? (data.risk_level as string) : undefined;
+
               setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === streamingMessageId
-                    ? {
-                        ...msg,
-                        content: finalContent,
-                        isStreaming: false,
-                        suggestions: [
-                          'Tell me more about this',
-                          'What are the next steps?',
-                          'How do I implement this?',
-                        ],
-                        documents: uploadedDocuments.slice(0, 2).map((doc) => doc.title),
-                      }
-                    : msg,
-                ),
+                prev.map((msg) => {
+                  if (msg.id !== streamingMessageId) return msg;
+                  return {
+                    ...msg,
+                    content: finalContent,
+                    isStreaming: false,
+                    // Show server suggestions if available; fallback to a small default set
+                    suggestions:
+                      serverSuggestions && serverSuggestions.length > 0
+                        ? serverSuggestions
+                        : [
+                            'Tell me more about this',
+                            'What are the next steps?',
+                            'How do I implement this?',
+                          ],
+                    documents: uploadedDocuments.slice(0, 2).map((doc) => doc.title),
+                    metadata: {
+                      ...(msg.metadata || {}),
+                      next_actions: serverNextActions || (msg.metadata as any)?.next_actions,
+                      framework_tags:
+                        serverFrameworkTags || (msg.metadata as any)?.framework_tags || [],
+                      risk_level: serverRiskLevel || (msg.metadata as any)?.risk_level,
+                    },
+                  } as any;
+                }),
               );
 
               const newConvId = data.conversation_id || currentConversationId;
@@ -1052,16 +1103,22 @@ export default function useAiChatController(isDemo: boolean) {
 
               setLoading(false);
               setAbortController(null);
+              // Count assistant reply too (helps triggers)
+              setConversationContext((prev) => ({
+                ...prev,
+                messageCount: prev.messageCount + 1,
+              }));
               return;
             } else if (data.type === 'error') {
               throw new Error(data.error);
             }
           } catch {
-            // ignore non-JSON
+            // ignore heartbeat/non-JSON
           }
         }
       }
 
+      // If we streamed nothing, provide a gentle nudge
       if (streamedContent.trim() === '') {
         setMessages((prev) =>
           prev.map((msg) =>
@@ -1078,9 +1135,6 @@ export default function useAiChatController(isDemo: boolean) {
         setAbortController(null);
         return;
       }
-
-      setConversationContext((prev) => ({ ...prev, messageCount: prev.messageCount + 1 }));
-      setTimeout(() => scrollToBottom(), 100);
     } catch (error: any) {
       clearTimeout(typingTimeout);
       if (firstChunkTimeout) {

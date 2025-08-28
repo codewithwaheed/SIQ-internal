@@ -188,9 +188,7 @@ body,
   height: 100%;
 }
 
-/* Prevent the document from scrolling; our component will scroll instead */
-html,
-body {
+body.no-doc-scroll {
   overflow: hidden;
 }
 
@@ -298,6 +296,17 @@ while keeping inner content centered by using negative side margins.
   margin-right: calc(50% - 50vw);
 }
 
+/* ===== Hide chat scrollbar on mobile (keep scrolling) ===== */
+@media (max-width: 640px) {
+  .app-content {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .app-content::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* === PAGE SHELL === */
 .page {
   min-height: 100dvh;
@@ -342,7 +351,7 @@ main.app-content {
 }
 
 .sidebar-collapsed .chat-composer {
-  padding-left: 64px; /* Account for collapsed sidebar width */
+  padding-left: 48px; /* Account for collapsed sidebar width (3rem) */
 }
 
 /* Floating composer card */
@@ -682,5 +691,33 @@ main.app-content {
 
   .logo-marquee::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* ===== Generic Dashboard Shell (non-chat pages) ===== */
+.dashboard-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Centered content with consistent side gutters */
+.dashboard-container {
+  width: 100%;
+  max-width: var(--page-max-w);
+  margin-inline: auto;
+  padding-inline: var(--page-side-pad);
+}
+
+/* Main area spacing */
+.dashboard-main {
+  flex: 1 1 auto;
+  padding-block: var(--space-6);
+}
+
+/* Optional: narrower gutters on small screens */
+@media (max-width: 640px) {
+  .dashboard-container {
+    padding-inline: var(--space-4);
   }
 }
