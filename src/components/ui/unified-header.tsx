@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { SidebarTrigger, useOptionalSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
 interface UnifiedHeaderProps {
@@ -29,8 +29,8 @@ export const UnifiedHeader = ({
 }: UnifiedHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, profile, userRole, signOut } = useAuth();
-  const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
+  const sidebar = useOptionalSidebar();
+  const collapsed = sidebar?.state === 'collapsed';
 
   const scrollToPricing = () => {
     const pricingSection = document.getElementById('pricing-section');
@@ -85,7 +85,7 @@ export const UnifiedHeader = ({
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Mobile sidebar toggle (dashboard only) */}
-            {context === 'dashboard' && (
+            {context === 'dashboard' && sidebar && (
               <div className="md:hidden">
                 <SidebarTrigger />
               </div>

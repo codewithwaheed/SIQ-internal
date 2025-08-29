@@ -40,6 +40,12 @@ function useSidebar() {
   return context;
 }
 
+// Optional variant: returns null when not inside a provider.
+// Useful for components that can render both within and outside the sidebar context.
+export function useOptionalSidebar() {
+  return React.useContext(SidebarContext);
+}
+
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<'div'> & {
