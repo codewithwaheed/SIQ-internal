@@ -285,6 +285,8 @@ export default function useAiChatController(isDemo: boolean) {
           minute: '2-digit',
         }),
         id: m.id,
+        suggestions: Array.isArray(m.metadata?.suggestions) ? m.metadata.suggestions : undefined,
+        metadata: m.metadata || undefined,
       })) as Message[];
 
       setMessages(loaded);
@@ -354,6 +356,8 @@ export default function useAiChatController(isDemo: boolean) {
             minute: '2-digit',
           }),
           id: m.id,
+          suggestions: Array.isArray(m.metadata?.suggestions) ? m.metadata.suggestions : undefined,
+          metadata: m.metadata || undefined,
         })) as Message[];
 
         mutationKindRef.current = 'prepend';

@@ -204,6 +204,33 @@ serve(async (req) => {
       // build followup metadata even on cached path
       const followups = await generateFollowups(OPENAI_API_KEY, model, sanitizedMessage, cached);
 
+      // Persist assistant message on cache hit as well (non-demo)
+      if (!isDemo && user) {
+        try {
+          await supabaseAdmin
+            .from('chat_messages')
+            .insert({
+              conversation_id: conversationData.id,
+              role: 'assistant',
+              content: cached,
+              metadata: {
+                model,
+                tokens: cached.length,
+                suggestions: followups?.suggestions || null,
+                next_actions: followups?.next_actions || null,
+                framework_tags: followups?.framework_tags || null,
+                risk_level: followups?.risk_level || null,
+              },
+            });
+          await supabaseAdmin
+            .from('chat_conversations')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', conversationData.id);
+        } catch (e) {
+          console.error('Failed to persist cached assistant message:', e);
+        }
+      }
+
       return streamCachedReplay(String(cached), conversationData.id, finalTitle!, followups);
     }
 
@@ -235,6 +262,8 @@ serve(async (req) => {
         try {
           const reader = oaRes.body?.getReader();
           if (!reader) throw new Error('No reader from OpenAI');
+          // Track the DB id of the inserted assistant message so we can enrich metadata later
+          let insertedMessageId: string | null = null;
 
           while (true) {
             const { done, value } = await reader.read();
@@ -275,17 +304,27 @@ serve(async (req) => {
           if (fullContent.trim()) {
             responseCache.set(cacheKey, fullContent);
 
+            // Insert assistant message now to get an id; enrich metadata after followups
             if (!isDemo && user) {
-              await supabaseAdmin.from('chat_messages').insert({
-                conversation_id: conversationData.id,
-                role: 'assistant',
-                content: fullContent,
-                metadata: { model, tokens: fullContent.length },
-              });
-              await supabaseAdmin
-                .from('chat_conversations')
-                .update({ updated_at: new Date().toISOString() })
-                .eq('id', conversationData.id);
+              try {
+                const { data: inserted } = await supabaseAdmin
+                  .from('chat_messages')
+                  .insert({
+                    conversation_id: conversationData.id,
+                    role: 'assistant',
+                    content: fullContent,
+                    metadata: { model, tokens: fullContent.length },
+                  })
+                  .select('id')
+                  .single();
+                insertedMessageId = inserted?.id ?? null;
+                await supabaseAdmin
+                  .from('chat_conversations')
+                  .update({ updated_at: new Date().toISOString() })
+                  .eq('id', conversationData.id);
+              } catch (e) {
+                console.error('Failed to insert assistant message:', e);
+              }
             }
           }
 
@@ -293,6 +332,29 @@ serve(async (req) => {
           const followups = fullContent.trim()
             ? await generateFollowups(OPENAI_API_KEY, model, sanitizedMessage, fullContent)
             : {};
+
+          // Enrich the just-inserted assistant message with followup metadata
+          if (!isDemo && user) {
+            try {
+              if (insertedMessageId) {
+                await supabaseAdmin
+                  .from('chat_messages')
+                  .update({
+                    metadata: {
+                      model,
+                      tokens: fullContent.length,
+                      suggestions: followups?.suggestions || null,
+                      next_actions: followups?.next_actions || null,
+                      framework_tags: followups?.framework_tags || null,
+                      risk_level: followups?.risk_level || null,
+                    },
+                  })
+                  .eq('id', insertedMessageId);
+              }
+            } catch (e) {
+              console.error('Failed to update assistant metadata with followups:', e);
+            }
+          }
 
           // Final markers for FE (now with suggestions, next_actions, etc.)
           controller.enqueue(
