@@ -16,7 +16,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <OnboardingModal open={needsOnboarding} onComplete={completeOnboarding} />
+      {/* <OnboardingModal open={needsOnboarding} onComplete={completeOnboarding} /> */}
       <SidebarProvider>
         <div className="flex min-h-screen w-full bg-gradient-background">
           <AppSidebar />

@@ -3,12 +3,11 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { LRUCache } from './lib/cache.ts';
 import { hashString } from './lib/hash.ts';
 import { logStep } from './lib/log.ts';
-import { selectModel, callOpenAIStream } from './lib/model.ts';
+import { selectModel, callModelStream } from './lib/model.ts';
 import { deriveTitleFromFirstMessage } from './lib/title.ts';
-import { systemPrompt, buildMessages } from './lib/memory.ts';
+import { systemPrompt } from './lib/memory.ts';
 import { sseHeaders, streamCachedReplay } from './lib/sse.ts';
 import { generateFollowups } from './lib/followups.ts';
-import type { ChatMessageRow } from './lib/types.ts';
 import {
   corsHeaders,
   getClientsAndUser,
@@ -53,15 +52,7 @@ serve(async (req) => {
       );
     }
 
-    const {
-      content,
-      message,
-      conversationId,
-      title,
-      activeDocuments, // reserved for future RAG
-      isDemo,
-      conversation, // demo history: [{role, content}]
-    } = body;
+    const { content, message, conversationId, title, activeDocuments, isDemo } = body;
 
     // Validate/sanitize input
     const userMessage: string | undefined = typeof content === 'string' ? content : message;
@@ -116,13 +107,12 @@ serve(async (req) => {
       }
     }
 
-    // Conversation bootstrap + memory (last 5 historical messages)
+    // Conversation bootstrap
     let conversationData: any;
-    let messageHistory: Array<{ role: string; content: string }> = [];
     let finalTitle: string | null = null;
+    let openAIConversationId: string | null = null;
 
     if (isDemo) {
-      messageHistory = Array.isArray(conversation) ? conversation.slice(-5) : [];
       conversationData = { id: 'demo' };
       finalTitle = 'Demo Conversation';
     } else if (conversationId && user) {
@@ -142,25 +132,12 @@ serve(async (req) => {
       }
       conversationData = existingConv;
       finalTitle = conversationData.title;
-
-      const { data: rows } = await supabaseAdmin
-        .from('chat_messages')
-        .select('role, content')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (Array.isArray(rows)) {
-        const normalized = (rows as ChatMessageRow[]).map((r) => ({
-          role: r.role === 'consultant' ? 'assistant' : r.role,
-          content: r.content ?? '',
-        }));
-        messageHistory = normalized.slice(-5);
-      }
+      openAIConversationId = existingConv.openai_conversation_id ?? null;
     } else if (!isDemo && user) {
       finalTitle = (title && title.trim()) || deriveTitleFromFirstMessage(sanitizedMessage);
       const { data: newConv, error: createError } = await supabaseAdmin
         .from('chat_conversations')
-        .insert({ user_id: user.id, org_id: orgId, title: finalTitle, tags: [] })
+        .insert({ user_id: user.id, title: finalTitle, tags: [] })
         .select()
         .single();
       if (createError || !newConv) {
@@ -177,6 +154,40 @@ serve(async (req) => {
       finalTitle = 'Demo Conversation';
     }
 
+    // Ensure an OpenAI Conversation exists for non-demo
+    async function ensureOpenAIConversation(): Promise<string | null> {
+      if (isDemo) return null;
+      if (openAIConversationId) return openAIConversationId;
+      try {
+        const createRes = await fetch('https://api.openai.com/v1/conversations', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            // Optionally attach a title or metadata here
+          }),
+        });
+        if (!createRes.ok)
+          throw new Error(`OpenAI conversations create failed: ${createRes.status}`);
+        const created = await createRes.json();
+        const convId = created?.id as string | undefined;
+        if (convId) {
+          openAIConversationId = convId;
+          await supabaseAdmin
+            .from('chat_conversations')
+            .update({ openai_conversation_id: convId, updated_at: new Date().toISOString() })
+            .eq('id', conversationData.id);
+          return convId;
+        }
+      } catch (e) {
+        console.error('Failed to ensure OpenAI conversation:', e);
+      }
+      return null;
+    }
+    openAIConversationId = await ensureOpenAIConversation();
+
     // Persist user message (non-demo)
     if (!isDemo && user) {
       await supabaseAdmin.from('chat_messages').insert({
@@ -191,12 +202,13 @@ serve(async (req) => {
         .eq('id', conversationData.id);
     }
 
-    // Build LLM prompt
+    // Build model selection; use Responses API with Conversations
     const model = selectModel();
-    const messagesForLLM = buildMessages(systemPrompt(), messageHistory, sanitizedMessage, 5);
 
     // --- CACHE PATH: if present, replay cached stream (now with followups + conversation_id in chunks) ---
-    const cacheKey = await hashString(JSON.stringify({ model, messagesForLLM }));
+    const cacheKey = await hashString(
+      JSON.stringify({ model, openAIConversationId, prompt: sanitizedMessage }),
+    );
     const cached = responseCache.get(cacheKey) as string | null;
     if (cached) {
       logStep('Cache hit');
@@ -207,21 +219,19 @@ serve(async (req) => {
       // Persist assistant message on cache hit as well (non-demo)
       if (!isDemo && user) {
         try {
-          await supabaseAdmin
-            .from('chat_messages')
-            .insert({
-              conversation_id: conversationData.id,
-              role: 'assistant',
-              content: cached,
-              metadata: {
-                model,
-                tokens: cached.length,
-                suggestions: followups?.suggestions || null,
-                next_actions: followups?.next_actions || null,
-                framework_tags: followups?.framework_tags || null,
-                risk_level: followups?.risk_level || null,
-              },
-            });
+          await supabaseAdmin.from('chat_messages').insert({
+            conversation_id: conversationData.id,
+            role: 'assistant',
+            content: cached,
+            metadata: {
+              model,
+              tokens: cached.length,
+              suggestions: followups?.suggestions || null,
+              next_actions: followups?.next_actions || null,
+              framework_tags: followups?.framework_tags || null,
+              risk_level: followups?.risk_level || null,
+            },
+          });
           await supabaseAdmin
             .from('chat_conversations')
             .update({ updated_at: new Date().toISOString() })
@@ -236,7 +246,13 @@ serve(async (req) => {
 
     // --- LIVE PATH: stream OpenAI to client, aggregate full text, then emit complete with followups ---
     logStep('Calling OpenAI', { model });
-    const oaRes = await callOpenAIStream(OPENAI_API_KEY, model, messagesForLLM);
+    const oaRes = await callModelStream(
+      OPENAI_API_KEY,
+      model,
+      openAIConversationId,
+      sanitizedMessage,
+      systemPrompt(),
+    );
     if (!oaRes.ok) {
       const errText = await oaRes.text();
       return new Response(
@@ -280,10 +296,22 @@ serve(async (req) => {
 
               try {
                 const parsed = JSON.parse(payload);
-                const piece: string | undefined = parsed?.choices?.[0]?.delta?.content;
+                // Handle both Chat Completions and Responses streaming formats
+                let piece: string | undefined = undefined;
+                // Chat Completions delta
+                piece = parsed?.choices?.[0]?.delta?.content ?? piece;
+                // Responses API delta
+                if (!piece && typeof parsed?.type === 'string') {
+                  // Common event: response.output_text.delta
+                  if (parsed.type.endsWith('.delta') && typeof parsed.delta === 'string') {
+                    piece = parsed.delta as string;
+                  }
+                  // Some implementations emit { type: 'message.delta', delta: { content: [{type:'output_text', text:'...'}] } }
+                  const textFromNested = parsed?.delta?.content?.[0]?.text;
+                  if (!piece && typeof textFromNested === 'string') piece = textFromNested;
+                }
                 if (piece) {
                   fullContent += piece;
-                  // include conversation_id on every chunk so FE can latch onto it immediately
                   controller.enqueue(
                     encoder.encode(
                       `data: ${JSON.stringify({
