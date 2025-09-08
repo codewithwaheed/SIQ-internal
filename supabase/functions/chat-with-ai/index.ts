@@ -188,13 +188,47 @@ serve(async (req) => {
     }
     openAIConversationId = await ensureOpenAIConversation();
 
+    // Validate and normalize attached documents (ids), cap to 3, and enforce ownership
+    let attachedDocIds: string[] = [];
+    let attachedDocDetails: Array<{ id: string; name: string; type: string; size: number; uploaded_at?: string }> = [];
+    if (!isDemo && Array.isArray(activeDocuments)) {
+      const requested = (activeDocuments as any[])
+        .filter((v) => typeof v === 'string')
+        .slice(0, 3) as string[];
+      if (requested.length > 0 && user) {
+        try {
+          const { data: allowed } = await supabaseAdmin
+            .from('documents')
+            .select('id,file_name,file_type,file_size,uploaded_at')
+            .in('id', requested)
+            .eq('user_id', user.id);
+          attachedDocIds = (allowed || []).map((r: any) => r.id);
+          attachedDocDetails = (allowed || []).map((r: any) => ({
+            id: r.id,
+            name: r.file_name,
+            type: r.file_type,
+            size: r.file_size,
+            uploaded_at: r.uploaded_at,
+          }));
+        } catch (e) {
+          console.warn('Document ownership validation failed; proceeding with empty list');
+        }
+      }
+    }
+
     // Persist user message (non-demo)
     if (!isDemo && user) {
       await supabaseAdmin.from('chat_messages').insert({
         conversation_id: conversationData.id,
         role: 'user',
         content: sanitizedMessage,
-        metadata: { original_length: userMessage.length, sanitized: true },
+        metadata: {
+          original_length: userMessage.length,
+          sanitized: true,
+          attached_documents: attachedDocIds.length ? attachedDocIds : null,
+          attached_documents_details:
+            attachedDocDetails && attachedDocDetails.length > 0 ? attachedDocDetails : null,
+        },
       });
       await supabaseAdmin
         .from('chat_conversations')

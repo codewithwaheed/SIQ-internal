@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, Target, Shield, Crown, UserCheck } from 'lucide-react';
+import { Copy, Check, Target, Shield, Crown, UserCheck, File as FileIcon } from 'lucide-react';
 import { renderSafeMarkdown, createSafeHtml } from '@/lib/sanitization';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +69,9 @@ export const ChatMessage = ({
   const renderMarkdown = (content: string) => renderSafeMarkdown(content);
 
   if (message.role === 'user') {
+    const docDetails = (message as any).metadata?.attached_documents_details as
+      | Array<{ id: string; name: string; type?: string; size?: number }>
+      | undefined;
     return (
       <AnimatedMessage className="flex flex-row-reverse items-start gap-3 sm:gap-4">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground sm:h-8 sm:w-8">
@@ -80,6 +83,46 @@ export const ChatMessage = ({
               {message.content}
             </p>
           </div>
+          {docDetails && docDetails.length > 0 && (
+            <div className="mt-2 grid w-full grid-cols-1 gap-2">
+              {docDetails.map((att, idx) => (
+                <div
+                  key={att.id || idx}
+                  className="flex w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-xs text-foreground shadow-sm"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-2 pr-2">
+                    <FileIcon className="h-4 w-4 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{att.name}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {(att.type || '').includes('pdf') ? 'PDF' : (att.type || '').includes('word') || (att.name || '').toLowerCase().endsWith('.docx') ? 'DOCX' : 'File'}
+                        {typeof att.size === 'number' && att.size > 0 && (
+                          <span> • {(att.size / 1024).toFixed(1)} KB</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {message.images && message.images.length > 0 && (
+            <div className="mt-2 grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
+              {message.images.map((src, idx) => (
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <img key={idx} src={src} className="h-24 w-full rounded-md object-cover" />
+              ))}
+            </div>
+          )}
+          {!docDetails && message.documents && message.documents.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center justify-end gap-1">
+              {message.documents.map((name, idx) => (
+                <Badge key={idx} variant="secondary" className="text-[10px]">
+                  {name}
+                </Badge>
+              ))}
+            </div>
+          )}
           <p className="mt-2 px-1 text-xs text-muted-foreground">{message.timestamp}</p>
         </div>
       </AnimatedMessage>

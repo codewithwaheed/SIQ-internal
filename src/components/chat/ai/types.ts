@@ -7,6 +7,7 @@ export interface Message {
   id?: string;
   suggestions?: string[];
   documents?: string[];
+  images?: string[];
   isStreaming?: boolean;
   metadata?: {
     risk_level?: string;

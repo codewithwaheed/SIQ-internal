@@ -33,7 +33,87 @@ export const ContextManager = ({
 
   const activeDocList = documents.filter((doc) => activeDocuments.includes(doc.id));
 
-  return null;
+  if (!documents || documents.length === 0) return null;
+
+  return (
+    <div
+      className={`rounded-xl border border-border/40 bg-muted/40 px-3 py-2 sm:px-4 sm:py-3 ${className || ''}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <File className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">
+            Knowledge Context
+          </span>
+          {activeDocList.length > 0 && (
+            <Badge variant="secondary" className="text-[10px]">
+              {activeDocList.length} active
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {activeDocList.length > 0 && (
+            <button
+              onClick={onClearContext}
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Clear
+            </button>
+          )}
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+          >
+            {collapsed ? 'Show' : 'Hide'}
+          </button>
+        </div>
+      </div>
+
+      {!collapsed && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {documents.map((doc) => {
+            const isActive = activeDocuments.includes(doc.id);
+            const label = (doc as any).title || (doc as any).file_name || 'Document';
+            const status = (doc as any).processing_status as
+              | 'processing'
+              | 'ready'
+              | 'error'
+              | undefined;
+            return (
+              <button
+                key={doc.id}
+                onClick={() => onDocumentToggle(doc.id)}
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs transition ${
+                  isActive
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-background text-foreground'
+                }`}
+                title={label}
+              >
+                {isActive ? (
+                  <CheckCircle className="h-3.5 w-3.5" />
+                ) : (
+                  <File className="h-3.5 w-3.5" />
+                )}
+                <span className="max-w-[10rem] truncate sm:max-w-[16rem]">{label}</span>
+                {status === 'processing' && (
+                  <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+                    processing
+                  </span>
+                )}
+                {status === 'error' && (
+                  <span className="ml-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">
+                    error
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 interface SessionContextProps {

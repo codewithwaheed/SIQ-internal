@@ -1,5 +1,5 @@
 // Build a functions URL from your Supabase URL, safely handling slashes.
-const base = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
+const base = (import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
 if (!base) {
     // Optional: helpful console warning in dev
     // eslint-disable-next-line no-console

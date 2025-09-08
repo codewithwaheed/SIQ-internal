@@ -97,6 +97,8 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               onKeyPress={c.handleKeyPress}
               onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
               onDocumentUploaded={c.handleDocumentUploaded}
+              onImagesSubmitted={(message, images) => c.sendImagesMessage(message, images)}
+              onDocumentsSubmitted={(message, ids, names) => c.sendMessageWithDocuments(message, ids, names)}
               inputRef={c.inputRef}
               abortController={c.abortController}
               onStopGeneration={c.handleStopGeneration}
@@ -209,6 +211,10 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               user={c.user}
               isDemo={c.isDemo}
               onDocumentUploaded={c.handleDocumentUploaded}
+              onUploadAndAsk={(message, ids, names) => {
+                c.setShowDocumentUpload(false);
+                c.sendMessageWithDocuments(message, ids, names);
+              }}
             />
           </>
         )}
@@ -232,6 +238,8 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               onShowChatHistory={() => c.setShowChatHistory(true)}
               onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
               onDocumentUploaded={c.handleDocumentUploaded}
+              onImagesSubmitted={(message, images) => c.sendImagesMessage(message, images)}
+              onDocumentsSubmitted={(message, ids, names) => c.sendMessageWithDocuments(message, ids, names)}
               inputRef={c.inputRef}
               abortController={c.abortController}
               onStopGeneration={c.handleStopGeneration}

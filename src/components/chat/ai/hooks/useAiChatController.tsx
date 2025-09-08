@@ -239,6 +239,34 @@ export default function useAiChatController(isDemo: boolean) {
     });
   };
 
+  // Helper to send a specific message with a specific set of documents
+  const sendMessageWithDocuments = async (
+    content: string,
+    docIds: string[],
+    docNames?: string[],
+  ) => {
+    const merged = Array.from(new Set([...(activeDocuments || []), ...docIds])).slice(0, 3);
+    // Update UI state for active docs
+    setActiveDocuments(merged);
+    setInput(content);
+    setMessageToSend(content);
+    await handleSendMessage({
+      contentOverride: content,
+      activeDocumentsOverride: merged,
+      documentNamesOverride: (docNames || []).slice(0, 3),
+    });
+  };
+
+  const sendImagesMessage = async (
+    content: string,
+    images: Array<{ name: string; previewUrl: string }>,
+  ) => {
+    const previews = images.map((i) => i.previewUrl).slice(0, 3);
+    setInput(content);
+    setMessageToSend(content);
+    await handleSendMessage({ contentOverride: content, imagePreviewsOverride: previews });
+  };
+
   const armAfterBottom = () => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -826,10 +854,19 @@ export default function useAiChatController(isDemo: boolean) {
   };
 
   // ----- Send message (streaming) -----
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (
+    opts?: {
+      contentOverride?: string;
+      activeDocumentsOverride?: string[];
+      documentNamesOverride?: string[];
+    },
+  ) => {
     if (loading) return;
 
-    const raw = input.trim().length ? input : messageToSend.trim();
+    const rawFromState = input.trim().length ? input : messageToSend.trim();
+    const raw = (opts?.contentOverride ?? '').trim().length
+      ? (opts?.contentOverride as string)
+      : rawFromState;
     if (!raw) return;
 
     if (!checkAuthentication()) {
@@ -892,10 +929,29 @@ export default function useAiChatController(isDemo: boolean) {
       setEscalationRationale(null);
     }
 
+    // Build client-side attachment details for immediate UI rendering
+    let attachedDetails: Array<{ id: string; name: string; type?: string; size?: number }> | undefined;
+    if (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length) {
+      const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
+      attachedDetails = opts.activeDocumentsOverride
+        .map((id) => byId.get(id))
+        .filter(Boolean)
+        .map((d: any) => ({ id: d.id, name: d.file_name || d.title || 'Document', type: d.file_type, size: d.file_size }));
+    }
+
     const userMessage: Message = {
       role: 'user',
       content: sanitizedMessage,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      documents:
+        opts?.documentNamesOverride && opts.documentNamesOverride.length
+          ? opts.documentNamesOverride
+          : undefined,
+      images:
+        opts?.imagePreviewsOverride && opts.imagePreviewsOverride.length
+          ? opts.imagePreviewsOverride
+          : undefined,
+      metadata: attachedDetails && attachedDetails.length ? ({ attached_documents_details: attachedDetails } as any) : undefined,
     };
     mutationKindRef.current = 'append';
     setMessages((prev) => [...prev, userMessage]);
@@ -964,7 +1020,15 @@ export default function useAiChatController(isDemo: boolean) {
           content: sanitizedMessage,
           message: sanitizedMessage,
           conversationId: currentConversationId || undefined,
-          activeDocuments: activeDocuments.length ? activeDocuments : undefined,
+          activeDocuments:
+            (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
+              ? opts.activeDocumentsOverride
+              : activeDocuments
+            ).length
+              ? opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
+                ? opts.activeDocumentsOverride
+                : activeDocuments
+              : undefined,
           isDemo: false,
         },
         signal: controller.signal,
@@ -1298,6 +1362,8 @@ export default function useAiChatController(isDemo: boolean) {
     handleKeyPress,
     handleRetry,
     handleStopGeneration,
+    sendMessageWithDocuments,
+    sendImagesMessage,
     copyMessage,
     handleMessageReaction,
     handleSuggestionClick,

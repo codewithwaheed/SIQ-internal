@@ -15,6 +15,8 @@ interface Props {
   onKeyPress: (e: React.KeyboardEvent) => void;
   onToggleDocumentUpload: () => void;
   onDocumentUploaded: (doc: any) => void;
+  onImagesSubmitted?: (message: string, images: Array<{ name: string; previewUrl: string }>) => void;
+  onDocumentsSubmitted?: (message: string, documentIds: string[], documentNames: string[]) => void;
   inputRef: React.RefObject<HTMLTextAreaElement>;
   abortController: AbortController | null;
   onStopGeneration: () => void;
@@ -33,6 +35,8 @@ export function ComposerShell({
   onKeyPress,
   onToggleDocumentUpload,
   onDocumentUploaded,
+  onImagesSubmitted,
+  onDocumentsSubmitted,
   inputRef,
   abortController,
   onStopGeneration,
@@ -53,6 +57,8 @@ export function ComposerShell({
         onKeyPress={onKeyPress}
         onShowDocumentUpload={onToggleDocumentUpload}
         onDocumentUploaded={onDocumentUploaded}
+        onImagesSubmitted={onImagesSubmitted}
+        onDocumentsSubmitted={onDocumentsSubmitted}
         inputRef={inputRef}
         abortController={abortController}
         onStopGeneration={onStopGeneration}

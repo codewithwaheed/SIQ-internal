@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, File, X, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react';
+import { Upload, File, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
+// import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,121 +29,101 @@ interface Document {
 interface DocumentUploadProps {
   onDocumentUploaded?: (document: Document) => void;
   trigger?: React.ReactNode;
+  onSubmitWithMessage?: (message: string, documentIds: string[], documentNames: string[]) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadProps) => {
+export const DocumentUpload = ({
+  onDocumentUploaded,
+  trigger,
+  onSubmitWithMessage,
+  open: openProp,
+  onOpenChange,
+}: DocumentUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [description, setDescription] = useState('');
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [uploadedDocs, setUploadedDocs] = useState<Array<{ id: string; name: string }>>([]);
+  const [openInternal, setOpenInternal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleFileUpload = async (file: File) => {
-    if (!file) return;
+  const validateFile = (file: File): string | null => {
+    if (!file) return 'No file selected';
 
     // Validate file type
     const allowedTypes = [
       'application/pdf',
-      'text/plain',
-      'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/csv',
-      'application/csv',
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload PDF, TXT, Word documents, or CSV files only.',
-        variant: 'destructive',
-      });
-      return;
+      return 'Only PDF or DOCX files are allowed.';
     }
 
     // Check file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
+      return 'Please upload files smaller than 10MB.';
+    }
+    return null;
+  };
+
+  const beginUploadSingle = async (file: File) => {
+    const err = validateFile(file);
+    if (err) {
+      toast({ title: 'Invalid file', description: err, variant: 'destructive' });
+      return;
+    }
+    if (uploadedDocs.length >= 3) {
       toast({
-        title: 'File too large',
-        description: 'Please upload files smaller than 10MB.',
+        title: 'Attachment limit',
+        description: 'You can attach up to 3 files.',
         variant: 'destructive',
       });
       return;
     }
 
-    setUploadedFile(file);
     setUploading(true);
     setUploadProgress(0);
 
-    // Simulate progress for better UX
     const progressInterval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return prev;
-        }
-        return prev + 10;
-      });
+      setUploadProgress((prev) => (prev >= 90 ? prev : Math.min(90, prev + 10)));
     }, 200);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
-      if (description) {
-        formData.append('description', description);
-      }
-
       const { data, error } = await supabase.functions.invoke('upload-document', {
         body: formData,
       });
+      if (error) throw error;
+      if (!data?.success || !data.document?.id) throw new Error(data?.error || 'Upload failed');
 
-      if (error) {
-        throw error;
-      }
+      const docId = data.document.id as string;
+      const docName = (data.document.file_name as string) || file.name;
 
-      if (data.success) {
-        setUploadProgress(100);
-        setUploadSuccess(true);
-
-        // Log successful upload
-        if (user) {
-          AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, data.document?.id, {
-            size: file.size,
-            type: file.type,
-            description: description || 'No description provided',
-          });
-        }
-
-        if (onDocumentUploaded) {
-          onDocumentUploaded(data.document);
-        }
-      } else {
-        throw new Error(data.error || 'Upload failed');
-      }
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      clearInterval(progressInterval);
-
-      // Log failed upload
+      setUploadedDocs((prev) => [...prev, { id: docId, name: docName }].slice(0, 3));
+      setUploadProgress(100);
       if (user) {
-        AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, undefined, {
-          error: error.message,
+        AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, docId, {
           size: file.size,
-          status: 'failed',
+          type: file.type,
+          description: 'Attached via chat',
         });
       }
-
+      if (onDocumentUploaded) onDocumentUploaded(data.document);
+    } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
         title: 'Upload failed',
-        description: error.message || 'Failed to upload document. Please try again.',
+        description: error.message || 'Failed to upload document.',
         variant: 'destructive',
       });
     } finally {
-      setUploading(false);
       clearInterval(progressInterval);
+      setUploading(false);
     }
   };
 
@@ -162,154 +142,191 @@ export const DocumentUpload = ({ onDocumentUploaded, trigger }: DocumentUploadPr
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
+    const file = (e.dataTransfer.files && e.dataTransfer.files[0]) || null;
+    if (!file) return;
+    beginUploadSingle(file);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
+    if (uploadedDocs.length >= 3) {
+      toast({
+        title: 'Attachment limit',
+        description: 'You can attach up to 3 files per message.',
+        variant: 'destructive',
+      });
+      // clear selection so same file change triggers again later
+      e.currentTarget.value = '';
+      return;
     }
+    if (uploading) {
+      toast({
+        title: 'Upload in progress',
+        description: 'Please wait until the current file finishes uploading.',
+        variant: 'destructive',
+      });
+      e.currentTarget.value = '';
+      return;
+    }
+    const file = (e.target.files && e.target.files[0]) || null;
+    if (!file) return;
+    void beginUploadSingle(file);
   };
 
   const resetModal = () => {
-    setUploadedFile(null);
-    setDescription('');
+    setUploadedDocs([]);
+    setMessage('');
     setUploadProgress(0);
-    setUploadSuccess(false);
     setUploading(false);
     setDragActive(false);
   };
 
   const handleModalClose = (open: boolean) => {
-    setOpen(open);
+    if (openProp === undefined) setOpenInternal(open);
+    onOpenChange?.(open);
     if (!open) {
       resetModal();
     }
   };
 
+  const controlled = openProp !== undefined;
   return (
-    <Dialog open={open} onOpenChange={handleModalClose}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" className="gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Document
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={controlled ? openProp : openInternal} onOpenChange={handleModalClose}>
+      {!controlled && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button variant="outline" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Upload Document
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Upload Document</DialogTitle>
+          <DialogTitle>Attach Documents</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {!uploadSuccess ? (
-            <>
-              {/* Drag and Drop Area */}
-              <div
-                className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-                  dragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <input
-                  type="file"
-                  id="document-upload"
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  accept=".pdf,.txt,.doc,.docx,.csv"
-                  onChange={handleInputChange}
-                  disabled={uploading}
-                />
+          <>
+            {/* Drag and Drop Area */}
+            <div
+              className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                dragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                id="document-upload"
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                accept=".pdf,.docx"
+                onChange={handleInputChange}
+                // do not disable; show toast on change instead
+              />
 
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    {uploading ? (
-                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
-                    ) : (
-                      <Upload className="h-8 w-8 text-primary" />
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-lg font-medium text-foreground">
-                      {uploading ? 'Uploading...' : 'Drop your document here or click to browse'}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Supports PDF, TXT, DOC, DOCX, CSV (max 10MB)
-                    </p>
-                  </div>
-
-                  {!uploading && (
-                    <Button variant="outline" size="lg" className="mt-4">
-                      <File className="mr-2 h-5 w-5" />
-                      Choose File
-                    </Button>
+              <div className="flex flex-col items-center space-y-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  {uploading ? (
+                    <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                  ) : (
+                    <Upload className="h-8 w-8 text-primary" />
                   )}
                 </div>
-              </div>
 
-              {/* Upload Progress */}
-              {uploading && uploadedFile && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{uploadedFile.name}</span>
-                    <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
-                  </div>
-                  <Progress value={uploadProgress} className="h-2" />
+                <div>
+                  <p className="text-lg font-medium text-foreground">
+                    {uploading ? 'Uploading...' : 'Drop your document here or click to browse'}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">PDF or DOCX (max 10MB)</p>
                 </div>
-              )}
 
-              {/* Description Field */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Add a description for this document..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  disabled={uploading}
-                  className="min-h-[80px]"
-                />
-              </div>
-            </>
-          ) : (
-            /* Success State */
-            <div className="space-y-6 py-8 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">Upload Successful!</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {uploadedFile?.name} has been uploaded and processed.
-                </p>
-              </div>
-
-              <div className="flex flex-col justify-center gap-3 sm:flex-row">
-                <Button
-                  className="gap-2"
-                  onClick={() => {
-                    setOpen(false);
-                    // Trigger opening chat or navigating to chat
-                  }}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Ask the assistant about this document
-                </Button>
-                <Button variant="outline" onClick={resetModal}>
-                  Upload Another
-                </Button>
+                {!uploading && (
+                  <Button variant="outline" size="lg" className="mt-4">
+                    <File className="mr-2 h-5 w-5" />
+                    Choose File
+                  </Button>
+                )}
               </div>
             </div>
-          )}
+
+            {/* Upload Progress */}
+            {uploading && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Uploading…</span>
+                  <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+
+            {/* Uploaded files tiles (up to 3) */}
+            {uploadedDocs.length > 0 && (
+              <div className="mt-4">
+                <Label className="mb-2 block">
+                  Attached file{uploadedDocs.length > 1 ? 's' : ''}
+                </Label>
+                <div className="flex flex-col gap-2">
+                  {uploadedDocs.map((f, idx) => (
+                    <div
+                      key={idx}
+                      className="flex w-full items-start justify-between rounded-md border bg-card px-3 py-2 text-sm shadow-sm"
+                      title={f.name}
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-2 pr-2">
+                        <File className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                        <span className="whitespace-normal break-words">{f.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-destructive"
+                        onClick={() => setUploadedDocs((prev) => prev.filter((_, i) => i !== idx))}
+                        aria-label={`Remove ${f.name}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Message (always enabled; only send is gated) */}
+            <div className="space-y-2">
+              <Label htmlFor="message">Message to the assistant</Label>
+              <Textarea
+                id="message"
+                placeholder={'Ask a question or describe what to analyze…'}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                disabled={false}
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col justify-end gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!onSubmitWithMessage) return;
+                  const ids = uploadedDocs.map((d) => d.id);
+                  const names = uploadedDocs.map((d) => d.name);
+                  onSubmitWithMessage(message.trim(), ids, names);
+                  handleModalClose(false);
+                }}
+                disabled={uploading || uploadedDocs.length === 0 || message.trim().length === 0}
+              >
+                Send to chat
+              </Button>
+            </div>
+          </>
         </div>
       </DialogContent>
     </Dialog>

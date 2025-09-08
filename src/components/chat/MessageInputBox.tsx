@@ -1,12 +1,19 @@
-import { ArrowUp, Upload, Crown, Square } from 'lucide-react';
+import { ArrowUp, Upload, Crown, Square, FileImage } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DocumentUpload } from './DocumentUpload';
+import { ImageUpload } from './ImageUpload';
 import { UpgradePrompt } from '@/components/ui/feature-gate';
 import { useFeatureGating } from '@/hooks/useFeatureGating';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface MessageInputBoxProps {
   input: string;
@@ -20,6 +27,8 @@ interface MessageInputBoxProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
   onShowDocumentUpload: () => void;
   onDocumentUploaded?: (document: any) => void;
+  onImagesSubmitted?: (message: string, images: Array<{ name: string; previewUrl: string }>) => void;
+  onDocumentsSubmitted?: (message: string, documentIds: string[], documentNames: string[]) => void;
   inputRef: React.RefObject<HTMLTextAreaElement>;
   abortController?: AbortController | null;
   onStopGeneration?: () => void;
@@ -38,6 +47,8 @@ export const MessageInputBox = ({
   onKeyPress,
   onShowDocumentUpload,
   onDocumentUploaded,
+  onImagesSubmitted,
+  onDocumentsSubmitted,
   inputRef,
   abortController,
   onStopGeneration,
@@ -46,6 +57,8 @@ export const MessageInputBox = ({
   const { checkFeatureAccess } = useFeatureGating();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const access = checkFeatureAccess('document_upload');
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Auto-expand (1–6 lines)
   useEffect(() => {
@@ -87,52 +100,45 @@ export const MessageInputBox = ({
         {/* Left actions */}
         <div className="flex items-center gap-0.5 sm:gap-2">
           {!isDemo && user && (
-            <>
-              {onDocumentUploaded ? (
-                <DocumentUpload
-                  onDocumentUploaded={onDocumentUploaded}
-                  trigger={
-                    <div className="relative">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Upload documents"
-                        className={iconBtn}
-                      >
-                        <Upload className="h-4 w-4 sm:h-4 sm:w-4" />
-                      </Button>
-                      {!access.hasAccess && uploadedDocuments.length === 0 && (
-                        <span className="absolute -right-1 -top-1">
-                          <Crown className="h-3 w-3 text-yellow-500" />
-                        </span>
-                      )}
-                    </div>
-                  }
-                />
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={handleUploadClick}
-                      aria-label="Upload documents"
-                      className={iconBtn}
-                    >
-                      <Upload className="h-4 w-4 sm:h-4 sm:w-4" />
-                      {!access.hasAccess && uploadedDocuments.length === 0 && (
-                        <span className="absolute -right-1 -top-1">
-                          <Crown className="h-3 w-3 text-yellow-500" />
-                        </span>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {`Upload Documents${uploadedDocuments.length ? ` (${uploadedDocuments.length})` : ''}`}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="relative">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Attach"
+                    className={iconBtn}
+                  >
+                    <Upload className="h-4 w-4 sm:h-4 sm:w-4" />
+                  </Button>
+                  {!access.hasAccess && uploadedDocuments.length === 0 && (
+                    <span className="absolute -right-1 -top-1">
+                      <Crown className="h-3 w-3 text-yellow-500" />
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {/* Attach documents */}
+                <DropdownMenuItem
+                  className="cursor-pointer whitespace-nowrap"
+                  onSelect={() => {
+                    setShowDocModal(true);
+                  }}
+                >
+                  <Upload className="mr-2 h-4 w-4" /> Attach documents
+                </DropdownMenuItem>
+                {/* Upload photos */}
+                <DropdownMenuItem
+                  className="cursor-pointer whitespace-nowrap"
+                  onSelect={() => {
+                    setShowImageModal(true);
+                  }}
+                >
+                  <FileImage className="mr-2 h-4 w-4" /> Upload photos
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
 
@@ -196,6 +202,23 @@ export const MessageInputBox = ({
           )}
         </div>
       </div>
+
+      {/* Modals mounted outside dropdown to avoid instant close */}
+      {!isDemo && user && (
+        <>
+          <DocumentUpload
+            open={showDocModal}
+            onOpenChange={setShowDocModal}
+            onDocumentUploaded={onDocumentUploaded}
+            onSubmitWithMessage={onDocumentsSubmitted}
+          />
+          <ImageUpload
+            open={showImageModal}
+            onOpenChange={setShowImageModal}
+            onSubmitWithImages={onImagesSubmitted}
+          />
+        </>
+      )}
 
       {/* helper text */}
       <p className="mx-auto mt-1.5 hidden w-full max-w-4xl text-center text-[10px] text-muted-foreground sm:block sm:text-xs">
