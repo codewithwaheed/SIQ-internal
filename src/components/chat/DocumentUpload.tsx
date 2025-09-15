@@ -29,6 +29,7 @@ interface Document {
 interface DocumentUploadProps {
   onDocumentUploaded?: (document: Document) => void;
   trigger?: React.ReactNode;
+  conversationId?: string | null;
   onSubmitWithMessage?: (
     message: string,
     documentIds: string[],
@@ -42,6 +43,7 @@ interface DocumentUploadProps {
 export const DocumentUpload = ({
   onDocumentUploaded,
   trigger,
+  conversationId,
   onSubmitWithMessage,
   open: openProp,
   onOpenChange,
@@ -100,8 +102,41 @@ export const DocumentUpload = ({
     }, 200);
 
     try {
+      // First, create or ensure we have a conversation ID
+      let finalConversationId = conversationId;
+      
+      if (!finalConversationId) {
+        console.log('Creating new conversation for document upload...');
+        const conversationTitle = `Document Analysis: ${file.name.replace(/\.[^/.]+$/, '')}`;
+        
+        if (!user?.id) {
+          throw new Error('User must be authenticated to create conversations');
+        }
+        
+        const { data: newConversation, error: convError } = await supabase
+          .from('chat_conversations')
+          .insert({
+            title: conversationTitle,
+            tags: ['document-upload'],
+            user_id: user.id, // Explicitly set user_id
+          })
+          .select()
+          .single();
+
+        if (convError || !newConversation) {
+          throw new Error('Failed to create conversation for document');
+        }
+        
+        finalConversationId = newConversation.id;
+        console.log('Created conversation:', finalConversationId);
+      }
+
       const formData = new FormData();
       formData.append('file', file);
+      
+      // Always include conversation ID now
+      formData.append('conversation_id', finalConversationId);
+
       const { data, error } = await supabase.functions.invoke('upload-document', {
         body: formData,
       });

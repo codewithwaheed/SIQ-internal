@@ -4,6 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
 
 type IndexRequest = {
   docId: string;
+  conversationId?: string;
+  userId?: string;
   // Optionally force re-index regardless of existing hashes
   force?: boolean;
   // Optional chunking config overrides
@@ -15,6 +17,24 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Generate deterministic UUID from string input
+async function uuidFromName(name: string): Promise<string> {
+  const data = new TextEncoder().encode(name);
+  const digest = await crypto.subtle.digest('SHA-1', data);
+  const hex = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // Format as UUID v5 (namespace-based)
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    '5' + hex.slice(13, 16), // Version 5
+    ((parseInt(hex.slice(16, 17), 16) & 0x3) | 0x8).toString(16) + hex.slice(17, 20), // Variant bits
+    hex.slice(20, 32),
+  ].join('-');
+}
 
 async function hashString(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
@@ -38,7 +58,12 @@ function chunkTextWithOverlap(text: string, size: number, overlap: number): stri
   return chunks;
 }
 
-async function ensureQdrantCollection(baseUrl: string, apiKey: string | undefined, collection: string, vectorSize: number) {
+async function ensureQdrantCollection(
+  baseUrl: string,
+  apiKey: string | undefined,
+  collection: string,
+  vectorSize: number,
+) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['api-key'] = apiKey;
   try {
@@ -57,7 +82,11 @@ async function ensureQdrantCollection(baseUrl: string, apiKey: string | undefine
   });
 }
 
-async function ensureQdrantPayloadIndexes(baseUrl: string, apiKey: string | undefined, collection: string) {
+async function ensureQdrantPayloadIndexes(
+  baseUrl: string,
+  apiKey: string | undefined,
+  collection: string,
+) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['api-key'] = apiKey;
   const endpoint = `${baseUrl}/collections/${collection}/points/index`;
@@ -72,7 +101,8 @@ async function ensureQdrantPayloadIndexes(baseUrl: string, apiKey: string | unde
       if (!res.ok) {
         const t = await res.text();
         // Ignore errors about existing index or unsupported schema variants
-        if (!/already exists|Index exists/i.test(t)) console.warn('[qdrant-index] Index create warn:', t);
+        if (!/already exists|Index exists/i.test(t))
+          console.warn('[qdrant-index] Index create warn:', t);
       }
     } catch (e) {
       console.warn('[qdrant-index] Failed to ensure payload index', idx.field_name, e);
@@ -127,10 +157,10 @@ serve(async (req) => {
     const DEFAULT_CHUNK_OVERLAP = parseInt(Deno.env.get('CHUNK_OVERLAP') ?? '200', 10);
 
     if (!QDRANT_URL || !OPENAI_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'Missing QDRANT_URL or OPENAI_API_KEY' }),
-        { status: 500, headers: corsHeaders },
-      );
+      return new Response(JSON.stringify({ error: 'Missing QDRANT_URL or OPENAI_API_KEY' }), {
+        status: 500,
+        headers: corsHeaders,
+      });
     }
 
     const supabase = createClient(
@@ -139,7 +169,8 @@ serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const { docId, force, chunk_size, chunk_overlap } = (await req.json()) as IndexRequest;
+    const { docId, conversationId, userId, force, chunk_size, chunk_overlap } =
+      (await req.json()) as IndexRequest;
     if (!docId) {
       return new Response(JSON.stringify({ error: 'docId is required' }), {
         status: 400,
@@ -174,7 +205,9 @@ serve(async (req) => {
           { body: { filePath: doc.file_path, fileType: doc.file_type } },
         );
         if (extractError || !extractResult?.success) throw new Error('Text extraction failed');
-        text = String(extractResult.extractedText || '').replace(/\s+/g, ' ').trim();
+        text = String(extractResult.extractedText || '')
+          .replace(/\s+/g, ' ')
+          .trim();
       }
     }
     if (!text || text.length < 10) {
@@ -218,7 +251,12 @@ serve(async (req) => {
         // If we know the dimension (via env), at least ensure the collection exists so you can see it
         if (EMBEDDING_DIM && EMBEDDING_DIM > 0) {
           try {
-            await ensureQdrantCollection(QDRANT_URL, QDRANT_API_KEY, QDRANT_COLLECTION, EMBEDDING_DIM);
+            await ensureQdrantCollection(
+              QDRANT_URL,
+              QDRANT_API_KEY,
+              QDRANT_COLLECTION,
+              EMBEDDING_DIM,
+            );
             console.log('[qdrant-index] Created/ensured collection using EMBEDDING_DIM fallback');
           } catch (_) {}
         }
@@ -230,7 +268,11 @@ serve(async (req) => {
             .eq('id', doc.id);
         } catch (_) {}
         return new Response(
-          JSON.stringify({ success: false, error: 'insufficient_quota', message: 'OpenAI quota exceeded; index deferred' }),
+          JSON.stringify({
+            success: false,
+            error: 'insufficient_quota',
+            message: 'OpenAI quota exceeded; index deferred',
+          }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
@@ -256,20 +298,23 @@ serve(async (req) => {
     // Get existing content hashes for this doc to ensure idempotency (skip duplicates)
     const existingHashes = new Set<string>();
     try {
-      const scrollRes = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/scroll`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          filter: {
-            must: [
-              { key: 'user_id', match: { value: doc.user_id } },
-              { key: 'doc_id', match: { value: doc.id } },
-            ],
-          },
-          with_payload: true,
-          limit: 10000,
-        }),
-      });
+      const scrollRes = await fetch(
+        `${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/scroll`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            filter: {
+              must: [
+                { key: 'user_id', match: { value: doc.user_id } },
+                { key: 'doc_id', match: { value: doc.id } },
+              ],
+            },
+            with_payload: true,
+            limit: 10000,
+          }),
+        },
+      );
       if (scrollRes.ok) {
         const scrollData = await scrollRes.json();
         const pts = (scrollData?.result?.points ?? []) as Array<{ payload?: any }>; // deno-lint-ignore no-explicit-any
@@ -302,13 +347,23 @@ serve(async (req) => {
               .eq('id', doc.id);
           } catch (_) {}
           return new Response(
-            JSON.stringify({ success: false, error: 'insufficient_quota', upserted, message: 'OpenAI quota exceeded; index partially completed' }),
+            JSON.stringify({
+              success: false,
+              error: 'insufficient_quota',
+              upserted,
+              message: 'OpenAI quota exceeded; index partially completed',
+            }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
           );
         }
         if (msg.includes('model_not_found') || msg.includes('does not have access to model')) {
           return new Response(
-            JSON.stringify({ success: false, error: 'model_not_found', upserted, message: 'Embedding model not accessible' }),
+            JSON.stringify({
+              success: false,
+              error: 'model_not_found',
+              upserted,
+              message: 'Embedding model not accessible',
+            }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
           );
         }
@@ -320,7 +375,7 @@ serve(async (req) => {
         vector,
         payload: {
           user_id: doc.user_id,
-          conversation_id: null, // later populated when attached to a conversation
+          conversation_id: conversationId || null, // Use provided conversationId or null
           doc_id: doc.id,
           file_name: doc.file_name,
           chunk_id: i,
@@ -330,11 +385,14 @@ serve(async (req) => {
       });
       // Batch in groups to reduce payload size
       if (points.length >= 16 || i === chunks.length - 1) {
-        const upRes = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points?wait=true`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({ points }),
-        });
+        const upRes = await fetch(
+          `${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points?wait=true`,
+          {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ points }),
+          },
+        );
         if (!upRes.ok) {
           const errTxt = await upRes.text();
           throw new Error(`Qdrant upsert failed: ${errTxt}`);
@@ -344,15 +402,15 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, chunks: chunks.length, upserted }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ success: true, chunks: chunks.length, upserted }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[qdrant-index] Error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: (error as Error).message }),
-      { status: 500, headers: corsHeaders },
-    );
+    return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 });

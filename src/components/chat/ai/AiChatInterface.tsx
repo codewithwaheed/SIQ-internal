@@ -212,6 +212,7 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               show={c.showDocumentUpload}
               user={c.user}
               isDemo={c.isDemo}
+              conversationId={c.currentConversationId}
               onDocumentUploaded={c.handleDocumentUploaded}
               onUploadAndAsk={(message, ids, names) => {
                 c.setShowDocumentUpload(false);

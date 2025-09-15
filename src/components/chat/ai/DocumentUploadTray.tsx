@@ -5,6 +5,7 @@ interface Props {
   show: boolean;
   user: any;
   isDemo: boolean;
+  conversationId?: string | null;
   onDocumentUploaded: (doc: any) => void;
   onUploadAndAsk?: (
     message: string,
@@ -18,6 +19,7 @@ export function DocumentUploadTray({
   show,
   user,
   isDemo,
+  conversationId,
   onDocumentUploaded,
   onUploadAndAsk,
 }: Props) {
@@ -30,6 +32,7 @@ export function DocumentUploadTray({
             <DocumentUpload
               onDocumentUploaded={onDocumentUploaded}
               onSubmitWithMessage={onUploadAndAsk}
+              conversationId={conversationId}
             />
           </CardContent>
         </Card>

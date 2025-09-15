@@ -538,10 +538,20 @@ export default function useAiChatController(isDemo: boolean) {
     setUploadedDocuments((prev) => [document, ...prev]);
     setActiveDocuments((prev) => [...prev, document.id]);
     setConversationContext((prev) => ({ ...prev, documentCount: prev.documentCount + 1 }));
-    toast({
-      title: 'Document uploaded',
-      description: 'Your document is now available for AI analysis in future conversations.',
-    });
+
+    // If this upload created a conversation, navigate to it
+    if (document.conversation_id && !currentConversationId) {
+      navigate(`/dashboard/chat/${document.conversation_id}`);
+      toast({
+        title: 'Document uploaded & conversation created',
+        description: 'Your document is ready for AI analysis. Start chatting!',
+      });
+    } else {
+      toast({
+        title: 'Document uploaded',
+        description: 'Your document is now available for AI analysis in future conversations.',
+      });
+    }
   };
 
   // ----- Consultant message -----
@@ -856,13 +866,11 @@ export default function useAiChatController(isDemo: boolean) {
   };
 
   // ----- Send message (streaming) -----
-  const handleSendMessage = async (
-    opts?: {
-      contentOverride?: string;
-      activeDocumentsOverride?: string[];
-      documentNamesOverride?: string[];
-    },
-  ) => {
+  const handleSendMessage = async (opts?: {
+    contentOverride?: string;
+    activeDocumentsOverride?: string[];
+    documentNamesOverride?: string[];
+  }) => {
     if (loading) return;
 
     const rawFromState = input.trim().length ? input : messageToSend.trim();
@@ -932,17 +940,30 @@ export default function useAiChatController(isDemo: boolean) {
     }
 
     // Build client-side attachment details for immediate UI rendering
-    let attachedDetails: Array<{ id: string; name: string; type?: string; size?: number }> | undefined;
+    let attachedDetails:
+      | Array<{ id: string; name: string; type?: string; size?: number }>
+      | undefined;
     if (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length) {
       const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
       attachedDetails = opts.activeDocumentsOverride
         .map((id) => byId.get(id))
         .filter(Boolean)
-        .map((d: any) => ({ id: d.id, name: d.file_name || d.title || 'Document', type: d.file_type, size: d.file_size }));
+        .map((d: any) => ({
+          id: d.id,
+          name: d.file_name || d.title || 'Document',
+          type: d.file_type,
+          size: d.file_size,
+        }));
       // If not found in uploadedDocuments yet (race), fallback to provided docMeta
-      if ((!attachedDetails || attachedDetails.length === 0) && Array.isArray((opts as any).docMetaOverride)) {
+      if (
+        (!attachedDetails || attachedDetails.length === 0) &&
+        Array.isArray((opts as any).docMetaOverride)
+      ) {
         const meta = (opts as any).docMetaOverride as Array<{
-          id: string; name: string; type?: string; size?: number
+          id: string;
+          name: string;
+          type?: string;
+          size?: number;
         }>;
         const wanted = new Set(opts.activeDocumentsOverride);
         attachedDetails = meta.filter((m) => wanted.has(m.id)).slice(0, 3);
@@ -961,7 +982,10 @@ export default function useAiChatController(isDemo: boolean) {
         opts?.imagePreviewsOverride && opts.imagePreviewsOverride.length
           ? opts.imagePreviewsOverride
           : undefined,
-      metadata: attachedDetails && attachedDetails.length ? ({ attached_documents_details: attachedDetails } as any) : undefined,
+      metadata:
+        attachedDetails && attachedDetails.length
+          ? ({ attached_documents_details: attachedDetails } as any)
+          : undefined,
     };
     mutationKindRef.current = 'append';
     setMessages((prev) => [...prev, userMessage]);
@@ -1030,15 +1054,14 @@ export default function useAiChatController(isDemo: boolean) {
           content: sanitizedMessage,
           message: sanitizedMessage,
           conversationId: currentConversationId || undefined,
-          activeDocuments:
-            (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
+          activeDocuments: (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
+            ? opts.activeDocumentsOverride
+            : activeDocuments
+          ).length
+            ? opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
               ? opts.activeDocumentsOverride
               : activeDocuments
-            ).length
-              ? opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
-                ? opts.activeDocumentsOverride
-                : activeDocuments
-              : undefined,
+            : undefined,
           isDemo: false,
         },
         signal: controller.signal,
