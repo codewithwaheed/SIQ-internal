@@ -88,7 +88,7 @@ ${messages.map((m: any) => `${m.role}: ${m.content}`).join('\n\n')}
 
 Summary:`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${openAIApiKey}`,
@@ -105,7 +105,7 @@ Summary:`;
           { role: 'user', content: summaryPrompt },
         ],
         temperature: 0.3,
-        max_tokens: 300,
+      max_completion_tokens: 300,
       }),
     });
 

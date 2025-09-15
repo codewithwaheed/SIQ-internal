@@ -6,7 +6,12 @@ interface Props {
   user: any;
   isDemo: boolean;
   onDocumentUploaded: (doc: any) => void;
-  onUploadAndAsk?: (message: string, documentIds: string[], documentNames: string[]) => void;
+  onUploadAndAsk?: (
+    message: string,
+    documentIds: string[],
+    documentNames: string[],
+    documentMeta?: Array<{ id: string; name: string; type?: string; size?: number }>,
+  ) => void;
 }
 
 export function DocumentUploadTray({

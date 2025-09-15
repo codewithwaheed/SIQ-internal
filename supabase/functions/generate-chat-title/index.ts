@@ -105,7 +105,7 @@ Guidelines:
 
     logStep('Calling OpenAI for title generation');
 
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${openAIApiKey}`,
@@ -125,7 +125,7 @@ Guidelines:
           },
         ],
         temperature: 0.3,
-        max_tokens: 200,
+      max_completion_tokens: 200,
         stream: false,
       }),
     });

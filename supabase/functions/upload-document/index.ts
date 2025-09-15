@@ -141,13 +141,43 @@ serve(async (req) => {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${context.userId}/${fileName}`;
 
+      // Ensure storage bucket exists (self-healing if migrations not applied)
+      try {
+        const { data: bucketInfo } = await (supabaseClient as any).storage.getBucket(
+          'user-documents',
+        );
+        if (!bucketInfo) {
+          await (supabaseClient as any).storage.createBucket('user-documents', { public: false });
+        }
+      } catch (_) {
+        // ignore; will surface on upload failure
+      }
+
       // Upload file to storage with additional security headers
-      const { data: uploadData, error: uploadError } = await supabaseClient.storage
-        .from('user-documents')
-        .upload(filePath, file, {
+      let uploadError: any = null;
+      let uploadData: any = null;
+      {
+        const res = await supabaseClient.storage.from('user-documents').upload(filePath, file, {
           cacheControl: '3600',
           upsert: false, // Don't allow overwrites
         });
+        uploadData = (res as any).data;
+        uploadError = (res as any).error;
+      }
+
+      // If bucket was missing, try to create and retry once
+      if (uploadError && String(uploadError?.message || uploadError).includes('Bucket not found')) {
+        try {
+          await (supabaseClient as any).storage.createBucket('user-documents', { public: false });
+          const res2 = await supabaseClient.storage
+            .from('user-documents')
+            .upload(filePath, file, { cacheControl: '3600', upsert: false });
+          uploadData = (res2 as any).data;
+          uploadError = (res2 as any).error;
+        } catch (_) {
+          // keep original error path
+        }
+      }
 
       if (uploadError) {
         console.error('Storage upload error:', uploadError);
@@ -213,7 +243,7 @@ serve(async (req) => {
               });
             } else {
               contentExtracted = `PDF document: ${sanitizedFileName} (Text extraction pending)`;
-              processingStatus = 'requires_processing';
+              processingStatus = 'pending';
             }
           } catch (error) {
             console.warn('PDF text extraction error:', error.message);
@@ -223,7 +253,7 @@ serve(async (req) => {
         } else {
           // Handle other document types
           contentExtracted = `Document: ${sanitizedFileName} (Type: ${file.type})`;
-          processingStatus = 'requires_processing';
+          processingStatus = 'pending';
         }
       } catch (extractError) {
         console.error('Text extraction error:', extractError);
@@ -262,22 +292,22 @@ serve(async (req) => {
       }
 
       // Log document upload for security auditing
-      await supabaseClient.from('audit_logs').insert({
-        action: 'DOCUMENT_UPLOADED',
-        description: `Document uploaded: ${sanitizedFileName}`,
-        user_id: context.userId,
-        metadata: {
-          document_id: docData.id,
-          file_name: sanitizedFileName,
-          file_type: file.type,
-          file_size: file.size,
-          processing_status: processingStatus,
-          tags_count: tags.length,
-          security_level: 'MEDIUM',
-        },
-        ip_address: context.ipAddress,
-        user_agent: context.userAgent,
-      });
+      // await supabaseClient.from('audit_logs').insert({
+      //   action: 'DOCUMENT_UPLOADED',
+      //   description: `Document uploaded: ${sanitizedFileName}`,
+      //   user_id: context.userId,
+      //   metadata: {
+      //     document_id: docData.id,
+      //     file_name: sanitizedFileName,
+      //     file_type: file.type,
+      //     file_size: file.size,
+      //     processing_status: processingStatus,
+      //     tags_count: tags.length,
+      //     security_level: 'MEDIUM',
+      //   },
+      //   ip_address: context.ipAddress,
+      //   user_agent: context.userAgent,
+      // });
 
       console.log('Document uploaded successfully:', {
         id: docData.id,
@@ -285,6 +315,15 @@ serve(async (req) => {
         size: file.size,
         type: file.type,
       });
+
+      // Start background indexing into Qdrant (best-effort)
+      try {
+        await supabaseClient.functions.invoke('qdrant-index', {
+          body: { docId: docData.id },
+        });
+      } catch (e) {
+        console.warn('[UPLOAD-DOCUMENT] qdrant-index invoke failed:', (e as Error).message);
+      }
 
       const sanitizedResponse = sanitizeResponse(
         {

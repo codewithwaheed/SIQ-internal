@@ -156,20 +156,20 @@ ${documentContext}`,
     });
 
     // Call OpenAI API
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: messages,
-        temperature: 0.3, // Lower temperature for more focused analysis
-        max_tokens: 3000,
-        stream: false,
-      }),
-    });
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: messages,
+      temperature: 0.3, // Lower temperature for more focused analysis
+      max_completion_tokens: 3000,
+      stream: false,
+    }),
+  });
 
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();

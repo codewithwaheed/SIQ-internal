@@ -1,5 +1,5 @@
 export function selectModel(): string {
-  return 'gpt-4o-mini'; // adjust if needed
+  return Deno.env.get("OPENAI_API_MODEL") ?? "gpt-4o-mini"; // adjust if needed
 }
 
 // Prefer the Responses API with Conversations; fallback to Chat Completions if unavailable.
@@ -11,11 +11,11 @@ export async function callModelStream(
   instructions?: string,
 ): Promise<Response> {
   try {
-    const res = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
+    const res = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model,
@@ -24,9 +24,9 @@ export async function callModelStream(
         // Provide the fresh user turn as input
         input: [
           {
-            role: 'user',
+            role: "user",
             content: [
-              { type: 'input_text', text: userText },
+              { type: "input_text", text: userText },
             ],
           },
         ],
@@ -45,22 +45,22 @@ export async function callModelStream(
   }
 
   // Fallback: Chat Completions
-  return fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
+  return fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       model,
       messages: [
-        ...(instructions ? [{ role: 'system', content: instructions }] : []),
-        { role: 'user', content: userText },
+        ...(instructions ? [{ role: "system", content: instructions }] : []),
+        { role: "user", content: userText },
       ],
       temperature: 0.3,
       top_p: 0.9,
       stream: true,
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
     }),
     signal: AbortSignal.timeout(120000),
   });

@@ -16,7 +16,12 @@ interface Props {
   onToggleDocumentUpload: () => void;
   onDocumentUploaded: (doc: any) => void;
   onImagesSubmitted?: (message: string, images: Array<{ name: string; previewUrl: string }>) => void;
-  onDocumentsSubmitted?: (message: string, documentIds: string[], documentNames: string[]) => void;
+  onDocumentsSubmitted?: (
+    message: string,
+    documentIds: string[],
+    documentNames: string[],
+    documentMeta?: Array<{ id: string; name: string; type?: string; size?: number }>,
+  ) => void;
   inputRef: React.RefObject<HTMLTextAreaElement>;
   abortController: AbortController | null;
   onStopGeneration: () => void;

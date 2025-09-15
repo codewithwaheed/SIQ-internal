@@ -719,7 +719,7 @@ async function callOpenAIWithRetry(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${openAIApiKey}`,
@@ -732,7 +732,7 @@ async function callOpenAIWithRetry(
             { role: 'user', content: question },
           ],
           temperature: 0.3,
-          max_tokens: 1500,
+      max_completion_tokens: 1500,
           presence_penalty: 0.1,
           frequency_penalty: 0.1,
         }),

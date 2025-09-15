@@ -244,6 +244,7 @@ export default function useAiChatController(isDemo: boolean) {
     content: string,
     docIds: string[],
     docNames?: string[],
+    docMeta?: Array<{ id: string; name: string; type?: string; size?: number }>,
   ) => {
     const merged = Array.from(new Set([...(activeDocuments || []), ...docIds])).slice(0, 3);
     // Update UI state for active docs
@@ -254,6 +255,7 @@ export default function useAiChatController(isDemo: boolean) {
       contentOverride: content,
       activeDocumentsOverride: merged,
       documentNamesOverride: (docNames || []).slice(0, 3),
+      docMetaOverride: docMeta,
     });
   };
 
@@ -937,6 +939,14 @@ export default function useAiChatController(isDemo: boolean) {
         .map((id) => byId.get(id))
         .filter(Boolean)
         .map((d: any) => ({ id: d.id, name: d.file_name || d.title || 'Document', type: d.file_type, size: d.file_size }));
+      // If not found in uploadedDocuments yet (race), fallback to provided docMeta
+      if ((!attachedDetails || attachedDetails.length === 0) && Array.isArray((opts as any).docMetaOverride)) {
+        const meta = (opts as any).docMetaOverride as Array<{
+          id: string; name: string; type?: string; size?: number
+        }>;
+        const wanted = new Set(opts.activeDocumentsOverride);
+        attachedDetails = meta.filter((m) => wanted.has(m.id)).slice(0, 3);
+      }
     }
 
     const userMessage: Message = {

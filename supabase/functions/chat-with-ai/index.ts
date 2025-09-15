@@ -6,6 +6,7 @@ import { logStep } from './lib/log.ts';
 import { selectModel, callModelStream } from './lib/model.ts';
 import { deriveTitleFromFirstMessage } from './lib/title.ts';
 import { systemPrompt } from './lib/memory.ts';
+import { retrieveContext, RetrievedChunk } from './lib/rag.ts';
 import { sseHeaders, streamCachedReplay } from './lib/sse.ts';
 import { generateFollowups } from './lib/followups.ts';
 import {
@@ -236,6 +237,41 @@ serve(async (req) => {
         .eq('id', conversationData.id);
     }
 
+    // Optionally attach selected docs to this conversation in Qdrant (so future turns can use conversation scope)
+    if (!isDemo && user && attachedDocIds.length > 0) {
+      try {
+        await supabaseAdmin.functions.invoke('qdrant-attach', {
+          body: { conversationId: conversationData.id, docIds: attachedDocIds },
+        });
+      } catch (e) {
+        console.warn('qdrant-attach failed (non-fatal):', e);
+      }
+    }
+
+    // RAG: retrieve relevant context chunks
+    let citations: RetrievedChunk[] = [];
+    if (!isDemo && user) {
+      citations = await retrieveContext(supabaseAdmin, {
+        userId: user.id,
+        conversationId: conversationData.id,
+        activeDocuments: attachedDocIds.length ? attachedDocIds : undefined,
+        query: sanitizedMessage,
+        topK: 5,
+      });
+    }
+
+    // Build context prompt from retrieved chunks
+    const ragContext =
+      citations.length > 0
+        ? `Context snippets (cite using [file:chunk]):\n` +
+          citations
+            .map(
+              (c, idx) =>
+                `[${c.file_name || c.doc_id}:${c.chunk_id}] ${c.text.replace(/\s+/g, ' ').trim()}`,
+            )
+            .join('\n')
+        : '';
+
     // Build model selection; use Responses API with Conversations
     const model = selectModel();
 
@@ -280,12 +316,19 @@ serve(async (req) => {
 
     // --- LIVE PATH: stream OpenAI to client, aggregate full text, then emit complete with followups ---
     logStep('Calling OpenAI', { model });
+    // Compose instructions to force grounding in context
+    const instructions = `${systemPrompt()}\n\nYou must answer only using the provided context.\n- If the answer is not in context, say you don't know.\n- Cite sources inline like [file:chunk].\n- Be concise and accurate.`;
+
+    const composedUserText = ragContext
+      ? `${ragContext}\n\nUser question: ${sanitizedMessage}`
+      : sanitizedMessage;
+
     const oaRes = await callModelStream(
       OPENAI_API_KEY,
       model,
       openAIConversationId,
-      sanitizedMessage,
-      systemPrompt(),
+      composedUserText,
+      instructions,
     );
     if (!oaRes.ok) {
       const errText = await oaRes.text();
@@ -425,6 +468,7 @@ serve(async (req) => {
                 type: 'complete',
                 conversation_id: conversationData.id,
                 title: finalTitle,
+                citations,
                 ...(followups ?? {}),
               })}\n\n`,
             ),

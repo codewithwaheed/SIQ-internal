@@ -1,18 +1,35 @@
-export async function fetchDocSnippets(
+export type RetrievedChunk = {
+  text: string;
+  score: number;
+  doc_id: string;
+  file_name: string;
+  chunk_id: number;
+  conversation_id: string | null;
+};
+
+export async function retrieveContext(
   supabaseAdmin: any,
-  userId: string,
-  activeDocuments: string[] | undefined,
-  query: string
-): Promise<string[]> {
-  if (!activeDocuments?.length) return [];
+  params: {
+    userId: string;
+    conversationId?: string | null;
+    activeDocuments?: string[];
+    query: string;
+    topK?: number;
+  },
+): Promise<RetrievedChunk[]> {
+  const { userId, conversationId, activeDocuments, query, topK = 5 } = params;
   try {
-    const { data, error } = await supabaseAdmin.functions.invoke("query-vectors", {
-      body: { query, userId, activeDocuments, limit: 3 },
+    const { data, error } = await supabaseAdmin.functions.invoke('query-vectors', {
+      body: { query, userId, conversationId, activeDocuments, topK },
     });
     if (error) return [];
-    const snippets: string[] = data?.snippets || [];
-    return snippets.slice(0, 3).map((s) => (s.length > 600 ? s.slice(0, 600) + "…" : s));
-  } catch {
+    const chunks: RetrievedChunk[] = data?.relevant_chunks || [];
+    return chunks.slice(0, topK).map((c) => ({
+      ...c,
+      text: c.text.length > 800 ? c.text.slice(0, 800) + '…' : c.text,
+    }));
+  } catch (e) {
+    console.warn('retrieveContext failed:', e);
     return [];
   }
 }

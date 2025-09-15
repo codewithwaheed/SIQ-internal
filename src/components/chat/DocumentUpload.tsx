@@ -29,7 +29,12 @@ interface Document {
 interface DocumentUploadProps {
   onDocumentUploaded?: (document: Document) => void;
   trigger?: React.ReactNode;
-  onSubmitWithMessage?: (message: string, documentIds: string[], documentNames: string[]) => void;
+  onSubmitWithMessage?: (
+    message: string,
+    documentIds: string[],
+    documentNames: string[],
+    documentMeta?: Array<{ id: string; name: string; type?: string; size?: number }>,
+  ) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -45,7 +50,9 @@ export const DocumentUpload = ({
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState('');
-  const [uploadedDocs, setUploadedDocs] = useState<Array<{ id: string; name: string }>>([]);
+  const [uploadedDocs, setUploadedDocs] = useState<
+    Array<{ id: string; name: string; type?: string; size?: number }>
+  >([]);
   const [openInternal, setOpenInternal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -103,8 +110,12 @@ export const DocumentUpload = ({
 
       const docId = data.document.id as string;
       const docName = (data.document.file_name as string) || file.name;
+      const docType = (data.document.file_type as string) || file.type;
+      const docSize = (data.document.file_size as number) || file.size;
 
-      setUploadedDocs((prev) => [...prev, { id: docId, name: docName }].slice(0, 3));
+      setUploadedDocs((prev) =>
+        [...prev, { id: docId, name: docName, type: docType, size: docSize }].slice(0, 3),
+      );
       setUploadProgress(100);
       if (user) {
         AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, docId, {
@@ -318,7 +329,13 @@ export const DocumentUpload = ({
                   if (!onSubmitWithMessage) return;
                   const ids = uploadedDocs.map((d) => d.id);
                   const names = uploadedDocs.map((d) => d.name);
-                  onSubmitWithMessage(message.trim(), ids, names);
+                  const meta = uploadedDocs.map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    type: d.type,
+                    size: d.size,
+                  }));
+                  onSubmitWithMessage(message.trim(), ids, names, meta);
                   handleModalClose(false);
                 }}
                 disabled={uploading || uploadedDocs.length === 0 || message.trim().length === 0}

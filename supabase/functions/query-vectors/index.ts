@@ -6,69 +6,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Generate embedding for query
+function resolveModelFallbacks(primary?: string): string[] {
+  const allow = (Deno.env.get('EMBEDDING_MODEL_ALLOWLIST') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (allow.length > 0) {
+    const list = (primary && primary.trim().length ? [primary.trim(), ...allow] : allow).filter(
+      (v, i, a) => a.indexOf(v) === i,
+    );
+    return list;
+  }
+  const defaults = ['text-embedding-3-small', 'text-embedding-ada-002', 'text-embedding-3-large'];
+  const list = (primary && primary.trim().length ? [primary.trim(), ...defaults] : defaults).filter(
+    (v, i, a) => a.indexOf(v) === i,
+  );
+  return list;
+}
+
+// Generate embedding for query (with model fallbacks)
 async function generateQueryEmbedding(query: string): Promise<number[]> {
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${openaiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small', // Use the newer available model
-      input: query,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${await response.text()}`);
-  }
-
-  const data = await response.json();
-  return data.data[0].embedding;
-}
-
-// Query Pinecone for similar vectors
-async function queryPinecone(embedding: number[], userId: string, topK = 3) {
-  const pineconeKey = Deno.env.get('PINECONE_API_KEY');
-  const pineconeEnv = Deno.env.get('PINECONE_ENVIRONMENT') || 'us-east-1-aws';
-  const pineconeIndex = Deno.env.get('PINECONE_INDEX') || 'sentrIQ-doc-index';
-
-  if (!pineconeKey) {
-    throw new Error('Pinecone API key not configured');
-  }
-
-  const queryData = {
-    vector: embedding,
-    topK: topK,
-    includeMetadata: true,
-    filter: {
-      user_id: userId,
-    },
-  };
-
-  const response = await fetch(
-    `https://${pineconeIndex}-${pineconeEnv}.svc.${pineconeEnv}.pinecone.io/query`,
-    {
+  const primary = Deno.env.get('EMBEDDING_MODEL') ?? 'text-embedding-3-small';
+  const models = resolveModelFallbacks(primary);
+  let lastErr: any = null;
+  console.log('[QUERY-VECTORS] Trying embedding models (in order):', models.join(', '));
+  for (const model of models) {
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
-        'Api-Key': pineconeKey,
+        Authorization: `Bearer ${openaiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(queryData),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`Pinecone query error: ${await response.text()}`);
+      body: JSON.stringify({ model, input: query }),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.data[0].embedding;
+    }
+    const txt = await response.text();
+    lastErr = new Error(`OpenAI API error: ${txt}`);
+    if (txt.includes('model_not_found') || txt.includes('does not have access to model')) continue;
+    throw lastErr;
   }
-
-  return await response.json();
+  throw lastErr ?? new Error('No accessible embedding model');
 }
 
 serve(async (req) => {
@@ -77,61 +62,124 @@ serve(async (req) => {
   }
 
   try {
-    const { query, userId, topK = 3 } = await req.json();
+    const {
+      query,
+      userId,
+      conversationId,
+      activeDocuments,
+      topK = 5,
+    } = await req.json();
 
     if (!query || !userId) {
       throw new Error('Missing required parameters: query, userId');
     }
 
-    console.log(`[QUERY-VECTORS] Searching for: "${query}" for user ${userId}`);
+    const QDRANT_URL = Deno.env.get('QDRANT_URL') ?? '';
+    const QDRANT_API_KEY = Deno.env.get('QDRANT_API_KEY') ?? undefined;
+    const QDRANT_COLLECTION = Deno.env.get('QDRANT_COLLECTION') ?? 'user_docs';
+    if (!QDRANT_URL) throw new Error('QDRANT_URL not configured');
 
+    console.log(`[QUERY-VECTORS] Qdrant search for: "${query}" user=${userId} conv=${conversationId ?? 'n/a'}`);
+
+    // Generate embedding for the query
+    let queryEmbedding: number[];
     try {
-      // Generate embedding for the query
-      const queryEmbedding = await generateQueryEmbedding(query);
-
-      // Query Pinecone for similar vectors
-      const results = await queryPinecone(queryEmbedding, userId, topK);
-
-      // Extract relevant text chunks
-      const relevantChunks =
-        results.matches?.map((match: any) => ({
-          text: match.metadata?.text || '',
-          score: match.score || 0,
-          document_id: match.metadata?.document_id || '',
-          chunk_index: match.metadata?.chunk_index || 0,
-        })) || [];
-
-      console.log(`[QUERY-VECTORS] Found ${relevantChunks.length} relevant chunks`);
-
+      queryEmbedding = await generateQueryEmbedding(query);
+    } catch (e) {
+      console.error('[QUERY-VECTORS] Embedding error; returning empty results:', e);
       return new Response(
-        JSON.stringify({
-          success: true,
-          relevant_chunks: relevantChunks,
-          query: query,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      );
-    } catch (vectorError) {
-      console.error('Vector search error:', vectorError);
-
-      // Fallback: return empty results instead of failing
-      return new Response(
-        JSON.stringify({
-          success: true,
-          relevant_chunks: [],
-          query: query,
-          fallback: true,
-          warning: 'Vector search unavailable, using fallback mode',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
+        JSON.stringify({ success: true, relevant_chunks: [], query, fallback: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
     }
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (QDRANT_API_KEY) headers['api-key'] = QDRANT_API_KEY;
+
+    const must: any[] = [{ key: 'user_id', match: { value: userId } }];
+    // If specific documents are attached, restrict to them; otherwise, prefer conversation scope
+    if (Array.isArray(activeDocuments) && activeDocuments.length > 0) {
+      must.push({ key: 'doc_id', match: { any: activeDocuments } });
+    } else if (conversationId) {
+      must.push({ key: 'conversation_id', match: { value: conversationId } });
+    }
+
+    // Helper to ensure payload indexes if Qdrant requests them
+    async function ensurePayloadIndexes() {
+      const idxEndpoint = `${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/index`;
+      const toCreate: Array<{ field_name: string; field_schema: any }> = [
+        { field_name: 'user_id', field_schema: { type: 'uuid' } },
+        { field_name: 'conversation_id', field_schema: { type: 'uuid' } },
+        { field_name: 'doc_id', field_schema: { type: 'uuid' } },
+      ];
+      for (const idx of toCreate) {
+        try {
+          const r = await fetch(idxEndpoint, { method: 'PUT', headers, body: JSON.stringify(idx) });
+          if (!r.ok) {
+            const t = await r.text();
+            if (!/already exists|Index exists/i.test(t)) console.warn('[QUERY-VECTORS] Index create warn:', t);
+          }
+        } catch (e) {
+          console.warn('[QUERY-VECTORS] Failed to ensure index', idx.field_name, e);
+        }
+      }
+    }
+
+    async function doSearch() {
+      return fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/search`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          vector: queryEmbedding,
+          limit: Math.max(1, Math.min(20, topK)),
+          with_payload: true,
+          filter: { must },
+          score_threshold: 0.0,
+        }),
+      });
+    }
+
+    let searchRes = await doSearch();
+    if (!searchRes.ok) {
+      const err = await searchRes.text();
+      if (err.includes('Index required but not found')) {
+        console.warn('[QUERY-VECTORS] Missing payload index. Creating and retrying once.');
+        await ensurePayloadIndexes();
+        searchRes = await doSearch();
+      }
+    }
+
+    if (!searchRes.ok) {
+      const err = await searchRes.text();
+      console.error('[QUERY-VECTORS] Qdrant search error:', err);
+      return new Response(
+        JSON.stringify({ success: true, relevant_chunks: [], query, fallback: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
+
+    const searchData = await searchRes.json();
+    const matches = (searchData?.result ?? []) as Array<{
+      id: string;
+      score: number;
+      payload?: any;
+    }>;
+
+    const relevant_chunks = matches.map((m) => ({
+      text: m.payload?.text ?? '',
+      score: m.score ?? 0,
+      doc_id: m.payload?.doc_id ?? '',
+      file_name: m.payload?.file_name ?? '',
+      chunk_id: m.payload?.chunk_id ?? 0,
+      conversation_id: m.payload?.conversation_id ?? null,
+    }));
+
+    console.log(`[QUERY-VECTORS] Found ${relevant_chunks.length} chunks`);
+
+    return new Response(
+      JSON.stringify({ success: true, relevant_chunks, query }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+    );
   } catch (error) {
     console.error('Error in query-vectors function:', error);
     return new Response(

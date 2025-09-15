@@ -98,7 +98,9 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
               onDocumentUploaded={c.handleDocumentUploaded}
               onImagesSubmitted={(message, images) => c.sendImagesMessage(message, images)}
-              onDocumentsSubmitted={(message, ids, names) => c.sendMessageWithDocuments(message, ids, names)}
+              onDocumentsSubmitted={(message, ids, names, meta) =>
+                c.sendMessageWithDocuments(message, ids, names, meta)
+              }
               inputRef={c.inputRef}
               abortController={c.abortController}
               onStopGeneration={c.handleStopGeneration}
@@ -239,7 +241,9 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               onToggleDocumentUpload={() => c.setShowDocumentUpload(!c.showDocumentUpload)}
               onDocumentUploaded={c.handleDocumentUploaded}
               onImagesSubmitted={(message, images) => c.sendImagesMessage(message, images)}
-              onDocumentsSubmitted={(message, ids, names) => c.sendMessageWithDocuments(message, ids, names)}
+              onDocumentsSubmitted={(message, ids, names, meta) =>
+                c.sendMessageWithDocuments(message, ids, names, meta)
+              }
               inputRef={c.inputRef}
               abortController={c.abortController}
               onStopGeneration={c.handleStopGeneration}

@@ -233,7 +233,7 @@ Please provide:
 
 Format as JSON with keys: summary, recommendations (array), comparisons (array), actionItems (array)`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${openAIApiKey}`,
@@ -253,7 +253,7 @@ Format as JSON with keys: summary, recommendations (array), comparisons (array),
           },
         ],
         temperature: 0.3,
-        max_tokens: 1000,
+      max_completion_tokens: 1000,
       }),
     });
 
