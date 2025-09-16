@@ -160,6 +160,24 @@ export const DocumentUpload = ({
         });
       }
       if (onDocumentUploaded) onDocumentUploaded(data.document);
+
+      // Kick off indexing on the client side without blocking UI
+      try {
+        // Fire-and-forget; handle completion via Realtime document updates
+        void supabase.functions
+          .invoke('qdrant-index', {
+            body: { docId, conversationId: finalConversationId },
+          })
+          .then(() => console.log('Indexing started for', docId))
+          .catch((e) => console.warn('Indexing invoke failed:', e?.message || e));
+      } catch (e: any) {
+        console.warn('Failed to start indexing:', e?.message || e);
+      }
+
+      toast({
+        title: 'Processing document',
+        description: 'We are analyzing and indexing your document in the background.',
+      });
     } catch (error: any) {
       console.error('Upload error:', error);
       toast({

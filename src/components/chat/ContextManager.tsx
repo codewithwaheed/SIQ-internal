@@ -75,11 +75,15 @@ export const ContextManager = ({
           {documents.map((doc) => {
             const isActive = activeDocuments.includes(doc.id);
             const label = (doc as any).title || (doc as any).file_name || 'Document';
-            const status = (doc as any).processing_status as
-              | 'processing'
-              | 'ready'
-              | 'error'
-              | undefined;
+            const rawStatus = (doc as any).processing_status as string | undefined;
+            const status = (rawStatus === 'completed'
+              ? 'ready'
+              : rawStatus === 'failed'
+              ? 'error'
+              : (rawStatus as 'processing' | 'ready' | 'error' | undefined));
+            const step = ((doc as any).index_step as string | undefined) ||
+              (rawStatus === 'pending' ? 'queued' : undefined);
+            const progress = Number((doc as any).index_progress ?? 0);
             return (
               <button
                 key={doc.id}
@@ -97,9 +101,9 @@ export const ContextManager = ({
                   <File className="h-3.5 w-3.5" />
                 )}
                 <span className="max-w-[10rem] truncate sm:max-w-[16rem]">{label}</span>
-                {status === 'processing' && (
+                {status !== 'ready' && status !== 'error' && (
                   <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
-                    processing
+                    {step || 'processing'}{progress ? ` ${Math.min(100, Math.max(0, progress))}%` : ''}
                   </span>
                 )}
                 {status === 'error' && (

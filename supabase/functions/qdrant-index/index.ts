@@ -89,23 +89,38 @@ async function ensureQdrantPayloadIndexes(
 ) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['api-key'] = apiKey;
-  const endpoint = `${baseUrl}/collections/${collection}/points/index`;
-  const indexes: Array<{ field_name: string; field_schema: any }> = [
-    { field_name: 'user_id', field_schema: { type: 'uuid' } },
-    { field_name: 'conversation_id', field_schema: { type: 'uuid' } },
-    { field_name: 'doc_id', field_schema: { type: 'uuid' } },
-  ];
-  for (const idx of indexes) {
+  const idxEndpoint = `${baseUrl}/collections/${collection}/points/index`;
+
+  async function getPayloadSchema(): Promise<Record<string, any>> {
     try {
-      const res = await fetch(endpoint, { method: 'PUT', headers, body: JSON.stringify(idx) });
+      const r = await fetch(`${baseUrl}/collections/${collection}`);
+      if (!r.ok) return {};
+      const d = await r.json();
+      return d?.result?.payload_schema ?? {};
+    } catch {
+      return {};
+    }
+  }
+
+  const existing = await getPayloadSchema();
+  const toEnsure = ['user_id', 'conversation_id', 'doc_id'];
+  for (const field of toEnsure) {
+    if (existing && existing[field]) continue;
+    try {
+      const body = { field_name: field, field_schema: 'keyword' };
+      const res = await fetch(idxEndpoint, { method: 'PUT', headers, body: JSON.stringify(body) });
       if (!res.ok) {
         const t = await res.text();
-        // Ignore errors about existing index or unsupported schema variants
-        if (!/already exists|Index exists/i.test(t))
-          console.warn('[qdrant-index] Index create warn:', t);
+        if (!/already exists|Index exists/i.test(String(t))) console.warn('[qdrant-index] Index create warn:', t);
+      }
+      // Poll until index appears (best-effort)
+      for (let i = 0; i < 10; i++) {
+        const schema = await getPayloadSchema();
+        if (schema && schema[field]) break;
+        await new Promise((r) => setTimeout(r, 200));
       }
     } catch (e) {
-      console.warn('[qdrant-index] Failed to ensure payload index', idx.field_name, e);
+      console.warn('[qdrant-index] Failed to ensure payload index', field, e);
     }
   }
 }
@@ -119,6 +134,20 @@ async function embedText(openaiKey: string, text: string, model: string): Promis
   if (!res.ok) throw new Error(`OpenAI Embeddings error: ${await res.text()}`);
   const data = await res.json();
   return data.data[0].embedding as number[];
+}
+
+// Local deterministic embedding fallback for offline/local dev
+function fakeEmbed(text: string, dim: number): number[] {
+  const vec = new Array<number>(dim).fill(0);
+  // Simple hashed bag-of-characters
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    const idx = code % dim;
+    vec[idx] += 1;
+  }
+  // L2 normalize
+  let norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
+  return vec.map((v) => v / norm);
 }
 
 function resolveModelFallbacks(primary?: string): string[] {
@@ -153,11 +182,12 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
     const EMBEDDING_MODEL = Deno.env.get('EMBEDDING_MODEL') ?? 'text-embedding-3-small';
     const EMBEDDING_DIM = parseInt(Deno.env.get('EMBEDDING_DIM') ?? '0', 10) || null;
+    const DISABLE_EMBEDDINGS = (Deno.env.get('DISABLE_EMBEDDINGS') || '').toLowerCase() === '1';
     const DEFAULT_CHUNK_SIZE = parseInt(Deno.env.get('CHUNK_SIZE') ?? '1200', 10);
     const DEFAULT_CHUNK_OVERLAP = parseInt(Deno.env.get('CHUNK_OVERLAP') ?? '200', 10);
 
-    if (!QDRANT_URL || !OPENAI_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Missing QDRANT_URL or OPENAI_API_KEY' }), {
+    if (!QDRANT_URL || (!OPENAI_API_KEY && !DISABLE_EMBEDDINGS)) {
+      return new Response(JSON.stringify({ error: 'Missing QDRANT_URL or OPENAI_API_KEY (unless DISABLE_EMBEDDINGS=1)' }), {
         status: 500,
         headers: corsHeaders,
       });
@@ -190,6 +220,14 @@ serve(async (req) => {
       });
     }
 
+    // Mark document as processing and reset progress
+    try {
+      await supabase
+        .from('documents')
+        .update({ processing_status: 'processing', index_step: 'preparing', index_progress: 0, index_error: null })
+        .eq('id', docId);
+    } catch (_) {}
+
     // Get text content
     let text: string | null = doc.content_extracted as string | null;
     if (!text || text.length < 10) {
@@ -211,6 +249,13 @@ serve(async (req) => {
       }
     }
     if (!text || text.length < 10) {
+      // Mark failed
+      try {
+        await supabase
+          .from('documents')
+          .update({ processing_status: 'failed', index_step: 'extract_text', index_error: 'No extractable text' })
+          .eq('id', doc.id);
+      } catch (_) {}
       return new Response(JSON.stringify({ error: 'No extractable text in document' }), {
         status: 400,
         headers: corsHeaders,
@@ -221,30 +266,44 @@ serve(async (req) => {
     const overlap = Math.max(0, Math.min(size - 1, chunk_overlap ?? DEFAULT_CHUNK_OVERLAP));
     const chunks = chunkTextWithOverlap(text, size, overlap);
 
-    // Determine embedding vector size by probing once; handle quota and model access errors gracefully
+    // Update step to chunking
+    try {
+      await supabase
+        .from('documents')
+        .update({ index_step: 'chunking', index_progress: Math.min(5, Math.round((1 / Math.max(1, chunks.length)) * 100)) })
+        .eq('id', doc.id);
+    } catch (_) {}
+
+    // Determine embedding vector size by probing once (or using local fallback)
     let vectorSize: number | null = null;
     let selectedModel: string | null = null;
     try {
-      const candidates = resolveModelFallbacks(EMBEDDING_MODEL);
-      let lastErr: any = null;
-      console.log('[qdrant-index] Trying embedding models (in order):', candidates.join(', '));
-      for (const m of candidates) {
-        try {
-          const probe = await embedText(OPENAI_API_KEY, chunks[0].slice(0, 1000), m);
-          vectorSize = probe.length;
-          selectedModel = m;
-          break;
-        } catch (err) {
-          const msg = String((err as Error).message || err);
-          lastErr = err;
-          if (msg.includes('model_not_found') || msg.includes('does not have access to model')) {
-            console.warn('[qdrant-index] Model not accessible:', m);
-            continue; // try next model
+      if (DISABLE_EMBEDDINGS) {
+        vectorSize = EMBEDDING_DIM && EMBEDDING_DIM > 0 ? EMBEDDING_DIM : 256;
+        selectedModel = 'local-fake';
+        console.log('[qdrant-index] Using local fake embeddings with dim', vectorSize);
+      } else {
+        const candidates = resolveModelFallbacks(EMBEDDING_MODEL);
+        let lastErr: any = null;
+        console.log('[qdrant-index] Trying embedding models (in order):', candidates.join(', '));
+        for (const m of candidates) {
+          try {
+            const probe = await embedText(OPENAI_API_KEY, chunks[0].slice(0, 1000), m);
+            vectorSize = probe.length;
+            selectedModel = m;
+            break;
+          } catch (err) {
+            const msg = String((err as Error).message || err);
+            lastErr = err;
+            if (msg.includes('model_not_found') || msg.includes('does not have access to model')) {
+              console.warn('[qdrant-index] Model not accessible:', m);
+              continue; // try next model
+            }
+            throw err;
           }
-          throw err;
         }
+        if (!selectedModel || !vectorSize) throw lastErr || new Error('No embedding model available');
       }
-      if (!selectedModel || !vectorSize) throw lastErr || new Error('No embedding model available');
     } catch (e) {
       const msg = String((e as Error).message || e);
       if (msg.includes('insufficient_quota')) {
@@ -291,6 +350,12 @@ serve(async (req) => {
     }
     await ensureQdrantCollection(QDRANT_URL, QDRANT_API_KEY, QDRANT_COLLECTION, vectorSize!);
     await ensureQdrantPayloadIndexes(QDRANT_URL, QDRANT_API_KEY, QDRANT_COLLECTION);
+    try {
+      await supabase
+        .from('documents')
+        .update({ index_step: 'embedding', index_progress: 10 })
+        .eq('id', doc.id);
+    } catch (_) {}
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (QDRANT_API_KEY) headers['api-key'] = QDRANT_API_KEY;
@@ -335,7 +400,9 @@ serve(async (req) => {
       if (!force && existingHashes.has(contentHash)) continue;
       let vector: number[];
       try {
-        vector = await embedText(OPENAI_API_KEY, chunk, selectedModel!);
+        vector = selectedModel === 'local-fake'
+          ? fakeEmbed(chunk, vectorSize!)
+          : await embedText(OPENAI_API_KEY, chunk, selectedModel!);
       } catch (e) {
         const msg = String((e as Error).message || e);
         if (msg.includes('insufficient_quota')) {
@@ -399,8 +466,25 @@ serve(async (req) => {
         }
         upserted += points.length;
         points.length = 0;
+
+        // update progress (embedding/indexing combined)
+        try {
+          const pct = Math.min(99, Math.max(10, Math.round(((i + 1) / chunks.length) * 100)));
+          await supabase
+            .from('documents')
+            .update({ index_step: 'indexing', index_progress: pct })
+            .eq('id', doc.id);
+        } catch (_) {}
       }
     }
+
+    // Mark completed
+    try {
+      await supabase
+        .from('documents')
+        .update({ processing_status: 'completed', index_step: 'ready', index_progress: 100, processed_at: new Date().toISOString() })
+        .eq('id', doc.id);
+    } catch (_) {}
 
     return new Response(JSON.stringify({ success: true, chunks: chunks.length, upserted }), {
       status: 200,
@@ -408,6 +492,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('[qdrant-index] Error:', error);
+    // Try to record error
+    try {
+      const msg = String((error as Error).message || error);
+      // We don't have docId here in the catch scope if earlier throw; best-effort parse from body
+      // No-op if not available
+    } catch (_) {}
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 500,
       headers: corsHeaders,

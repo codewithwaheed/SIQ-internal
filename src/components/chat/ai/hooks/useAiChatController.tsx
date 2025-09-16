@@ -194,6 +194,49 @@ export default function useAiChatController(isDemo: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isDemo, location.pathname, params.conversationId]);
 
+  // Realtime document updates for progress/status
+  useEffect(() => {
+    if (!user || !user.id) return;
+
+    const channel = supabase
+      .channel('realtime:documents')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'documents', filter: `user_id=eq.${user.id}` },
+        (payload: any) => {
+          setUploadedDocuments((prev) => {
+            const next = [...prev];
+            const idx = next.findIndex((d: any) => d.id === payload.new?.id);
+            if (payload.eventType === 'INSERT') {
+              if (idx === -1) return [payload.new, ...next];
+              next[idx] = { ...next[idx], ...payload.new };
+              return next;
+            }
+            if (payload.eventType === 'UPDATE') {
+              if (idx !== -1) {
+                next[idx] = { ...next[idx], ...payload.new };
+                return next;
+              }
+              return [payload.new, ...next];
+            }
+            if (payload.eventType === 'DELETE') {
+              return next.filter((d: any) => d.id !== payload.old?.id);
+            }
+            return next;
+          });
+        },
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to documents realtime');
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   // Auto-resize input
   useEffect(() => {
     if (inputRef.current) {
@@ -535,7 +578,14 @@ export default function useAiChatController(isDemo: boolean) {
   }
 
   const handleDocumentUploaded = (document: any) => {
-    setUploadedDocuments((prev) => [document, ...prev]);
+    // Optimistically mark as processing for UI until Realtime updates arrive
+    const optimistic = {
+      ...document,
+      processing_status: document.processing_status || 'processing',
+      index_step: document.index_step || 'queued',
+      index_progress: typeof document.index_progress === 'number' ? document.index_progress : 0,
+    };
+    setUploadedDocuments((prev) => [optimistic, ...prev]);
     setActiveDocuments((prev) => [...prev, document.id]);
     setConversationContext((prev) => ({ ...prev, documentCount: prev.documentCount + 1 }));
 
@@ -943,6 +993,9 @@ export default function useAiChatController(isDemo: boolean) {
     let attachedDetails:
       | Array<{ id: string; name: string; type?: string; size?: number }>
       | undefined;
+    const usedDocIds = (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length)
+      ? opts.activeDocumentsOverride
+      : activeDocuments;
     if (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length) {
       const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
       attachedDetails = opts.activeDocumentsOverride
@@ -969,6 +1022,27 @@ export default function useAiChatController(isDemo: boolean) {
         attachedDetails = meta.filter((m) => wanted.has(m.id)).slice(0, 3);
       }
     }
+
+    // If attached docs are still indexing, inform the user (non-blocking)
+    try {
+      if (Array.isArray(usedDocIds) && usedDocIds.length > 0) {
+        const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
+        const hasCold = usedDocIds.some((id) => {
+          const d: any = byId.get(id);
+          if (!d) return false;
+          const status = d.processing_status as string | undefined;
+          const progress = Number(d.index_progress ?? 0);
+          return status !== 'completed' && progress < 10;
+        });
+        if (hasCold) {
+          toast({
+            title: 'Indexing in progress',
+            description:
+              'We are still analyzing your document. Answers may be partial for a few seconds.',
+          });
+        }
+      }
+    } catch {}
 
     const userMessage: Message = {
       role: 'user',

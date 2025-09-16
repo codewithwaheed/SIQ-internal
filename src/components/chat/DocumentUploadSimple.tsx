@@ -145,6 +145,19 @@ export const DocumentUploadSimple = ({ onUploadSuccess }: DocumentUploadSimplePr
       if (data.success) {
         setUploadStatus('success');
 
+        // Start indexing in background
+        try {
+          const docId = data.document?.id as string | undefined;
+          if (docId) {
+            void supabase.functions
+              .invoke('qdrant-index', { body: { docId } })
+              .then(() => console.log('Indexing started for', docId))
+              .catch((e) => console.warn('Indexing invoke failed:', e?.message || e));
+          }
+        } catch (e: any) {
+          console.warn('Failed to start indexing:', e?.message || e);
+        }
+
         // Show success feedback with animation
         setTimeout(() => {
           toast({

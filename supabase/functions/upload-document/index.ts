@@ -199,7 +199,8 @@ serve(async (req) => {
           // Sanitize text content to prevent XSS
           const rawText = await file.text();
           contentExtracted = InputSanitizer.sanitizeString(rawText, 50000); // 50k char limit
-          processingStatus = 'completed';
+          // Mark as pending; indexing still needs to run
+          processingStatus = 'pending';
           console.log('Extracted and sanitized plain text:', {
             length: contentExtracted.length,
           });
@@ -239,7 +240,8 @@ serve(async (req) => {
 
             if (extractedText.length > 100) {
               contentExtracted = InputSanitizer.sanitizeString(extractedText, 50000);
-              processingStatus = 'completed';
+              // Mark as pending; indexing still needs to run
+              processingStatus = 'pending';
               console.log('Enhanced PDF text extracted and sanitized:', {
                 length: contentExtracted.length,
               });
@@ -371,18 +373,8 @@ serve(async (req) => {
 
       // Note: conversation_id is already set during document insertion above
 
-      // Start background indexing into Qdrant (best-effort)
-      try {
-        await supabaseClient.functions.invoke('qdrant-index', {
-          body: {
-            docId: docData.id,
-            conversationId: conversationId,
-            userId: context.userId,
-          },
-        });
-      } catch (e) {
-        console.warn('[UPLOAD-DOCUMENT] qdrant-index invoke failed:', (e as Error).message);
-      }
+      // Do not await heavy indexing here; the client will trigger indexing
+      // to keep the upload endpoint fast and responsive.
 
       const sanitizedResponse = sanitizeResponse(
         {
@@ -393,7 +385,8 @@ serve(async (req) => {
           },
           conversation_id: conversationId,
           message: 'Document uploaded successfully',
-          processing_status: 'Document uploaded, embeddings processing in background',
+          processing_status: 'queued',
+          next_action: 'client_index_start',
         },
         context.userRole,
       );

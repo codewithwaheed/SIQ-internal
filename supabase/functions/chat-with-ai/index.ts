@@ -248,6 +248,40 @@ serve(async (req) => {
       }
     }
 
+    // Smart coordination with document indexing to reduce "empty context" replies
+    async function getDocIndexStates(ids: string[]) {
+      if (ids.length === 0) return [] as Array<{ id: string; processing_status?: string | null; index_progress?: number | null; index_step?: string | null }>;
+      try {
+        const { data } = await supabaseAdmin
+          .from('documents')
+          .select('id, processing_status, index_progress, index_step')
+          .in('id', ids);
+        return (data || []) as Array<{
+          id: string;
+          processing_status?: string | null;
+          index_progress?: number | null;
+          index_step?: string | null;
+        }>;
+      } catch (_) {
+        return [] as Array<{ id: string }> as any;
+      }
+    }
+
+    // If user attached docs but indexing hasn't started or is at 0%, briefly wait for first chunks
+    if (!isDemo && user && attachedDocIds.length > 0) {
+      const start = Date.now();
+      const maxWaitMs = 4000; // up to 4s to catch first indexed batches
+      // Wait until any attached doc has progress >= 10 or status completed, or until timeout
+      while (Date.now() - start < maxWaitMs) {
+        const states = await getDocIndexStates(attachedDocIds);
+        const anyReady = states.some(
+          (s) => (s.processing_status === 'completed') || ((s.index_progress ?? 0) >= 10),
+        );
+        if (anyReady) break;
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+
     // RAG: retrieve relevant context chunks
     let citations: RetrievedChunk[] = [];
     if (!isDemo && user) {
@@ -469,6 +503,9 @@ serve(async (req) => {
                 conversation_id: conversationData.id,
                 title: finalTitle,
                 citations,
+                indexing: attachedDocIds.length
+                  ? { attached: attachedDocIds, note: citations.length === 0 ? 'indexing_pending_or_no_matches' : 'ok' }
+                  : undefined,
                 ...(followups ?? {}),
               })}\n\n`,
             ),

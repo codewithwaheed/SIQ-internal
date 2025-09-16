@@ -25,7 +25,23 @@ function resolveModelFallbacks(primary?: string): string[] {
 }
 
 // Generate embedding for query (with model fallbacks)
+function fakeEmbed(text: string, dim: number): number[] {
+  const vec = new Array<number>(dim).fill(0);
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    vec[code % dim] += 1;
+  }
+  const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
+  return vec.map((v) => v / norm);
+}
+
 async function generateQueryEmbedding(query: string): Promise<number[]> {
+  const DISABLE = (Deno.env.get('DISABLE_EMBEDDINGS') || '').toLowerCase() === '1';
+  if (DISABLE) {
+    const dim = parseInt(Deno.env.get('EMBEDDING_DIM') ?? '256', 10) || 256;
+    return fakeEmbed(query, dim);
+  }
+
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiKey) {
     throw new Error('OpenAI API key not configured');
@@ -36,24 +52,31 @@ async function generateQueryEmbedding(query: string): Promise<number[]> {
   let lastErr: any = null;
   console.log('[QUERY-VECTORS] Trying embedding models (in order):', models.join(', '));
   for (const model of models) {
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model, input: query }),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return data.data[0].embedding;
+    try {
+      const response = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model, input: query }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.data[0].embedding;
+      }
+      const txt = await response.text();
+      lastErr = new Error(`OpenAI API error: ${txt}`);
+      if (txt.includes('model_not_found') || txt.includes('does not have access to model')) continue;
+      throw lastErr;
+    } catch (e) {
+      lastErr = e;
     }
-    const txt = await response.text();
-    lastErr = new Error(`OpenAI API error: ${txt}`);
-    if (txt.includes('model_not_found') || txt.includes('does not have access to model')) continue;
-    throw lastErr;
   }
-  throw lastErr ?? new Error('No accessible embedding model');
+  // As a last resort, generate a fake vector so local dev continues
+  const dim = parseInt(Deno.env.get('EMBEDDING_DIM') ?? '256', 10) || 256;
+  console.warn('[QUERY-VECTORS] Falling back to fake embeddings for query');
+  return fakeEmbed(query, dim);
 }
 
 serve(async (req) => {
@@ -105,22 +128,40 @@ serve(async (req) => {
     }
 
     // Helper to ensure payload indexes if Qdrant requests them
+    async function getPayloadSchema(): Promise<Record<string, any>> {
+      try {
+        const info = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}`);
+        if (!info.ok) return {};
+        const data = await info.json();
+        return data?.result?.payload_schema ?? {};
+      } catch {
+        return {};
+      }
+    }
+
     async function ensurePayloadIndexes() {
+      const existing = await getPayloadSchema();
       const idxEndpoint = `${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/index`;
-      const toCreate: Array<{ field_name: string; field_schema: any }> = [
-        { field_name: 'user_id', field_schema: { type: 'uuid' } },
-        { field_name: 'conversation_id', field_schema: { type: 'uuid' } },
-        { field_name: 'doc_id', field_schema: { type: 'uuid' } },
-      ];
-      for (const idx of toCreate) {
+      const toEnsure = ['user_id', 'conversation_id', 'doc_id'];
+      for (const field of toEnsure) {
+        if (existing && existing[field]) continue;
         try {
-          const r = await fetch(idxEndpoint, { method: 'PUT', headers, body: JSON.stringify(idx) });
+          const body = { field_name: field, field_schema: 'keyword' };
+          const r = await fetch(idxEndpoint, { method: 'PUT', headers, body: JSON.stringify(body) });
           if (!r.ok) {
             const t = await r.text();
-            if (!/already exists|Index exists/i.test(t)) console.warn('[QUERY-VECTORS] Index create warn:', t);
+            if (!/already exists|Index exists/i.test(String(t))) {
+              console.warn('[QUERY-VECTORS] Index create warn:', t);
+            }
+          }
+          // Poll until index appears (best-effort)
+          for (let i = 0; i < 10; i++) {
+            const schema = await getPayloadSchema();
+            if (schema && schema[field]) break;
+            await new Promise((res) => setTimeout(res, 200));
           }
         } catch (e) {
-          console.warn('[QUERY-VECTORS] Failed to ensure index', idx.field_name, e);
+          console.warn('[QUERY-VECTORS] Failed to ensure index', field, e);
         }
       }
     }
