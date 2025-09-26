@@ -29,28 +29,47 @@ function deriveHeuristics(userText: string, assistantText: string): Followups {
   ];
   const foundTags = Array.from(
     new Set(
-      frameworkCatalog.filter((fw) => text.includes(fw)).map((fw) =>
-        fw
-          .replace(/\s+/g, ' ')
-          .trim()
-          .replace('soc 2', 'SOC 2')
-          .replace('iso 27001', 'ISO 27001')
-          .replace('nist 800-171', 'NIST 800-171')
-          .replace('nist 800 171', 'NIST 800-171')
-          .replace('nist csf', 'NIST CSF')
-          .replace('hipaa', 'HIPAA')
-          .replace('gdpr', 'GDPR')
-          .replace('pci dss', 'PCI DSS')
-          .replace('fedramp', 'FedRAMP')
-          .replace('cmmc', 'CMMC'),
-      ),
+      frameworkCatalog
+        .filter((fw) => text.includes(fw))
+        .map((fw) =>
+          fw
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace('soc 2', 'SOC 2')
+            .replace('iso 27001', 'ISO 27001')
+            .replace('nist 800-171', 'NIST 800-171')
+            .replace('nist 800 171', 'NIST 800-171')
+            .replace('nist csf', 'NIST CSF')
+            .replace('hipaa', 'HIPAA')
+            .replace('gdpr', 'GDPR')
+            .replace('pci dss', 'PCI DSS')
+            .replace('fedramp', 'FedRAMP')
+            .replace('cmmc', 'CMMC'),
+        ),
     ),
   );
 
   // Risk heuristic
   let risk: 'low' | 'medium' | 'high' = 'low';
-  const highSignals = ['ransomware', 'breach', 'compromise', 'data leak', 'critical', 'urgent', 'exfiltration', 'high risk', 'immediate action'];
-  const medSignals = ['vulnerability', 'phishing', 'exposure', 'misconfiguration', 'weakness', 'concern'];
+  const highSignals = [
+    'ransomware',
+    'breach',
+    'compromise',
+    'data leak',
+    'critical',
+    'urgent',
+    'exfiltration',
+    'high risk',
+    'immediate action',
+  ];
+  const medSignals = [
+    'vulnerability',
+    'phishing',
+    'exposure',
+    'misconfiguration',
+    'weakness',
+    'concern',
+  ];
   if (highSignals.some((w) => text.includes(w))) risk = 'high';
   else if (medSignals.some((w) => text.includes(w))) risk = 'medium';
 
@@ -116,7 +135,6 @@ No markdown, no code fences, only valid JSON.`,
       },
       body: JSON.stringify({
         model,
-        temperature: 0.3,
         response_format: { type: 'json_object' },
         messages,
       }),

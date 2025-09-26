@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { extractTextFromFile, type ExtractionQuality } from '@/lib/documentExtraction';
 
 interface Document {
   id: string;
@@ -143,6 +144,19 @@ export const UnifiedDocumentUpload = ({
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
+      let extractedText: string | null = null;
+      let extractionQuality: ExtractionQuality | null = null;
+
+      try {
+        const extraction = await extractTextFromFile(selectedFile);
+        if (extraction) {
+          extractedText = extraction.text;
+          extractionQuality = extraction.quality;
+        }
+      } catch (error) {
+        console.warn('Client-side extraction failed; continuing without extracted text:', error);
+      }
+
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
@@ -165,6 +179,7 @@ export const UnifiedDocumentUpload = ({
           file_size: selectedFile.size,
           tags: tags,
           processing_status: 'pending',
+          content_extracted: extractedText,
         })
         .select()
         .single();
@@ -176,13 +191,8 @@ export const UnifiedDocumentUpload = ({
       setUploadProgress(100);
       setUploadStatus('processing');
 
-      // Process document
-      const { error: processError } = await supabase.functions.invoke('extract-text', {
-        body: { documentId: document.id, filePath },
-      });
-
-      if (processError) {
-        console.warn('Document processing failed:', processError);
+      if (extractionQuality) {
+        console.log('Client extraction quality metrics:', extractionQuality);
       }
 
       setUploadStatus('success');

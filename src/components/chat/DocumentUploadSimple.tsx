@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { RestrictedButton, UsageIndicator } from '@/components/ui/feature-gate';
 import { useFeatureGating } from '@/hooks/useFeatureGating';
 import { ProgressBar, StatusIndicator } from '@/components/ui/feedback';
+import { extractTextFromFile, type ExtractionQuality } from '@/lib/documentExtraction';
 
 interface DocumentUploadSimpleProps {
   onUploadSuccess?: (document: any) => void;
@@ -33,15 +34,13 @@ export const DocumentUploadSimple = ({ onUploadSuccess }: DocumentUploadSimplePr
       // Validate file type
       const allowedTypes = [
         'application/pdf',
-        'text/plain',
-        'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ];
 
       if (!allowedTypes.includes(file.type)) {
         toast({
           title: 'Invalid file type',
-          description: 'Please select a PDF, TXT, or Word document.',
+          description: 'Please select a PDF or DOCX document.',
           variant: 'destructive',
         });
         return;
@@ -109,8 +108,27 @@ export const DocumentUploadSimple = ({ onUploadSuccess }: DocumentUploadSimplePr
         throw new Error('Not authenticated');
       }
 
+      let extractedText: string | null = null;
+      let extractionQuality: ExtractionQuality | null = null;
+
+      try {
+        const extraction = await extractTextFromFile(selectedFile);
+        if (extraction) {
+          extractedText = extraction.text;
+          extractionQuality = extraction.quality;
+        }
+      } catch (error) {
+        console.warn('Client-side extraction failed; continuing without extracted text:', error);
+      }
+
       const formData = new FormData();
       formData.append('file', selectedFile);
+      if (extractedText) {
+        formData.append('extracted_text', extractedText);
+      }
+      if (extractionQuality) {
+        formData.append('extraction_quality', JSON.stringify(extractionQuality));
+      }
 
       // Add tags to formData if present
       if (tags.length > 0) {
@@ -146,17 +164,17 @@ export const DocumentUploadSimple = ({ onUploadSuccess }: DocumentUploadSimplePr
         setUploadStatus('success');
 
         // Start indexing in background
-        try {
-          const docId = data.document?.id as string | undefined;
-          if (docId) {
-            void supabase.functions
-              .invoke('qdrant-index', { body: { docId } })
-              .then(() => console.log('Indexing started for', docId))
-              .catch((e) => console.warn('Indexing invoke failed:', e?.message || e));
-          }
-        } catch (e: any) {
-          console.warn('Failed to start indexing:', e?.message || e);
-        }
+        // try {
+        //   const docId = data.document?.id as string | undefined;
+        //   if (docId) {
+        //     void supabase.functions
+        //       .invoke('qdrant-index', { body: { docId } })
+        //       .then(() => console.log('Indexing started for', docId))
+        //       .catch((e) => console.warn('Indexing invoke failed:', e?.message || e));
+        //   }
+        // } catch (e: any) {
+        //   console.warn('Failed to start indexing:', e?.message || e);
+        // }
 
         // Show success feedback with animation
         setTimeout(() => {

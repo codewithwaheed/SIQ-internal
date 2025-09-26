@@ -105,6 +105,8 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               abortController={c.abortController}
               onStopGeneration={c.handleStopGeneration}
               setMessageToSend={c.setMessageToSend}
+              indexingBlocked={c.indexingBlocked}
+              indexingHint={c.indexingHint}
             />
           </EmptyStateHero>
         </div>
@@ -249,6 +251,8 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               abortController={c.abortController}
               onStopGeneration={c.handleStopGeneration}
               setMessageToSend={c.setMessageToSend}
+              indexingBlocked={c.indexingBlocked}
+              indexingHint={c.indexingHint}
             />
           </div>
         </div>

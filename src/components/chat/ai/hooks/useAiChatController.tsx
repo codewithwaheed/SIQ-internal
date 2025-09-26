@@ -48,6 +48,7 @@ export default function useAiChatController(isDemo: boolean) {
   const hasAnchoredBottomRef = useRef(false);
   const reachedTopRef = useRef(false);
   const mutationKindRef = useRef<'prepend' | 'append' | null>(null);
+  const triggeredIndexDocsRef = useRef(new Set<string>());
 
   // ------- State
   const [messages, setMessages] = useState<Message[]>([]);
@@ -67,6 +68,8 @@ export default function useAiChatController(isDemo: boolean) {
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState<any[]>([]);
   const [activeDocuments, setActiveDocuments] = useState<string[]>([]);
+  const [indexingBlocked, setIndexingBlocked] = useState(false);
+  const [indexingHint, setIndexingHint] = useState<string | undefined>(undefined);
 
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [currentConversation, setCurrentConversation] = useState<CurrentConversation | null>(null);
@@ -147,6 +150,9 @@ export default function useAiChatController(isDemo: boolean) {
   // When returning from history list, snap to bottom and then arm pagination
   const prevShowHistoryRef = useRef(false);
   useEffect(() => {
+    triggeredIndexDocsRef.current.clear();
+  }, [currentConversationId]);
+  useEffect(() => {
     if (prevShowHistoryRef.current && !showChatHistory) {
       scrollToBottomAfterRender(false);
       setTimeout(armAfterBottom, 50);
@@ -193,6 +199,43 @@ export default function useAiChatController(isDemo: boolean) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isDemo, location.pathname, params.conversationId]);
+
+  // Derive indexing gate from activeDocuments + uploadedDocuments
+  useEffect(() => {
+    if (!activeDocuments || activeDocuments.length === 0) {
+      setIndexingBlocked(false);
+      setIndexingHint(undefined);
+      return;
+    }
+    // Map by id for quick lookups
+    const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
+    let minProgress = 100;
+    let anyQueuedOrProcessing = false;
+    let anyFailed = false;
+    for (const id of activeDocuments) {
+      const d: any = byId.get(id);
+      if (!d) continue;
+      const status = (d.processing_status as string) || 'pending';
+      const progress = Number(d.index_progress ?? 0);
+      minProgress = Math.min(minProgress, progress);
+      if (status === 'failed') anyFailed = true;
+      if (status !== 'completed') anyQueuedOrProcessing = true;
+    }
+    if (anyFailed) {
+      setIndexingBlocked(true);
+      setIndexingHint('Document indexing failed. Please re-upload.');
+      return;
+    }
+    // Gate sending until first chunks are indexed for attached docs
+    // Allow send once progress >= 10 (first batch ready) or marked completed
+    if (anyQueuedOrProcessing && minProgress < 10) {
+      setIndexingBlocked(true);
+      setIndexingHint(`Preparing document… ${minProgress}%`);
+    } else {
+      setIndexingBlocked(false);
+      setIndexingHint(undefined);
+    }
+  }, [activeDocuments, uploadedDocuments]);
 
   // Realtime document updates for progress/status
   useEffect(() => {
@@ -288,6 +331,7 @@ export default function useAiChatController(isDemo: boolean) {
     docIds: string[],
     docNames?: string[],
     docMeta?: Array<{ id: string; name: string; type?: string; size?: number }>,
+    preferInlineDocs: boolean = true,
   ) => {
     const merged = Array.from(new Set([...(activeDocuments || []), ...docIds])).slice(0, 3);
     // Update UI state for active docs
@@ -299,6 +343,7 @@ export default function useAiChatController(isDemo: boolean) {
       activeDocumentsOverride: merged,
       documentNamesOverride: (docNames || []).slice(0, 3),
       docMetaOverride: docMeta,
+      preferInlineDocsFlag: preferInlineDocs,
     });
   };
 
@@ -920,8 +965,28 @@ export default function useAiChatController(isDemo: boolean) {
     contentOverride?: string;
     activeDocumentsOverride?: string[];
     documentNamesOverride?: string[];
+    preferInlineDocsFlag?: boolean;
   }) => {
     if (loading) return;
+
+    // Block sending if attached docs haven't produced initial chunks yet
+    const idsToCheck = (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length)
+      ? opts.activeDocumentsOverride
+      : activeDocuments;
+    if (idsToCheck && idsToCheck.length > 0) {
+      const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
+      let anyFailed = false;
+      for (const id of idsToCheck) {
+        const d: any = byId.get(id);
+        if (!d) continue;
+        const status = (d.processing_status as string) || 'pending';
+        if (status === 'failed') anyFailed = true;
+      }
+      if (anyFailed) {
+        toast({ title: 'Document indexing failed', description: 'Please re-upload and try again.', variant: 'destructive' });
+        return;
+      }
+    }
 
     const rawFromState = input.trim().length ? input : messageToSend.trim();
     const raw = (opts?.contentOverride ?? '').trim().length
@@ -1023,6 +1088,21 @@ export default function useAiChatController(isDemo: boolean) {
       }
     }
 
+    const docsToIndex = (usedDocIds || []).filter((id) => !triggeredIndexDocsRef.current.has(id));
+    if (docsToIndex.length > 0) {
+      docsToIndex.forEach((id) => triggeredIndexDocsRef.current.add(id));
+      docsToIndex.forEach((docId) => {
+        void supabase.functions
+          .invoke('qdrant-index', {
+            body: {
+              docId,
+              conversationId: currentConversationId || undefined,
+            },
+          })
+          .catch((err) => console.warn('qdrant-index invoke failed:', err));
+      });
+    }
+
     // If attached docs are still indexing, inform the user (non-blocking)
     try {
       if (Array.isArray(usedDocIds) && usedDocIds.length > 0) {
@@ -1092,19 +1172,15 @@ export default function useAiChatController(isDemo: boolean) {
     }, 150);
 
     let timeoutCleared = false;
+    // Allow more time for first tokens from OpenAI; do not abort request.
     const chunkTimeout = setTimeout(() => {
       if (!timeoutCleared && !abortController?.signal.aborted) {
-        if (abortController) abortController.abort();
-        setLoading(false);
-        setFirstChunkTimeout(null);
         toast({
-          title: 'Server busy',
-          description: 'Please try again in a moment.',
-          variant: 'destructive',
-          action: { label: 'Retry', onClick: () => handleRetry(sanitizedMessage) } as any,
+          title: 'Still working…',
+          description: 'This may take a bit longer for large documents.',
         });
       }
-    }, 10000);
+    }, 30000);
     setFirstChunkTimeout(chunkTimeout);
 
     const controller = new AbortController();
@@ -1136,6 +1212,8 @@ export default function useAiChatController(isDemo: boolean) {
               ? opts.activeDocumentsOverride
               : activeDocuments
             : undefined,
+          // Hint backend to use inline-docs for first-turn analysis with fresh uploads
+          ...(opts?.preferInlineDocsFlag ? { preferInlineDocs: true } : {}),
           isDemo: false,
         },
         signal: controller.signal,
@@ -1430,6 +1508,8 @@ export default function useAiChatController(isDemo: boolean) {
     uploadedDocuments,
     activeDocuments,
     setActiveDocuments,
+    indexingBlocked,
+    indexingHint,
     showDocumentUpload,
     setShowDocumentUpload,
     isNearBottom,

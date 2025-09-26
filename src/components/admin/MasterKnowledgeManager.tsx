@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { ExternalSourcesManager } from './ExternalSourcesManager';
+import { extractTextFromFile, type ExtractionQuality } from '@/lib/documentExtraction';
 
 interface MasterKnowledgeDocument {
   id: string;
@@ -130,6 +131,19 @@ export const MasterKnowledgeManager = () => {
         frameworkCategory: uploadForm.frameworkCategory,
       });
 
+      let extractedText: string | null = null;
+      let extractionQuality: ExtractionQuality | null = null;
+
+      try {
+        const extraction = await extractTextFromFile(selectedFile);
+        if (extraction) {
+          extractedText = extraction.text;
+          extractionQuality = extraction.quality;
+        }
+      } catch (error) {
+        console.warn('Client-side extraction failed; continuing without extracted text:', error);
+      }
+
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('title', uploadForm.title);
@@ -145,6 +159,12 @@ export const MasterKnowledgeManager = () => {
             .filter(Boolean),
         ),
       );
+      if (extractedText) {
+        formData.append('extracted_text', extractedText);
+      }
+      if (extractionQuality) {
+        formData.append('extraction_quality', JSON.stringify(extractionQuality));
+      }
 
       console.log('Calling upload-master-knowledge function...');
       const { data, error } = await supabase.functions.invoke('upload-master-knowledge', {

@@ -197,6 +197,8 @@ serve(async (req) => {
       const contentType = formData.get('contentType') as string;
       const frameworkCategory = formData.get('frameworkCategory') as string;
       const tags = JSON.parse((formData.get('tags') as string) || '[]');
+      const clientExtractedText = (formData.get('extracted_text') as string) || '';
+      const sanitizedClientText = sanitizeExtractedText(clientExtractedText);
 
       if (!file || !title || !contentType || !frameworkCategory) {
         throw new Error('Missing required fields: file, title, contentType, frameworkCategory');
@@ -270,7 +272,9 @@ serve(async (req) => {
       console.log('Master knowledge record created:', docRecord.id);
 
       // Start background processing for text extraction and embedding generation
-      EdgeRuntime.waitUntil(processDocument(docRecord.id, uploadData.path, file.type));
+      EdgeRuntime.waitUntil(
+        processDocument(docRecord.id, uploadData.path, file.type, sanitizedClientText),
+      );
 
       return new Response(
         JSON.stringify({
@@ -301,7 +305,12 @@ serve(async (req) => {
   }
 });
 
-async function processDocument(documentId: string, filePath: string, fileType: string) {
+async function processDocument(
+  documentId: string,
+  filePath: string,
+  fileType: string,
+  preExtractedText?: string,
+) {
   try {
     console.log('Starting background processing for document:', documentId);
 
@@ -311,34 +320,22 @@ async function processDocument(documentId: string, filePath: string, fileType: s
       .update({ processing_status: 'processing' })
       .eq('id', documentId);
 
-    // Extract text from document
-    let extractedText = '';
+    let extractedText = sanitizeExtractedText(preExtractedText || '');
 
-    if (fileType === 'text/plain') {
-      // Download and read text file
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('user-documents')
-        .download(filePath);
+    if (!extractedText) {
+      if (fileType === 'text/plain') {
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('user-documents')
+          .download(filePath);
 
-      if (downloadError) {
-        throw new Error('Failed to download file');
+        if (downloadError) {
+          throw new Error('Failed to download text file');
+        }
+
+        extractedText = sanitizeExtractedText(await fileData.text());
+      } else {
+        throw new Error('No extracted text provided for document');
       }
-
-      extractedText = await fileData.text();
-    } else {
-      // For PDF and DOCX, call existing extract-text function
-      const { data: extractResult, error: extractError } = await supabase.functions.invoke(
-        'extract-text',
-        {
-          body: { filePath, fileType },
-        },
-      );
-
-      if (extractError || !extractResult?.success) {
-        throw new Error('Failed to extract text from document');
-      }
-
-      extractedText = extractResult.extractedText;
     }
 
     console.log('Text extracted, length:', extractedText.length);
@@ -371,6 +368,10 @@ async function processDocument(documentId: string, filePath: string, fileType: s
       .update({ processing_status: 'failed' })
       .eq('id', documentId);
   }
+}
+
+function sanitizeExtractedText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().slice(0, 50000);
 }
 
 async function generateMasterKnowledgeEmbeddings(documentId: string, text: string) {

@@ -39,6 +39,8 @@ serve(async (req) => {
       }
 
       const file = formData.get('file') as File;
+      const clientExtractedText = (formData.get('extracted_text') as string) || '';
+      const clientExtractionQuality = (formData.get('extraction_quality') as string) || '';
       const tagsJson = formData.get('tags') as string;
       const providedConversationId = formData.get('conversation_id') as string;
       const existingConversationId = formData.get('conversationId') as string | null;
@@ -58,7 +60,7 @@ serve(async (req) => {
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ];
-      const maxSize = 50 * 1024 * 1024; // 50MB max size
+      const maxSize = 10 * 1024 * 1024; // 10MB max size
       const minSize = 1; // 1 byte minimum
 
       // Comprehensive file validation
@@ -81,7 +83,7 @@ serve(async (req) => {
 
       if (file.size > maxSize) {
         return createErrorResponse(
-          'File too large. Maximum size is 50MB.',
+          'File too large. Maximum size is 10MB.',
           HTTP_STATUS.BAD_REQUEST,
           ERROR_CODES.INVALID_INPUT,
         );
@@ -190,73 +192,31 @@ serve(async (req) => {
         );
       }
 
-      // Extract text content with enhanced security
+      // Extract text content with enhanced security (prefer client-provided text if available and sufficient)
       let contentExtracted = '';
       let processingStatus = 'pending';
 
       try {
-        if (file.type === 'text/plain') {
-          // Sanitize text content to prevent XSS
+        console.log({
+          clientExtractionQuality,
+          clientExtractedTextLength: clientExtractedText.length,
+        });
+
+        if (clientExtractedText && clientExtractedText.length > 0) {
+          contentExtracted = InputSanitizer.sanitizeString(clientExtractedText, 50000);
+          processingStatus = 'pending';
+          console.log('[UPLOAD-DOCUMENT] Using client-provided extracted text:', {
+            length: contentExtracted.length,
+          });
+        } else if (file.type === 'text/plain') {
           const rawText = await file.text();
-          contentExtracted = InputSanitizer.sanitizeString(rawText, 50000); // 50k char limit
-          // Mark as pending; indexing still needs to run
+          contentExtracted = InputSanitizer.sanitizeString(rawText, 50000);
           processingStatus = 'pending';
           console.log('Extracted and sanitized plain text:', {
             length: contentExtracted.length,
           });
-        } else if (file.type === 'application/pdf') {
-          // Enhanced PDF text extraction with security measures
-          const decoder = new TextDecoder('latin1');
-          let text = decoder.decode(bytes);
-
-          try {
-            // Extract text content using secure PDF parsing
-            const textMatches = text.match(/BT\s*.*?ET/gs) || [];
-            let extractedText = '';
-
-            for (const match of textMatches) {
-              // Secure text extraction - remove PDF operators
-              const cleanText = match
-                .replace(/BT|ET|Tf|Td|Tj|TJ|'/g, ' ')
-                .replace(/\[|\]|\(|\)/g, ' ')
-                .replace(/[0-9]+\.?[0-9]*\s+[0-9]+\.?[0-9]*\s+/g, ' ')
-                .replace(/\/\w+/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-              if (cleanText.length > 10) {
-                extractedText += cleanText + ' ';
-              }
-            }
-
-            // Fallback extraction if specific method fails
-            if (extractedText.length < 100) {
-              extractedText = text
-                .replace(/[\x00-\x1F\x7F-\xFF]/g, ' ')
-                .replace(/[^\w\s\.\,\!\?\-\:\;]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-            }
-
-            if (extractedText.length > 100) {
-              contentExtracted = InputSanitizer.sanitizeString(extractedText, 50000);
-              // Mark as pending; indexing still needs to run
-              processingStatus = 'pending';
-              console.log('Enhanced PDF text extracted and sanitized:', {
-                length: contentExtracted.length,
-              });
-            } else {
-              contentExtracted = `PDF document: ${sanitizedFileName} (Text extraction pending)`;
-              processingStatus = 'pending';
-            }
-          } catch (error) {
-            console.warn('PDF text extraction error:', error.message);
-            contentExtracted = `PDF document: ${sanitizedFileName} (Text extraction failed)`;
-            processingStatus = 'failed';
-          }
         } else {
-          // Handle other document types
-          contentExtracted = `Document: ${sanitizedFileName} (Type: ${file.type})`;
+          contentExtracted = `Document: ${sanitizedFileName} (Text extraction not provided)`;
           processingStatus = 'pending';
         }
       } catch (extractError) {

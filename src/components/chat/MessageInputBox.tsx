@@ -39,6 +39,8 @@ interface MessageInputBoxProps {
   onStopGeneration?: () => void;
   isEscalated?: boolean;
   escalationInfo?: any;
+  indexingBlocked?: boolean;
+  indexingHint?: string;
 }
 
 export const MessageInputBox = ({
@@ -58,6 +60,8 @@ export const MessageInputBox = ({
   abortController,
   onStopGeneration,
   isEscalated = false,
+  indexingBlocked = false,
+  indexingHint,
 }: MessageInputBoxProps) => {
   const { checkFeatureAccess } = useFeatureGating();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -152,13 +156,15 @@ export const MessageInputBox = ({
           <Textarea
             ref={inputRef}
             placeholder={
-              loading
+              indexingBlocked
+                ? indexingHint || 'Preparing your document… please wait'
+                : loading
                 ? isEscalated
                   ? 'Expert is responding…'
                   : 'AI is responding…'
                 : isEscalated
-                  ? 'Message your cybersecurity expert…'
-                  : 'Ask anything about security, compliance, or policies…'
+                ? 'Message your cybersecurity expert…'
+                : 'Ask anything about security, compliance, or policies…'
             }
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
@@ -194,9 +200,10 @@ export const MessageInputBox = ({
             <Button
               size="icon"
               onClick={onSendMessage}
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || indexingBlocked}
               aria-label="Send message"
-              className={sendBtn(!loading && !!input.trim())}
+              className={sendBtn(!loading && !!input.trim() && !indexingBlocked)}
+              title={indexingBlocked ? indexingHint || 'Indexing in progress' : undefined}
             >
               {loading ? (
                 <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent sm:h-4 sm:w-4" />

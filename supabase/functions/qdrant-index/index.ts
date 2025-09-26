@@ -67,7 +67,7 @@ async function ensureQdrantCollection(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['api-key'] = apiKey;
   try {
-    const getRes = await fetch(`${baseUrl}/collections/${collection}`);
+    const getRes = await fetch(`${baseUrl}/collections/${collection}`, { headers });
     if (getRes.ok) return; // exists
   } catch (_) {
     // continue to try create
@@ -89,11 +89,12 @@ async function ensureQdrantPayloadIndexes(
 ) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['api-key'] = apiKey;
-  const idxEndpoint = `${baseUrl}/collections/${collection}/points/index`;
+  // Correct payload index endpoint (no /points)
+  const idxEndpoint = `${baseUrl}/collections/${collection}/index`;
 
   async function getPayloadSchema(): Promise<Record<string, any>> {
     try {
-      const r = await fetch(`${baseUrl}/collections/${collection}`);
+      const r = await fetch(`${baseUrl}/collections/${collection}`, { headers });
       if (!r.ok) return {};
       const d = await r.json();
       return d?.result?.payload_schema ?? {};
@@ -107,14 +108,63 @@ async function ensureQdrantPayloadIndexes(
   for (const field of toEnsure) {
     if (existing && existing[field]) continue;
     try {
-      const body = { field_name: field, field_schema: 'keyword' };
-      const res = await fetch(idxEndpoint, { method: 'PUT', headers, body: JSON.stringify(body) });
+      // Try uuid index first; fallback to keyword object, then legacy string
+      let res = await fetch(idxEndpoint + '?wait=true', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ field_name: field, field_schema: { type: 'uuid' } }),
+      });
       if (!res.ok) {
         const t = await res.text();
-        if (!/already exists|Index exists/i.test(String(t))) console.warn('[qdrant-index] Index create warn:', t);
+        if (!/unsupported|cannot|bad request/i.test(String(t))) console.warn('[qdrant-index] Index create warn:', t);
+        // Some Qdrant versions require POST instead of PUT
+        if (res.status === 404) {
+          res = await fetch(idxEndpoint + '?wait=true', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ field_name: field, field_schema: { type: 'uuid' } }),
+          });
+        }
+        // Retry with keyword
+        res = await fetch(idxEndpoint + '?wait=true', {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ field_name: field, field_schema: { type: 'keyword' } }),
+        });
+        if (!res.ok) {
+          const t2 = await res.text();
+          if (!/already exists|Index exists/i.test(String(t2))) console.warn('[qdrant-index] Index create warn:', t2);
+          if (res.status === 404) {
+            res = await fetch(idxEndpoint + '?wait=true', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ field_name: field, field_schema: { type: 'keyword' } }),
+            });
+          }
+          const r3 = await fetch(idxEndpoint + '?wait=true', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ field_name: field, field_schema: 'keyword' }),
+          });
+          if (!r3.ok) {
+            const t3 = await r3.text();
+            if (!/already exists|Index exists/i.test(String(t3))) console.warn('[qdrant-index] Index create warn:', t3);
+            if (r3.status === 404) {
+              const r4 = await fetch(idxEndpoint + '?wait=true', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ field_name: field, field_schema: 'keyword' }),
+              });
+              if (!r4.ok) {
+                const t4 = await r4.text();
+                if (!/already exists|Index exists/i.test(String(t4))) console.warn('[qdrant-index] Index create warn:', t4);
+              }
+            }
+          }
+        }
       }
       // Poll until index appears (best-effort)
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 25; i++) {
         const schema = await getPayloadSchema();
         if (schema && schema[field]) break;
         await new Promise((r) => setTimeout(r, 200));
@@ -210,7 +260,7 @@ serve(async (req) => {
 
     const { data: doc, error: docError } = await supabase
       .from('documents')
-      .select('id, user_id, file_name, file_path, file_type, content_extracted')
+      .select('id, user_id, file_name, file_path, file_type, content_extracted, conversation_id')
       .eq('id', docId)
       .single();
     if (docError || !doc) {
@@ -238,14 +288,7 @@ serve(async (req) => {
         if (downloadError || !fileData) throw new Error('Failed to download text file');
         text = (await fileData.text()).replace(/\s+/g, ' ').trim();
       } else {
-        const { data: extractResult, error: extractError } = await supabase.functions.invoke(
-          'extract-text',
-          { body: { filePath: doc.file_path, fileType: doc.file_type } },
-        );
-        if (extractError || !extractResult?.success) throw new Error('Text extraction failed');
-        text = String(extractResult.extractedText || '')
-          .replace(/\s+/g, ' ')
-          .trim();
+        throw new Error('Document is missing extracted text. Please re-upload with client extraction.');
       }
     }
     if (!text || text.length < 10) {
@@ -442,7 +485,7 @@ serve(async (req) => {
         vector,
         payload: {
           user_id: doc.user_id,
-          conversation_id: conversationId || null, // Use provided conversationId or null
+          conversation_id: conversationId ?? doc.conversation_id ?? null,
           doc_id: doc.id,
           file_name: doc.file_name,
           chunk_id: i,

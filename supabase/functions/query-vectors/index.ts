@@ -24,24 +24,7 @@ function resolveModelFallbacks(primary?: string): string[] {
   return list;
 }
 
-// Generate embedding for query (with model fallbacks)
-function fakeEmbed(text: string, dim: number): number[] {
-  const vec = new Array<number>(dim).fill(0);
-  for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
-    vec[code % dim] += 1;
-  }
-  const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
-  return vec.map((v) => v / norm);
-}
-
 async function generateQueryEmbedding(query: string): Promise<number[]> {
-  const DISABLE = (Deno.env.get('DISABLE_EMBEDDINGS') || '').toLowerCase() === '1';
-  if (DISABLE) {
-    const dim = parseInt(Deno.env.get('EMBEDDING_DIM') ?? '256', 10) || 256;
-    return fakeEmbed(query, dim);
-  }
-
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiKey) {
     throw new Error('OpenAI API key not configured');
@@ -73,10 +56,7 @@ async function generateQueryEmbedding(query: string): Promise<number[]> {
       lastErr = e;
     }
   }
-  // As a last resort, generate a fake vector so local dev continues
-  const dim = parseInt(Deno.env.get('EMBEDDING_DIM') ?? '256', 10) || 256;
-  console.warn('[QUERY-VECTORS] Falling back to fake embeddings for query');
-  return fakeEmbed(query, dim);
+  throw lastErr || new Error('Failed to generate query embedding');
 }
 
 serve(async (req) => {
@@ -91,6 +71,7 @@ serve(async (req) => {
       conversationId,
       activeDocuments,
       topK = 5,
+      mode,
     } = await req.json();
 
     if (!query || !userId) {
@@ -102,7 +83,21 @@ serve(async (req) => {
     const QDRANT_COLLECTION = Deno.env.get('QDRANT_COLLECTION') ?? 'user_docs';
     if (!QDRANT_URL) throw new Error('QDRANT_URL not configured');
 
-    console.log(`[QUERY-VECTORS] Qdrant search for: "${query}" user=${userId} conv=${conversationId ?? 'n/a'}`);
+    console.log(
+      `[QUERY-VECTORS] Qdrant search for: "${query}" user=${userId} conv=${conversationId ?? 'n/a'} | mode=${mode ?? 'vector'} | collection=${QDRANT_COLLECTION}`,
+    );
+    if (Array.isArray(activeDocuments) && activeDocuments.length > 0) {
+      console.log(`[QUERY-VECTORS] Restricting to docs: ${activeDocuments.join(',')}`);
+    }
+
+    // If no documents are explicitly attached, skip retrieval entirely.
+    // This avoids unnecessary embedding/Qdrant calls when a general answer is sufficient.
+    if (!Array.isArray(activeDocuments) || activeDocuments.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, relevant_chunks: [], query, skipped: 'no_active_documents' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
 
     // Generate embedding for the query
     let queryEmbedding: number[];
@@ -130,7 +125,7 @@ serve(async (req) => {
     // Helper to ensure payload indexes if Qdrant requests them
     async function getPayloadSchema(): Promise<Record<string, any>> {
       try {
-        const info = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}`);
+        const info = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}` , { headers });
         if (!info.ok) return {};
         const data = await info.json();
         return data?.result?.payload_schema ?? {};
@@ -141,25 +136,82 @@ serve(async (req) => {
 
     async function ensurePayloadIndexes() {
       const existing = await getPayloadSchema();
-      const idxEndpoint = `${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/index`;
+      try {
+        const keys = Object.keys(existing || {});
+        console.log('[QUERY-VECTORS] Existing payload_schema keys:', keys.length ? keys.join(',') : '(none)');
+      } catch {}
+      // Correct Qdrant payload index endpoint (no /points)
+      const idxEndpoint = `${QDRANT_URL}/collections/${QDRANT_COLLECTION}/index`;
       const toEnsure = ['user_id', 'conversation_id', 'doc_id'];
       for (const field of toEnsure) {
         if (existing && existing[field]) continue;
         try {
-          const body = { field_name: field, field_schema: 'keyword' };
-          const r = await fetch(idxEndpoint, { method: 'PUT', headers, body: JSON.stringify(body) });
+          // Prefer uuid type, fallback to keyword
+          console.log(`[QUERY-VECTORS] Creating payload index field=${field} as uuid`);
+          let r = await fetch(idxEndpoint + '?wait=true', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ field_name: field, field_schema: { type: 'uuid' } }),
+          });
           if (!r.ok) {
             const t = await r.text();
-            if (!/already exists|Index exists/i.test(String(t))) {
-              console.warn('[QUERY-VECTORS] Index create warn:', t);
+            console.warn(`[QUERY-VECTORS] Index create warn (uuid) status=${r.status}:`, t);
+            // Some Qdrant versions expect POST instead of PUT
+            if (r.status === 404) {
+              r = await fetch(idxEndpoint + '?wait=true', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ field_name: field, field_schema: { type: 'uuid' } }),
+              });
+            }
+            r = await fetch(idxEndpoint + '?wait=true', {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({ field_name: field, field_schema: { type: 'keyword' } }),
+            });
+            if (!r.ok) {
+              const t2 = await r.text();
+              console.warn(`[QUERY-VECTORS] Index create warn (keyword obj) status=${r.status}:`, t2);
+              if (r.status === 404) {
+                r = await fetch(idxEndpoint + '?wait=true', {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({ field_name: field, field_schema: { type: 'keyword' } }),
+                });
+              }
+              // Final fallback: legacy string schema
+              const r3 = await fetch(idxEndpoint + '?wait=true', {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ field_name: field, field_schema: 'keyword' }),
+              });
+              if (!r3.ok) {
+                const t3 = await r3.text();
+                console.warn(`[QUERY-VECTORS] Index create warn (keyword str) status=${r3.status}:`, t3);
+                if (r3.status === 404) {
+                  const r4 = await fetch(idxEndpoint + '?wait=true', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ field_name: field, field_schema: 'keyword' }),
+                  });
+                  if (!r4.ok) {
+                    const t4 = await r4.text();
+                    console.warn(`[QUERY-VECTORS] Index create warn (keyword str, POST) status=${r4.status}:`, t4);
+                  }
+                }
+              }
             }
           }
           // Poll until index appears (best-effort)
-          for (let i = 0; i < 10; i++) {
+          for (let i = 0; i < 25; i++) {
             const schema = await getPayloadSchema();
             if (schema && schema[field]) break;
             await new Promise((res) => setTimeout(res, 200));
           }
+          const after = await getPayloadSchema();
+          try {
+            console.log('[QUERY-VECTORS] Payload_schema after ensure keys:', Object.keys(after || {}).join(','));
+          } catch {}
         } catch (e) {
           console.warn('[QUERY-VECTORS] Failed to ensure index', field, e);
         }
@@ -167,6 +219,8 @@ serve(async (req) => {
     }
 
     async function doSearch() {
+      console.log('[QUERY-VECTORS] Building vector search with filter.must');
+      try { console.log(JSON.stringify({ must }, null, 2)); } catch {}
       return fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/search`, {
         method: 'POST',
         headers,
@@ -180,6 +234,77 @@ serve(async (req) => {
       });
     }
 
+    // Whole-document path (summarize/analyze): fetch ordered chunks without vector search
+    if (mode === 'doc_scroll' && Array.isArray(activeDocuments) && activeDocuments.length > 0) {
+      await ensurePayloadIndexes();
+      const scrollRes = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/scroll`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          filter: { must },
+          with_payload: true,
+          limit: Math.max(10, Math.min(200, topK * 4)),
+        }),
+      });
+      if (!scrollRes.ok) {
+        const err = await scrollRes.text();
+        console.error('[QUERY-VECTORS] Qdrant scroll error:', err);
+        // Fallback: if user_id index is missing, try doc_id-only filter (ownership already verified upstream)
+        if (/Index required.*"user_id"/i.test(err)) {
+          const mustDocOnly: any[] = [{ key: 'doc_id', match: { any: activeDocuments } }];
+          const scrollRes2 = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/scroll`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              filter: { must: mustDocOnly },
+              with_payload: true,
+              limit: Math.max(10, Math.min(200, topK * 4)),
+            }),
+          });
+          if (scrollRes2.ok) {
+            const scrollData = await scrollRes2.json();
+            const pts = (scrollData?.result?.points ?? []) as Array<{ payload?: any }>;
+            const ordered = pts
+              .map((p) => ({
+                text: p?.payload?.text ?? '',
+                score: 1,
+                doc_id: p?.payload?.doc_id ?? '',
+                file_name: p?.payload?.file_name ?? '',
+                chunk_id: p?.payload?.chunk_id ?? 0,
+                conversation_id: p?.payload?.conversation_id ?? null,
+              }))
+              .sort((a, b) => (a.doc_id === b.doc_id ? a.chunk_id - b.chunk_id : a.doc_id.localeCompare(b.doc_id)))
+              .slice(0, Math.max(10, Math.min(100, topK * 4)));
+            return new Response(
+              JSON.stringify({ success: true, relevant_chunks: ordered, query, degraded: true }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+            );
+          }
+        }
+        return new Response(
+          JSON.stringify({ success: true, relevant_chunks: [], query, fallback: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        );
+      }
+      const scrollData = await scrollRes.json();
+      const pts = (scrollData?.result?.points ?? []) as Array<{ payload?: any }>; // deno-lint-ignore no-explicit-any
+      const ordered = pts
+        .map((p) => ({
+          text: p?.payload?.text ?? '',
+          score: 1,
+          doc_id: p?.payload?.doc_id ?? '',
+          file_name: p?.payload?.file_name ?? '',
+          chunk_id: p?.payload?.chunk_id ?? 0,
+          conversation_id: p?.payload?.conversation_id ?? null,
+        }))
+        .sort((a, b) => (a.doc_id === b.doc_id ? a.chunk_id - b.chunk_id : a.doc_id.localeCompare(b.doc_id)))
+        .slice(0, Math.max(10, Math.min(100, topK * 4)));
+      return new Response(
+        JSON.stringify({ success: true, relevant_chunks: ordered, query }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
+
     let searchRes = await doSearch();
     if (!searchRes.ok) {
       const err = await searchRes.text();
@@ -187,12 +312,33 @@ serve(async (req) => {
         console.warn('[QUERY-VECTORS] Missing payload index. Creating and retrying once.');
         await ensurePayloadIndexes();
         searchRes = await doSearch();
+        if (!searchRes.ok && /Index required.*"user_id"/i.test(err) && Array.isArray(activeDocuments) && activeDocuments.length > 0) {
+          // Secondary fallback: remove user_id from filter but keep doc_id restriction
+          const mustDocOnly: any[] = [{ key: 'doc_id', match: { any: activeDocuments } }];
+          console.warn('[QUERY-VECTORS] Fallback to doc_id-only filter (dropping user_id)');
+          try { console.log(JSON.stringify({ must: mustDocOnly }, null, 2)); } catch {}
+          searchRes = await fetch(`${QDRANT_URL}/collections/${QDRANT_COLLECTION}/points/search`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              vector: queryEmbedding,
+              limit: Math.max(1, Math.min(20, topK)),
+              with_payload: true,
+              filter: { must: mustDocOnly },
+              score_threshold: 0.0,
+            }),
+          });
+        }
       }
     }
 
     if (!searchRes.ok) {
       const err = await searchRes.text();
       console.error('[QUERY-VECTORS] Qdrant search error:', err);
+      try {
+        const schema = await getPayloadSchema();
+        console.log('[QUERY-VECTORS] Current payload_schema keys at failure:', Object.keys(schema || {}).join(','));
+      } catch {}
       return new Response(
         JSON.stringify({ success: true, relevant_chunks: [], query, fallback: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },

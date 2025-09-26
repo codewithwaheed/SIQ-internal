@@ -15,12 +15,13 @@ export async function retrieveContext(
     activeDocuments?: string[];
     query: string;
     topK?: number;
+    mode?: 'vector' | 'doc_scroll';
   },
 ): Promise<RetrievedChunk[]> {
-  const { userId, conversationId, activeDocuments, query, topK = 5 } = params;
+  const { userId, conversationId, activeDocuments, query, topK = 5, mode } = params;
   try {
     const { data, error } = await supabaseAdmin.functions.invoke('query-vectors', {
-      body: { query, userId, conversationId, activeDocuments, topK },
+      body: { query, userId, conversationId, activeDocuments, topK, mode },
     });
     if (error) return [];
     const chunks: RetrievedChunk[] = data?.relevant_chunks || [];

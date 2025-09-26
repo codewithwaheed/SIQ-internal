@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuditLogger } from '@/lib/audit-logger';
+import { extractTextFromFile, type ExtractionQuality } from '@/lib/documentExtraction';
 
 interface Document {
   id: string;
@@ -85,10 +86,11 @@ export const DocumentUpload = ({
       toast({ title: 'Invalid file', description: err, variant: 'destructive' });
       return;
     }
-    if (uploadedDocs.length >= 3) {
+    if (uploadedDocs.length >= 1) {
       toast({
         title: 'Attachment limit',
-        description: 'You can attach up to 3 files.',
+        description:
+          'Only one document can be attached at a time. Remove the current file to upload another.',
         variant: 'destructive',
       });
       return;
@@ -104,15 +106,15 @@ export const DocumentUpload = ({
     try {
       // First, create or ensure we have a conversation ID
       let finalConversationId = conversationId;
-      
+
       if (!finalConversationId) {
         console.log('Creating new conversation for document upload...');
         const conversationTitle = `Document Analysis: ${file.name.replace(/\.[^/.]+$/, '')}`;
-        
+
         if (!user?.id) {
           throw new Error('User must be authenticated to create conversations');
         }
-        
+
         const { data: newConversation, error: convError } = await supabase
           .from('chat_conversations')
           .insert({
@@ -126,14 +128,30 @@ export const DocumentUpload = ({
         if (convError || !newConversation) {
           throw new Error('Failed to create conversation for document');
         }
-        
+
         finalConversationId = newConversation.id;
         console.log('Created conversation:', finalConversationId);
       }
 
+      // Attempt client-side text extraction so the backend receives ready-to-index content
+      let clientText: string | null = null;
+      let clientQuality: ExtractionQuality | null = null;
+
+      try {
+        const result = await extractTextFromFile(file);
+        if (result) {
+          clientText = result.text;
+          clientQuality = result.quality;
+        }
+      } catch (error) {
+        console.warn('Client-side extraction failed; proceeding without it:', error);
+      }
+
       const formData = new FormData();
       formData.append('file', file);
-      
+      if (clientText) formData.append('extracted_text', clientText);
+      if (clientQuality) formData.append('extraction_quality', JSON.stringify(clientQuality));
+
       // Always include conversation ID now
       formData.append('conversation_id', finalConversationId);
 
@@ -148,9 +166,7 @@ export const DocumentUpload = ({
       const docType = (data.document.file_type as string) || file.type;
       const docSize = (data.document.file_size as number) || file.size;
 
-      setUploadedDocs((prev) =>
-        [...prev, { id: docId, name: docName, type: docType, size: docSize }].slice(0, 3),
-      );
+      setUploadedDocs([{ id: docId, name: docName, type: docType, size: docSize }]);
       setUploadProgress(100);
       if (user) {
         AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, docId, {
@@ -162,17 +178,17 @@ export const DocumentUpload = ({
       if (onDocumentUploaded) onDocumentUploaded(data.document);
 
       // Kick off indexing on the client side without blocking UI
-      try {
-        // Fire-and-forget; handle completion via Realtime document updates
-        void supabase.functions
-          .invoke('qdrant-index', {
-            body: { docId, conversationId: finalConversationId },
-          })
-          .then(() => console.log('Indexing started for', docId))
-          .catch((e) => console.warn('Indexing invoke failed:', e?.message || e));
-      } catch (e: any) {
-        console.warn('Failed to start indexing:', e?.message || e);
-      }
+      // try {
+      //   // Fire-and-forget; handle completion via Realtime document updates
+      //   void supabase.functions
+      //     .invoke('qdrant-index', {
+      //       body: { docId, conversationId: finalConversationId },
+      //     })
+      //     .then(() => console.log('Indexing started for', docId))
+      //     .catch((e) => console.warn('Indexing invoke failed:', e?.message || e));
+      // } catch (e: any) {
+      //   console.warn('Failed to start indexing:', e?.message || e);
+      // }
 
       toast({
         title: 'Processing document',
@@ -212,10 +228,10 @@ export const DocumentUpload = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (uploadedDocs.length >= 3) {
+    if (uploadedDocs.length >= 1) {
       toast({
         title: 'Attachment limit',
-        description: 'You can attach up to 3 files per message.',
+        description: 'Only one PDF can be attached per message.',
         variant: 'destructive',
       });
       // clear selection so same file change triggers again later
@@ -306,7 +322,7 @@ export const DocumentUpload = ({
                   <p className="text-lg font-medium text-foreground">
                     {uploading ? 'Uploading...' : 'Drop your document here or click to browse'}
                   </p>
-                  <p className="mt-1 text-sm text-muted-foreground">PDF or DOCX (max 10MB)</p>
+              <p className="mt-1 text-sm text-muted-foreground">PDF or DOCX (max 10MB)</p>
                 </div>
 
                 {!uploading && (
@@ -332,9 +348,7 @@ export const DocumentUpload = ({
             {/* Uploaded files tiles (up to 3) */}
             {uploadedDocs.length > 0 && (
               <div className="mt-4">
-                <Label className="mb-2 block">
-                  Attached file{uploadedDocs.length > 1 ? 's' : ''}
-                </Label>
+                <Label className="mb-2 block">Attached document</Label>
                 <div className="flex flex-col gap-2">
                   {uploadedDocs.map((f, idx) => (
                     <div

@@ -26,6 +26,8 @@ interface Props {
   abortController: AbortController | null;
   onStopGeneration: () => void;
   setMessageToSend: (masked: string) => void;
+  indexingBlocked?: boolean;
+  indexingHint?: string;
 }
 
 export function ComposerShell({
@@ -46,6 +48,8 @@ export function ComposerShell({
   abortController,
   onStopGeneration,
   setMessageToSend,
+  indexingBlocked,
+  indexingHint,
 }: Props) {
   return (
     <>
@@ -67,6 +71,8 @@ export function ComposerShell({
         inputRef={inputRef}
         abortController={abortController}
         onStopGeneration={onStopGeneration}
+        indexingBlocked={indexingBlocked}
+        indexingHint={indexingHint}
       />
     </>
   );

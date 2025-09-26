@@ -7,6 +7,7 @@ import { selectModel, callModelStream } from './lib/model.ts';
 import { deriveTitleFromFirstMessage } from './lib/title.ts';
 import { systemPrompt } from './lib/memory.ts';
 import { retrieveContext, RetrievedChunk } from './lib/rag.ts';
+import { classifyIntent, Intent } from './lib/intent.ts';
 import { sseHeaders, streamCachedReplay } from './lib/sse.ts';
 import { generateFollowups } from './lib/followups.ts';
 import {
@@ -53,7 +54,7 @@ serve(async (req) => {
       );
     }
 
-    const { content, message, conversationId, title, activeDocuments, isDemo } = body;
+    const { content, message, conversationId, title, activeDocuments, isDemo, preferInlineDocs } = body as any;
 
     // Validate/sanitize input
     const userMessage: string | undefined = typeof content === 'string' ? content : message;
@@ -191,7 +192,13 @@ serve(async (req) => {
 
     // Validate and normalize attached documents (ids), cap to 3, and enforce ownership
     let attachedDocIds: string[] = [];
-    let attachedDocDetails: Array<{ id: string; name: string; type: string; size: number; uploaded_at?: string }> = [];
+    let attachedDocDetails: Array<{
+      id: string;
+      name: string;
+      type: string;
+      size: number;
+      uploaded_at?: string;
+    }> = [];
     if (!isDemo && Array.isArray(activeDocuments)) {
       const requested = (activeDocuments as any[])
         .filter((v) => typeof v === 'string')
@@ -250,7 +257,13 @@ serve(async (req) => {
 
     // Smart coordination with document indexing to reduce "empty context" replies
     async function getDocIndexStates(ids: string[]) {
-      if (ids.length === 0) return [] as Array<{ id: string; processing_status?: string | null; index_progress?: number | null; index_step?: string | null }>;
+      if (ids.length === 0)
+        return [] as Array<{
+          id: string;
+          processing_status?: string | null;
+          index_progress?: number | null;
+          index_step?: string | null;
+        }>;
       try {
         const { data } = await supabaseAdmin
           .from('documents')
@@ -275,23 +288,102 @@ serve(async (req) => {
       while (Date.now() - start < maxWaitMs) {
         const states = await getDocIndexStates(attachedDocIds);
         const anyReady = states.some(
-          (s) => (s.processing_status === 'completed') || ((s.index_progress ?? 0) >= 10),
+          (s) => s.processing_status === 'completed' || (s.index_progress ?? 0) >= 10,
         );
         if (anyReady) break;
         await new Promise((r) => setTimeout(r, 400));
       }
     }
 
-    // RAG: retrieve relevant context chunks
+    // Decide retrieval mode based on user intent
+    const intent: Intent = classifyIntent(sanitizedMessage, attachedDocIds.length);
+    const hasActiveDocs = attachedDocIds.length > 0;
+    const retrievalMode = hasActiveDocs
+      ? (intent === 'doc_summary' ? 'doc_scroll' : 'vector')
+      : null;
+    const topK = intent === 'doc_summary' ? 20 : 5;
+    try {
+      console.log('[CHAT-WITH-AI] Classified intent -', JSON.stringify({ intent, retrievalMode, topK, userId: user?.id }));
+      if (!hasActiveDocs) console.log('[CHAT-WITH-AI] No active documents; skipping RAG and using general LLM answer');
+    } catch {}
+    logStep('Classified intent', { intent, retrievalMode, topK, userId: user.id });
+    // Inline-docs fast path: when a new doc is attached this turn, skip Qdrant and stream using extracted text.
+    async function shouldUseInlineDocs(docIds: string[]): Promise<boolean> {
+      if (!preferInlineDocs && !docIds.length) return false;
+      try {
+        const { data } = await supabaseAdmin
+          .from('documents')
+          .select('id, processing_status, index_progress, uploaded_at')
+          .in('id', docIds);
+        const rows = (data || []) as Array<{ id: string; processing_status?: string | null; index_progress?: number | null }>
+        // Use inline if explicitly requested OR indexing is not ready (<10%) for any attached doc
+        const anyCold = rows.some((r) => (r.index_progress ?? 0) < 10 || (r.processing_status ?? 'pending') !== 'completed');
+        return preferInlineDocs === true || anyCold;
+      } catch {
+        // If we cannot determine state but user asked explicitly, honor it
+        return !!preferInlineDocs;
+      }
+    }
+
+    // Fetch extracted text for inline-docs path
+    async function fetchInlineDocContext(
+      docIds: string[],
+      { maxCharsPerDoc = 12000, maxDocs = 2 }: { maxCharsPerDoc?: number; maxDocs?: number } = {},
+    ): Promise<string> {
+      try {
+        const { data } = await supabaseAdmin
+          .from('documents')
+          .select('id, file_name, content_extracted')
+          .in('id', docIds.slice(0, maxDocs));
+        const docs = (data || []) as Array<{ id: string; file_name?: string | null; content_extracted?: string | null }>;
+        const parts: string[] = [];
+        for (const [index, d] of docs.entries()) {
+          const name = d.file_name || d.id;
+          const text = (d.content_extracted || '').replace(/\s+/g, ' ').trim();
+          if (!text) continue;
+          const limited = text.slice(0, maxCharsPerDoc);
+          parts.push(`--- BEGIN ${name} (page window ${index + 1}) ---\n${limited}\n--- END ${name} ---`);
+        }
+        return parts.join('\n\n');
+      } catch {
+        return '';
+      }
+    }
+
+    const recentUploadThresholdMs = 5 * 60 * 1000;
+    const now = Date.now();
+    const hasFreshUpload = attachedDocDetails.some((doc) => {
+      if (!doc.uploaded_at) return false;
+      const uploaded = new Date(doc.uploaded_at).getTime();
+      return !Number.isNaN(uploaded) && now - uploaded < recentUploadThresholdMs;
+    });
+
+    const useInline = !isDemo && user && hasActiveDocs ? await shouldUseInlineDocs(attachedDocIds) : false;
+    try {
+      console.log('[CHAT-WITH-AI] Retrieval decision', JSON.stringify({
+        preferInlineDocs: !!preferInlineDocs,
+        hasActiveDocs,
+        intent,
+        retrievalMode,
+        useInline,
+        attachedDocIdsCount: attachedDocIds.length,
+      }));
+    } catch {}
+
+    // RAG: retrieve relevant context chunks (skip entirely if no active docs OR if using inline-docs)
     let citations: RetrievedChunk[] = [];
-    if (!isDemo && user) {
+    if (!isDemo && user && hasActiveDocs && retrievalMode && !useInline) {
       citations = await retrieveContext(supabaseAdmin, {
         userId: user.id,
         conversationId: conversationData.id,
-        activeDocuments: attachedDocIds.length ? attachedDocIds : undefined,
+        activeDocuments: attachedDocIds,
         query: sanitizedMessage,
-        topK: 5,
+        topK,
+        mode: retrievalMode as any,
       });
+      try {
+        console.log('[CHAT-WITH-AI] RAG path used', JSON.stringify({ snippets: citations.length, topK }));
+      } catch {}
     }
 
     // Build context prompt from retrieved chunks
@@ -305,6 +397,23 @@ serve(async (req) => {
             )
             .join('\n')
         : '';
+
+    // If using inline docs, fetch extracted text and compose as direct context
+    let inlineDocContext = '';
+    if (useInline) {
+      const inlineOptions = {
+        maxCharsPerDoc: hasFreshUpload ? 20000 : 12000,
+        maxDocs: hasFreshUpload ? 3 : 2,
+      };
+      inlineDocContext = await fetchInlineDocContext(attachedDocIds, inlineOptions);
+      try {
+        console.log('[CHAT-WITH-AI] Inline-docs path used', JSON.stringify({
+          docIds: attachedDocIds,
+          inlineChars: inlineDocContext.length,
+          preview: inlineDocContext.slice(0, 300),
+        }));
+      } catch {}
+    }
 
     // Build model selection; use Responses API with Conversations
     const model = selectModel();
@@ -350,12 +459,36 @@ serve(async (req) => {
 
     // --- LIVE PATH: stream OpenAI to client, aggregate full text, then emit complete with followups ---
     logStep('Calling OpenAI', { model });
-    // Compose instructions to force grounding in context
-    const instructions = `${systemPrompt()}\n\nYou must answer only using the provided context.\n- If the answer is not in context, say you don't know.\n- Cite sources inline like [file:chunk].\n- Be concise and accurate.`;
+    // Compose instructions depending on intent and whether we have context
+    const hasContext = ragContext.trim().length > 0 || inlineDocContext.trim().length > 0;
+    let instructions = `${systemPrompt()}`;
+    if (intent === 'doc_summary') {
+      instructions += `\n\nTask: Summarize the attached document for a CISO.\n- Provide a concise, structured summary with sections: Executive summary, Key policies/controls, Requirements, Risks/Gaps, Next actions.\n- Format each section title in bold (Markdown) and include 2-3 sentences or bullet points that expand on the details.\n- Use only the provided context chunks. Cite sources like [file:chunk].`;
+    } else if (intent === 'compare') {
+      instructions += `\n\nTask: Compare attached documents.\n- Summarize similarities and differences, highlight conflicting requirements, and note risks.\n- Use only the provided context chunks. Cite sources like [file:chunk].`;
+    } else if (hasContext) {
+      instructions += `\n\nGrounding: Answer only using the provided context.\n- If the answer is not in context, say you don't know.\n- Cite sources inline like [file:chunk].\n- Be concise and accurate.`;
+    } else {
+      // No context available; general helpful assistant without strict grounding
+      instructions += `\n\nNo document context detected this turn. Answer using your cybersecurity knowledge. If the user expects document grounding, suggest attaching or finishing indexing.`;
+    }
 
-    const composedUserText = ragContext
-      ? `${ragContext}\n\nUser question: ${sanitizedMessage}`
+    instructions += `\n\nFormatting: Use bold Markdown headings for major sections and favor short paragraphs or bullet lists for implementation steps.`;
+
+    const composedUserText = hasContext
+      ? `${inlineDocContext ? `Inline document content:\n${inlineDocContext}\n\n` : ''}${ragContext ? `${ragContext}\n\n` : ''}User request: ${sanitizedMessage}`
       : sanitizedMessage;
+
+    // Log a safe summary of the final prompt composition (truncated)
+    try {
+      console.log('[CHAT-WITH-AI] Prompt composition', JSON.stringify({
+        hasContext,
+        inlineChars: inlineDocContext.length,
+        ragSnippets: citations.length,
+        userTextPreview: sanitizedMessage.slice(0, 200),
+        composedPreview: composedUserText.slice(0, 400),
+      }));
+    } catch {}
 
     const oaRes = await callModelStream(
       OPENAI_API_KEY,
@@ -392,11 +525,105 @@ serve(async (req) => {
           // Track the DB id of the inserted assistant message so we can enrich metadata later
           let insertedMessageId: string | null = null;
 
+          const collectFromContentArray = (items: unknown): string => {
+            if (!Array.isArray(items)) return '';
+            return items
+              .map((item) => {
+                if (!item) return '';
+                if (typeof item === 'string') return item;
+                if (typeof item === 'object') {
+                  const obj = item as Record<string, unknown>;
+                  if (typeof obj.text === 'string') return obj.text;
+                  if (Array.isArray(obj.text)) return collectFromContentArray(obj.text);
+                  if (Array.isArray(obj.content)) return collectFromContentArray(obj.content);
+                }
+                return '';
+              })
+              .filter(Boolean)
+              .join('');
+          };
+
+          const extractDeltaText = (event: Record<string, unknown>): string => {
+            let piece = '';
+
+            const choiceDelta = (event?.choices as any)?.[0]?.delta;
+            if (choiceDelta) {
+              const content = choiceDelta.content;
+              if (typeof content === 'string') piece += content;
+              if (Array.isArray(content)) piece += collectFromContentArray(content);
+            }
+
+            if (!piece && typeof event.delta === 'string') {
+              piece += event.delta as string;
+            }
+
+            if (!piece && typeof event.delta === 'object' && event.delta) {
+              const deltaObj = event.delta as Record<string, unknown>;
+              if (typeof deltaObj.text === 'string') piece += deltaObj.text;
+              if (Array.isArray(deltaObj.text)) piece += collectFromContentArray(deltaObj.text);
+              if (Array.isArray(deltaObj.content)) piece += collectFromContentArray(deltaObj.content);
+              if (typeof deltaObj.output_text === 'string') piece += deltaObj.output_text;
+              if (Array.isArray(deltaObj.output_text))
+                piece += collectFromContentArray(deltaObj.output_text);
+            }
+
+            if (!piece && typeof event.content === 'string') {
+              piece += event.content as string;
+            } else if (!piece && Array.isArray(event.content)) {
+              piece += collectFromContentArray(event.content as unknown[]);
+            }
+
+            if (!piece && typeof event.output_text === 'string') {
+              piece += event.output_text as string;
+            } else if (!piece && Array.isArray(event.output_text)) {
+              piece += collectFromContentArray(event.output_text as unknown[]);
+            }
+
+            return piece;
+          };
+
+          let debugLogged = 0;
+
+          const processSsePayload = (payload: string) => {
+            let piece = '';
+            try {
+              const parsed = JSON.parse(payload) as Record<string, unknown>;
+              piece = extractDeltaText(parsed);
+              if (piece) {
+                fullContent += piece;
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'chunk',
+                      content: piece,
+                      conversation_id: conversationData.id,
+                    })}\n\n`,
+                  ),
+                );
+              }
+            } catch (err) {
+              if (debugLogged < 5) {
+                try {
+                  console.log('[CHAT-WITH-AI] SSE parse error', payload, err);
+                } catch {}
+                debugLogged++;
+              }
+              return;
+            }
+
+            if (!piece && debugLogged < 5) {
+              try {
+                console.log('[CHAT-WITH-AI] Empty SSE delta interpreted', payload);
+              } catch {}
+              debugLogged++;
+            }
+          };
+
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            buffer += decoder.decode(value);
+            buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop() || '';
 
@@ -404,39 +631,154 @@ serve(async (req) => {
               if (!line.startsWith('data: ')) continue;
               const payload = line.slice(6).trim();
               if (payload === '[DONE]') continue;
+              processSsePayload(payload);
+            }
+          }
 
-              try {
-                const parsed = JSON.parse(payload);
-                // Handle both Chat Completions and Responses streaming formats
-                let piece: string | undefined = undefined;
-                // Chat Completions delta
-                piece = parsed?.choices?.[0]?.delta?.content ?? piece;
-                // Responses API delta
-                if (!piece && typeof parsed?.type === 'string') {
-                  // Common event: response.output_text.delta
-                  if (parsed.type.endsWith('.delta') && typeof parsed.delta === 'string') {
-                    piece = parsed.delta as string;
+          if (buffer.trim()) {
+            const trailing = buffer.split('\n');
+            buffer = '';
+            for (const line of trailing) {
+              if (!line.startsWith('data: ')) continue;
+              const payload = line.slice(6).trim();
+              if (payload === '[DONE]') continue;
+              processSsePayload(payload);
+            }
+          }
+
+          const fallbackModel = Deno.env.get('OPENAI_FALLBACK_MODEL') ?? 'gpt-4o-mini';
+
+          const streamChatCompletionFallback = async () => {
+            const fallbackRes = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: fallbackModel,
+                messages: [
+                  ...(instructions ? [{ role: 'system', content: instructions }] : []),
+                  { role: 'user', content: composedUserText },
+                ],
+                stream: true,
+                max_completion_tokens: 1500,
+                temperature: 0.7,
+              }),
+              signal: AbortSignal.timeout(120000),
+            });
+
+            if (!fallbackRes.ok) {
+              const errText = await fallbackRes.text().catch(() => '');
+              throw new Error(`OpenAI Chat Completions fallback error (${fallbackRes.status}): ${errText}`);
+            }
+
+            const reader2 = fallbackRes.body?.getReader();
+            if (!reader2) throw new Error('No reader from OpenAI chat completions');
+
+            const fallbackDecoder = new TextDecoder();
+            let fbBuffer = '';
+
+            while (true) {
+              const { done: done2, value: value2 } = await reader2.read();
+              if (done2) break;
+
+              fbBuffer += fallbackDecoder.decode(value2, { stream: true });
+              const lines2 = fbBuffer.split('\n');
+              fbBuffer = lines2.pop() || '';
+
+              for (const line of lines2) {
+                if (!line.startsWith('data:')) continue;
+                const payload = line.slice(5).trim();
+                if (payload === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(payload);
+                  const delta = parsed?.choices?.[0]?.delta?.content;
+                  let piece = '';
+                  if (typeof delta === 'string') {
+                    piece = delta;
+                  } else if (Array.isArray(delta)) {
+                    piece = collectFromContentArray(delta);
                   }
-                  // Some implementations emit { type: 'message.delta', delta: { content: [{type:'output_text', text:'...'}] } }
-                  const textFromNested = parsed?.delta?.content?.[0]?.text;
-                  if (!piece && typeof textFromNested === 'string') piece = textFromNested;
+                  if (piece) {
+                    fullContent += piece;
+                    controller.enqueue(
+                      encoder.encode(
+                        `data: ${JSON.stringify({
+                          type: 'chunk',
+                          content: piece,
+                          conversation_id: conversationData.id,
+                        })}\n\n`,
+                      ),
+                    );
+                  }
+                } catch (err) {
+                  if (debugLogged < 5) {
+                    try {
+                      console.log('[CHAT-WITH-AI] Chat completion SSE parse error', payload, err);
+                    } catch {}
+                    debugLogged++;
+                  }
                 }
-                if (piece) {
-                  fullContent += piece;
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        type: 'chunk',
-                        content: piece,
-                        conversation_id: conversationData.id,
-                      })}\n\n`,
-                    ),
-                  );
-                }
-              } catch {
-                // ignore heartbeats/non-JSON
               }
             }
+
+            if (fbBuffer.trim()) {
+              const remaining = fbBuffer.split('\n');
+              for (const line of remaining) {
+                if (!line.startsWith('data:')) continue;
+                const payload = line.slice(5).trim();
+                if (payload === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(payload);
+                  const delta = parsed?.choices?.[0]?.delta?.content;
+                  let piece = '';
+                  if (typeof delta === 'string') {
+                    piece = delta;
+                  } else if (Array.isArray(delta)) {
+                    piece = collectFromContentArray(delta);
+                  }
+                  if (piece) {
+                    fullContent += piece;
+                    controller.enqueue(
+                      encoder.encode(
+                        `data: ${JSON.stringify({
+                          type: 'chunk',
+                          content: piece,
+                          conversation_id: conversationData.id,
+                        })}\n\n`,
+                      ),
+                    );
+                  }
+                } catch (err) {
+                  if (debugLogged < 5) {
+                    try {
+                      console.log('[CHAT-WITH-AI] Chat completion SSE parse error', payload, err);
+                    } catch {}
+                    debugLogged++;
+                  }
+                }
+              }
+            }
+          };
+
+          if (!fullContent.trim()) {
+            await streamChatCompletionFallback();
+          }
+
+          if (!fullContent.trim()) {
+            const fallbackMessage =
+              'I was unable to generate a response right now. Please try asking again in a moment.';
+            fullContent = fallbackMessage;
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: 'chunk',
+                  content: fallbackMessage,
+                  conversation_id: conversationData.id,
+                })}\n\n`,
+              ),
+            );
           }
 
           // Save assistant message & cache if any content
@@ -504,7 +846,10 @@ serve(async (req) => {
                 title: finalTitle,
                 citations,
                 indexing: attachedDocIds.length
-                  ? { attached: attachedDocIds, note: citations.length === 0 ? 'indexing_pending_or_no_matches' : 'ok' }
+                  ? {
+                      attached: attachedDocIds,
+                      note: citations.length === 0 ? 'indexing_pending_or_no_matches' : 'ok',
+                    }
                   : undefined,
                 ...(followups ?? {}),
               })}\n\n`,
