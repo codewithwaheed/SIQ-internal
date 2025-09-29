@@ -244,8 +244,7 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
                   message.trim(),
                   images.map((i) => ({ id: i.id, name: i.name, previewUrl: i.previewUrl })),
                 );
-                setOpen(false);
-                resetModal();
+                handleModalClose(false);
               }}
               disabled={images.length === 0 || message.trim().length === 0}
             >

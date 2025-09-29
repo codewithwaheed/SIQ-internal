@@ -78,10 +78,50 @@ export const ChatMessage = ({
           <div className="h-4 w-4 rounded-full bg-current" />
         </div>
         <div className="flex min-w-0 max-w-[85%] flex-col items-end sm:max-w-[70%] lg:max-w-3xl">
-          <div className="hover-lift inline-block rounded-2xl bg-primary p-3 text-primary-foreground shadow-sm sm:p-4">
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed sm:text-base">
-              {message.content}
-            </p>
+          <div className="hover-lift inline-block w-full max-w-xl rounded-2xl bg-primary p-3 text-primary-foreground shadow-sm sm:p-4">
+            {/* Text */}
+            {message.content && (
+              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed sm:text-base">
+                {message.content}
+              </p>
+            )}
+
+            {/* Inline images inside the same bubble */}
+            {message.images && message.images.length > 0 && (
+              <div className="mt-3">
+                <div
+                  className={cn(
+                    'grid gap-2',
+                    message.images.length === 1
+                      ? 'grid-cols-1'
+                      : message.images.length === 2
+                        ? 'grid-cols-2'
+                        : 'grid-cols-3',
+                  )}
+                >
+                  {message.images.slice(0, 3).map((src, idx) => (
+                    <a
+                      key={idx}
+                      href={src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group block overflow-hidden rounded-lg border border-white/15 bg-white/5"
+                      title="Open image in new tab"
+                    >
+                      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                      <img
+                        src={src}
+                        loading="lazy"
+                        className={cn(
+                          'h-40 w-full object-cover transition-transform duration-200 sm:h-48',
+                          'group-hover:scale-[1.02]'
+                        )}
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           {docDetails && docDetails.length > 0 && (
             <div className="mt-2 grid w-full grid-cols-1 gap-2">
@@ -103,14 +143,6 @@ export const ChatMessage = ({
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-          {message.images && message.images.length > 0 && (
-            <div className="mt-2 grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
-              {message.images.map((src, idx) => (
-                // eslint-disable-next-line jsx-a11y/alt-text
-                <img key={idx} src={src} className="h-24 w-full rounded-md object-cover" />
               ))}
             </div>
           )}
