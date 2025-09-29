@@ -349,12 +349,17 @@ export default function useAiChatController(isDemo: boolean) {
 
   const sendImagesMessage = async (
     content: string,
-    images: Array<{ name: string; previewUrl: string }>,
+    images: Array<{ id?: string; name: string; previewUrl: string }>,
   ) => {
     const previews = images.map((i) => i.previewUrl).slice(0, 3);
+    const ids = images.map((i) => i.id).filter(Boolean) as string[];
     setInput(content);
     setMessageToSend(content);
-    await handleSendMessage({ contentOverride: content, imagePreviewsOverride: previews });
+    await handleSendMessage({
+      contentOverride: content,
+      imagePreviewsOverride: previews,
+      imageAssetIdsOverride: ids.slice(0, 3),
+    });
   };
 
   const armAfterBottom = () => {
@@ -966,6 +971,8 @@ export default function useAiChatController(isDemo: boolean) {
     activeDocumentsOverride?: string[];
     documentNamesOverride?: string[];
     preferInlineDocsFlag?: boolean;
+    imagePreviewsOverride?: string[];
+    imageAssetIdsOverride?: string[];
   }) => {
     if (loading) return;
 
@@ -1214,6 +1221,9 @@ export default function useAiChatController(isDemo: boolean) {
             : undefined,
           // Hint backend to use inline-docs for first-turn analysis with fresh uploads
           ...(opts?.preferInlineDocsFlag ? { preferInlineDocs: true } : {}),
+          ...(opts?.imageAssetIdsOverride && opts.imageAssetIdsOverride.length
+            ? { imageAssetIds: opts.imageAssetIdsOverride }
+            : {}),
           isDemo: false,
         },
         signal: controller.signal,

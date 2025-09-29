@@ -12,10 +12,11 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ImageUploadProps {
   trigger?: React.ReactNode;
-  onSubmitWithImages?: (message: string, images: Array<{ name: string; previewUrl: string }>) => void;
+  onSubmitWithImages?: (message: string, images: Array<{ id?: string; name: string; previewUrl: string }>) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -24,7 +25,8 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [images, setImages] = useState<Array<{ name: string; previewUrl: string }>>([]);
+  const [images, setImages] = useState<Array<{ id: string; name: string; previewUrl: string }>>([]);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [openInternal, setOpenInternal] = useState(false);
   const { toast } = useToast();
@@ -36,7 +38,7 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
     return null;
   };
 
-  const addImage = (file: File) => {
+  const addImage = async (file: File) => {
     const err = validateFile(file);
     if (err) {
       toast({ title: 'Invalid image', description: err, variant: 'destructive' });
@@ -46,8 +48,34 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
       toast({ title: 'Attachment limit', description: 'You can attach up to 3 images per message.', variant: 'destructive' });
       return;
     }
-    const url = URL.createObjectURL(file);
-    setImages((prev) => [...prev, { name: file.name, previewUrl: url }].slice(0, 3));
+    setUploading(true);
+    const progressInterval = setInterval(() => {
+      setUploadProgress((p) => (p >= 90 ? p : Math.min(90, p + 10)));
+    }, 200);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const { data, error } = await supabase.functions.invoke('upload-image', { body: form });
+      if (error) throw error;
+      if (!data?.success || !data.asset?.id || !data.asset?.file_path) throw new Error('Upload failed');
+      // Compute public URL on the client to avoid internal hosts like kong:8000
+      const bucket = (data.asset.bucket as string) || 'user-images';
+      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(data.asset.file_path as string);
+      const publicUrl = pub?.publicUrl || '';
+      if (!publicUrl) throw new Error('Failed to resolve public URL');
+      setImages((prev) =>
+        [...prev, { id: data.asset.id as string, name: file.name, previewUrl: publicUrl }].slice(0, 3),
+      );
+      setUploadProgress(100);
+      toast({ title: 'Image uploaded', description: `${file.name} uploaded successfully.` });
+    } catch (e: any) {
+      console.error('Image upload failed:', e);
+      toast({ title: 'Upload failed', description: e?.message || 'Could not upload image.', variant: 'destructive' });
+    } finally {
+      clearInterval(progressInterval);
+      setUploading(false);
+      setTimeout(() => setUploadProgress(0), 400);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +86,7 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
     }
     const file = (e.target.files && e.target.files[0]) || null;
     if (!file) return;
-    addImage(file);
+    void addImage(file);
     e.currentTarget.value = '';
   };
 
@@ -75,7 +103,7 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
     setDragActive(false);
     const file = (e.dataTransfer.files && e.dataTransfer.files[0]) || null;
     if (!file) return;
-    addImage(file);
+    void addImage(file);
   };
 
   const resetModal = () => {
@@ -165,7 +193,25 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
                       </span>
                       <button
                         className="text-destructive"
-                        onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                        disabled={!!removingId}
+                        onClick={async () => {
+                          const asset = images[idx];
+                          if (!asset) return;
+                          try {
+                            setRemovingId(asset.id);
+                            const { data, error } = await supabase.functions.invoke('delete-asset', {
+                              body: { assetId: asset.id },
+                            });
+                            if (error || !data?.success) throw new Error(error?.message || 'Delete failed');
+                            setImages((prev) => prev.filter((_, i) => i !== idx));
+                            toast({ title: 'Removed', description: 'Image deleted.' });
+                          } catch (e: any) {
+                            console.error('Delete image failed:', e);
+                            toast({ title: 'Delete failed', description: e?.message || 'Could not delete image.', variant: 'destructive' });
+                          } finally {
+                            setRemovingId(null);
+                          }
+                        }}
                         aria-label={`Remove ${img.name}`}
                       >
                         <X className="h-4 w-4" />
@@ -194,7 +240,10 @@ export const ImageUpload = ({ trigger, onSubmitWithImages, open: openProp, onOpe
               onClick={() => {
                 if (!onSubmitWithImages) return;
                 if (images.length === 0 || message.trim().length === 0) return;
-                onSubmitWithImages(message.trim(), images);
+                onSubmitWithImages(
+                  message.trim(),
+                  images.map((i) => ({ id: i.id, name: i.name, previewUrl: i.previewUrl })),
+                );
                 setOpen(false);
                 resetModal();
               }}

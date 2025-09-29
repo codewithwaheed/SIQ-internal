@@ -48,6 +48,7 @@ export async function callModelStream(
   openAIConversationId: string | null,
   userText: string,
   instructions?: string,
+  imageUrls?: string[],
 ): Promise<Response> {
   console.log('[MODEL] Attempting Responses API call with model:', model);
 
@@ -64,7 +65,10 @@ export async function callModelStream(
         : []),
       {
         role: 'user',
-        content: [{ type: 'input_text', text: userText }],
+        content: [
+          { type: 'input_text', text: userText },
+          ...((imageUrls || []).map((u) => ({ type: 'input_image', image_url: u }))),
+        ],
       },
     ],
     ...(openAIConversationId ? { conversation: openAIConversationId } : {}),
@@ -111,6 +115,10 @@ export async function callModelStream(
   } catch (err) {
     console.log('[MODEL] Error calling Responses API, falling back to Chat Completions');
     console.log('[MODEL] Error details:', err);
-    return callChatCompletions(apiKey, model, userText, instructions);
+    // Fallback: if images provided, include URLs inline as text for minimal context
+    const fallbackText = (imageUrls && imageUrls.length)
+      ? `${userText}\n\nAttached images (temporary URLs):\n${imageUrls.join('\n')}`
+      : userText;
+    return callChatCompletions(apiKey, model, fallbackText, instructions);
   }
 }

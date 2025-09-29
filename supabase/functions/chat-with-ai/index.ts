@@ -54,7 +54,7 @@ serve(async (req) => {
       );
     }
 
-    const { content, message, conversationId, title, activeDocuments, isDemo, preferInlineDocs } = body as any;
+    const { content, message, conversationId, title, activeDocuments, isDemo, preferInlineDocs, imageAssetIds } = body as any;
 
     // Validate/sanitize input
     const userMessage: string | undefined = typeof content === 'string' ? content : message;
@@ -370,9 +370,47 @@ serve(async (req) => {
       }));
     } catch {}
 
-    // RAG: retrieve relevant context chunks (skip entirely if no active docs OR if using inline-docs)
+    // Prepare short-lived signed URLs for image attachments (if provided)
+    let imageSignedUrls: string[] = [];
+    if (!isDemo && user && Array.isArray(imageAssetIds) && imageAssetIds.length > 0) {
+      try {
+        const wanted = (imageAssetIds as string[]).filter((v) => typeof v === 'string').slice(0, 3);
+        if (wanted.length > 0) {
+          const { data: assets } = await supabaseAdmin
+            .from('assets')
+            .select('id, user_id, file_path')
+            .in('id', wanted);
+          const owned = (assets || []).filter((a: any) => a.user_id === user.id);
+          const BUCKET = 'user-images';
+          const PUBLIC_BASE = Deno.env.get('PUBLIC_STORAGE_BASE_URL') || '';
+          const rewriteBase = (url: string) => {
+            if (!PUBLIC_BASE) return url;
+            try {
+              const u = new URL(url);
+              const b = new URL(PUBLIC_BASE);
+              u.protocol = b.protocol;
+              u.host = b.host;
+              // keep path and query (token)
+              return u.toString();
+            } catch {
+              return url;
+            }
+          };
+          for (const a of owned) {
+            const { data: signed } = await supabaseAdmin.storage
+              .from(BUCKET)
+              .createSignedUrl(a.file_path, 120, { download: false });
+            if (signed?.signedUrl) imageSignedUrls.push(rewriteBase(signed.signedUrl));
+          }
+        }
+      } catch (e) {
+        console.warn('[CHAT-WITH-AI] Failed to create signed URLs for images:', e);
+      }
+    }
+
+    // RAG: retrieve relevant context chunks (skip if no active docs OR using inline-docs OR analyzing images)
     let citations: RetrievedChunk[] = [];
-    if (!isDemo && user && hasActiveDocs && retrievalMode && !useInline) {
+    if (!isDemo && user && hasActiveDocs && retrievalMode && !useInline && imageSignedUrls.length === 0) {
       citations = await retrieveContext(supabaseAdmin, {
         userId: user.id,
         conversationId: conversationData.id,
@@ -460,7 +498,7 @@ serve(async (req) => {
     // --- LIVE PATH: stream OpenAI to client, aggregate full text, then emit complete with followups ---
     logStep('Calling OpenAI', { model });
     // Compose instructions depending on intent and whether we have context
-    const hasContext = ragContext.trim().length > 0 || inlineDocContext.trim().length > 0;
+    const hasContext = (ragContext.trim().length > 0 || inlineDocContext.trim().length > 0) && imageSignedUrls.length === 0;
     let instructions = `${systemPrompt()}`;
     if (intent === 'doc_summary') {
       instructions += `\n\nTask: Summarize the attached document for a CISO.\n- Provide a concise, structured summary with sections: Executive summary, Key policies/controls, Requirements, Risks/Gaps, Next actions.\n- Format each section title in bold (Markdown) and include 2-3 sentences or bullet points that expand on the details.\n- Use only the provided context chunks. Cite sources like [file:chunk].`;
@@ -496,6 +534,7 @@ serve(async (req) => {
       openAIConversationId,
       composedUserText,
       instructions,
+      imageSignedUrls.length ? imageSignedUrls : undefined,
     );
     if (!oaRes.ok) {
       const errText = await oaRes.text();

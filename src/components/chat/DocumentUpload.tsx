@@ -54,8 +54,9 @@ export const DocumentUpload = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState('');
   const [uploadedDocs, setUploadedDocs] = useState<
-    Array<{ id: string; name: string; type?: string; size?: number }>
+    Array<{ id: string; name: string; type?: string; size?: number; filePath?: string }>
   >([]);
+  const [removingDocId, setRemovingDocId] = useState<string | null>(null);
   const [openInternal, setOpenInternal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -165,8 +166,9 @@ export const DocumentUpload = ({
       const docName = (data.document.file_name as string) || file.name;
       const docType = (data.document.file_type as string) || file.type;
       const docSize = (data.document.file_size as number) || file.size;
+      const docPath = (data.document.file_path as string) || undefined;
 
-      setUploadedDocs([{ id: docId, name: docName, type: docType, size: docSize }]);
+      setUploadedDocs([{ id: docId, name: docName, type: docType, size: docSize, filePath: docPath }]);
       setUploadProgress(100);
       if (user) {
         AuditLogger.logFileOperation(user.id, 'FILE_UPLOADED', file.name, docId, {
@@ -364,7 +366,31 @@ export const DocumentUpload = ({
                         variant="ghost"
                         size="sm"
                         className="h-6 px-2 text-destructive"
-                        onClick={() => setUploadedDocs((prev) => prev.filter((_, i) => i !== idx))}
+                        disabled={!!removingDocId}
+                        onClick={async () => {
+                          const doc = uploadedDocs[idx];
+                          if (!doc) return;
+                          try {
+                            setRemovingDocId(doc.id);
+                            const { data, error } = await supabase.functions.invoke('delete-document', {
+                              body: { documentId: doc.id },
+                            });
+                            if (error || !data?.success) {
+                              throw new Error(error?.message || 'Delete failed');
+                            }
+                            setUploadedDocs((prev) => prev.filter((_, i) => i !== idx));
+                            toast({ title: 'Removed', description: 'Document removed successfully.' });
+                          } catch (e: any) {
+                            console.error('Failed to remove document:', e);
+                            toast({
+                              title: 'Remove failed',
+                              description: e?.message || 'Could not remove the file. Please try again.',
+                              variant: 'destructive',
+                            });
+                          } finally {
+                            setRemovingDocId(null);
+                          }
+                        }}
                         aria-label={`Remove ${f.name}`}
                       >
                         <X className="h-4 w-4" />
