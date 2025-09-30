@@ -281,57 +281,10 @@ serve(async (req) => {
         type: file.type,
       });
 
-      // Create or use existing conversation for this document
-      let conversationId: string | null = providedConversationId;
-
-      if (!conversationId) {
-        // Create a new conversation if none provided
-        try {
-          const conversationTitle = `Document Analysis: ${sanitizedFileName.replace(/\.[^/.]+$/, '')}`;
-          const { data: conversationData, error: conversationError } = await supabaseClient
-            .from('chat_conversations')
-            .insert({
-              user_id: context.userId,
-              title: conversationTitle,
-              tags: ['document-upload', ...tags.slice(0, 3)],
-            })
-            .select()
-            .single();
-
-          if (!conversationError && conversationData) {
-            conversationId = conversationData.id;
-            console.log('Auto-created conversation for document:', {
-              conversationId,
-              documentId: docData.id,
-            });
-          }
-        } catch (e) {
-          console.warn(
-            '[UPLOAD-DOCUMENT] Auto-conversation creation failed:',
-            (e as Error).message,
-          );
-        }
-      } else {
-        // Verify existing conversation belongs to user
-        try {
-          const { data: existingConv } = await supabaseClient
-            .from('chat_conversations')
-            .select('id, user_id')
-            .eq('id', providedConversationId)
-            .eq('user_id', context.userId)
-            .single();
-
-          if (!existingConv) {
-            console.warn('[UPLOAD-DOCUMENT] Invalid conversation ID provided, creating new one');
-            conversationId = null; // Will create new one below
-          }
-        } catch (e) {
-          console.warn('[UPLOAD-DOCUMENT] Conversation verification failed:', (e as Error).message);
-          conversationId = null;
-        }
-      }
-
-      // Note: conversation_id is already set during document insertion above
+      // Do NOT create a conversation here. We only attach the document to a
+      // conversation when the user sends a chat message. If the client
+      // explicitly provided a conversation_id, we keep it; otherwise leave it null.
+      const finalDoc = docData;
 
       // Do not await heavy indexing here; the client will trigger indexing
       // to keep the upload endpoint fast and responsive.
@@ -340,10 +293,10 @@ serve(async (req) => {
         {
           success: true,
           document: {
-            ...docData,
-            file_size_mb: (docData.file_size / (1024 * 1024)).toFixed(2),
+            ...finalDoc,
+            file_size_mb: (finalDoc.file_size / (1024 * 1024)).toFixed(2),
           },
-          conversation_id: conversationId,
+          conversation_id: providedConversationId || null,
           message: 'Document uploaded successfully',
           processing_status: 'queued',
           next_action: 'client_index_start',

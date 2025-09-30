@@ -9,6 +9,7 @@ interface Props {
   loading: boolean;
   isDemo: boolean;
   user: any;
+  conversationId?: string | null;
   uploadedDocuments: any[];
   messages: Message[];
   onSendMessage: () => void;
@@ -36,6 +37,7 @@ export function ComposerShell({
   loading,
   isDemo,
   user,
+  conversationId,
   uploadedDocuments,
   messages,
   onSendMessage,
@@ -59,6 +61,7 @@ export function ComposerShell({
         loading={loading}
         isDemo={isDemo}
         user={user}
+        conversationId={conversationId}
         uploadedDocuments={uploadedDocuments}
         messages={messages}
         onInputChange={setInput}

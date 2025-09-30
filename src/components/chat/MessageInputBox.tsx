@@ -20,6 +20,7 @@ interface MessageInputBoxProps {
   loading: boolean;
   isDemo: boolean;
   user: any;
+  conversationId?: string | null;
   uploadedDocuments: any[];
   messages: any[];
   onInputChange: (value: string) => void;
@@ -48,6 +49,7 @@ export const MessageInputBox = ({
   loading,
   isDemo,
   user,
+  conversationId,
   uploadedDocuments,
   onInputChange,
   onSendMessage,
@@ -223,6 +225,7 @@ export const MessageInputBox = ({
             onOpenChange={setShowDocModal}
             onDocumentUploaded={onDocumentUploaded}
             onSubmitWithMessage={onDocumentsSubmitted}
+            conversationId={conversationId || null}
           />
           <ImageUpload
             open={showImageModal}

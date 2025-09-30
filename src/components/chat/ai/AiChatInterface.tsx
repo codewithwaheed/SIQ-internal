@@ -83,7 +83,12 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
             }}
             composerRef={c.composerRef}
             input={c.input}
-            documentUploadSlot={<DocumentUpload onDocumentUploaded={c.handleDocumentUploaded} />}
+            documentUploadSlot={
+              <DocumentUpload
+                onDocumentUploaded={c.handleDocumentUploaded}
+                conversationId={c.currentConversationId}
+              />
+            }
           >
             <ComposerShell
               input={c.input}
@@ -91,6 +96,7 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               loading={c.loading}
               isDemo={c.isDemo}
               user={c.user}
+              conversationId={c.currentConversationId}
               uploadedDocuments={c.uploadedDocuments}
               messages={c.messages}
               onSendMessage={c.handleSendMessage}
@@ -235,6 +241,7 @@ export const AiChatInterface = ({ isDemo = false, className = '' }: AiChatInterf
               loading={c.loading}
               isDemo={c.isDemo}
               user={c.user}
+              conversationId={c.currentConversationId}
               conversations={c.conversations}
               uploadedDocuments={c.uploadedDocuments}
               messages={c.messages}

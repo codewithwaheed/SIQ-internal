@@ -105,34 +105,8 @@ export const DocumentUpload = ({
     }, 200);
 
     try {
-      // First, create or ensure we have a conversation ID
-      let finalConversationId = conversationId;
-
-      if (!finalConversationId) {
-        console.log('Creating new conversation for document upload...');
-        const conversationTitle = `Document Analysis: ${file.name.replace(/\.[^/.]+$/, '')}`;
-
-        if (!user?.id) {
-          throw new Error('User must be authenticated to create conversations');
-        }
-
-        const { data: newConversation, error: convError } = await supabase
-          .from('chat_conversations')
-          .insert({
-            title: conversationTitle,
-            tags: ['document-upload'],
-            user_id: user.id, // Explicitly set user_id
-          })
-          .select()
-          .single();
-
-        if (convError || !newConversation) {
-          throw new Error('Failed to create conversation for document');
-        }
-
-        finalConversationId = newConversation.id;
-        console.log('Created conversation:', finalConversationId);
-      }
+      // Use existing conversation if provided; do not create one here.
+      let finalConversationId = conversationId || null;
 
       // Attempt client-side text extraction so the backend receives ready-to-index content
       let clientText: string | null = null;
@@ -153,8 +127,8 @@ export const DocumentUpload = ({
       if (clientText) formData.append('extracted_text', clientText);
       if (clientQuality) formData.append('extraction_quality', JSON.stringify(clientQuality));
 
-      // Always include conversation ID now
-      formData.append('conversation_id', finalConversationId);
+      // Include conversation ID only if provided by the caller
+      if (finalConversationId) formData.append('conversation_id', finalConversationId);
 
       const { data, error } = await supabase.functions.invoke('upload-document', {
         body: formData,

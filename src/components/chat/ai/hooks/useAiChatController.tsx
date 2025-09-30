@@ -333,18 +333,20 @@ export default function useAiChatController(isDemo: boolean) {
     docMeta?: Array<{ id: string; name: string; type?: string; size?: number }>,
     preferInlineDocs: boolean = true,
   ) => {
-    const merged = Array.from(new Set([...(activeDocuments || []), ...docIds])).slice(0, 3);
-    // Update UI state for active docs
-    setActiveDocuments(merged);
+    const picked = Array.from(new Set(docIds)).slice(0, 3);
+    // Focus ONLY provided docs for this turn
+    setActiveDocuments(picked);
     setInput(content);
     setMessageToSend(content);
     await handleSendMessage({
       contentOverride: content,
-      activeDocumentsOverride: merged,
+      activeDocumentsOverride: picked,
       documentNamesOverride: (docNames || []).slice(0, 3),
       docMetaOverride: docMeta,
       preferInlineDocsFlag: preferInlineDocs,
     });
+    // Clear selection after sending to avoid carry-over
+    setActiveDocuments([]);
   };
 
   const sendImagesMessage = async (
@@ -393,6 +395,8 @@ export default function useAiChatController(isDemo: boolean) {
     hasAnchoredBottomRef.current = false;
     reachedTopRef.current = false;
     mutationKindRef.current = null;
+    // Reset active docs on navigation to prevent cross-chat carryover
+    setActiveDocuments([]);
 
     try {
       const { data } = await callFn<{
@@ -1068,6 +1072,30 @@ export default function useAiChatController(isDemo: boolean) {
     const usedDocIds = (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length)
       ? opts.activeDocumentsOverride
       : activeDocuments;
+
+    // Ensure a conversation exists BEFORE sending, so routing and attachments stay consistent
+    let convIdForSend: string | null = currentConversationId;
+    if (!convIdForSend && user && !isDemo) {
+      try {
+        const title = sanitizedMessage && sanitizedMessage.length > 0
+          ? sanitizedMessage.slice(0, 60)
+          : 'New Conversation';
+        const { data: newConv, error: convErr } = await supabase
+          .from('chat_conversations')
+          .insert({ user_id: user.id, title, tags: [] })
+          .select()
+          .single();
+        if (!convErr && newConv) {
+          convIdForSend = newConv.id;
+          setCurrentConversationId(newConv.id);
+          setCurrentConversation({ id: newConv.id, title: newConv.title, tags: newConv.tags || [] });
+          // Route immediately so uploads (if any) can include conversation_id
+          navigate(`/dashboard/chat/c/${newConv.id}`, { replace: true });
+        }
+      } catch (e) {
+        console.warn('Failed to pre-create conversation before send:', e);
+      }
+    }
     if (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length) {
       const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
       attachedDetails = opts.activeDocumentsOverride
@@ -1103,7 +1131,7 @@ export default function useAiChatController(isDemo: boolean) {
           .invoke('qdrant-index', {
             body: {
               docId,
-              conversationId: currentConversationId || undefined,
+              conversationId: (convIdForSend || currentConversationId) || undefined,
             },
           })
           .catch((err) => console.warn('qdrant-index invoke failed:', err));
@@ -1210,7 +1238,7 @@ export default function useAiChatController(isDemo: boolean) {
         body: {
           content: sanitizedMessage,
           message: sanitizedMessage,
-          conversationId: currentConversationId || undefined,
+          conversationId: (convIdForSend || currentConversationId) || undefined,
           activeDocuments: (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
             ? opts.activeDocumentsOverride
             : activeDocuments

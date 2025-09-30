@@ -29,6 +29,15 @@ serve(async (req) => {
   }
 
   try {
+    const DEBUG_ATTACH = (Deno.env.get("DEBUG_ATTACHMENTS") || "").toLowerCase() === "1";
+    const dbg = (label: string, obj?: unknown) => {
+      if (!DEBUG_ATTACH) return;
+      try {
+        console.log(`[ATTACH-DEBUG] ${label}`, obj !== undefined ? JSON.stringify(obj) : "");
+      } catch (_) {
+        console.log(`[ATTACH-DEBUG] ${label}`);
+      }
+    };
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -68,6 +77,16 @@ serve(async (req) => {
       preferInlineDocs,
       imageAssetIds,
     } = body as any;
+    const clientProvidedConversationId = !!conversationId && typeof conversationId === 'string' && conversationId.trim() !== '';
+
+    dbg('Incoming body', {
+      conversationId,
+      activeDocsCount: Array.isArray(activeDocuments) ? activeDocuments.length : 0,
+      imageCount: Array.isArray(imageAssetIds) ? imageAssetIds.length : 0,
+    });
+
+    // We'll resolve desiredConversationId after auth when supabaseAdmin is available
+    let desiredConversationId: string | null = conversationId || null;
 
     // Validate/sanitize input
     const userMessage: string | undefined = typeof content === "string"
@@ -121,6 +140,17 @@ serve(async (req) => {
       );
     }
 
+    // Enforce: client must provide conversationId for non-demo requests.
+    // Prevent server from creating/switching conversations implicitly.
+    if (!isDemo && (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '')) {
+      return new Response(
+        JSON.stringify({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Remove implicit unification/creation at bootstrap; FE must provide conversationId
+
     // Rate limit by IP (in-memory best-effort; replace with DB limit if needed)
     if (!isDemo) {
       const ip = getClientIp(req) || "127.0.0.1";
@@ -147,11 +177,11 @@ serve(async (req) => {
     if (isDemo) {
       conversationData = { id: "demo" };
       finalTitle = "Demo Conversation";
-    } else if (conversationId && user) {
+    } else if ((desiredConversationId || conversationId) && user) {
       const { data: existingConv, error: convError } = await supabaseAdmin
         .from("chat_conversations")
         .select("*")
-        .eq("id", conversationId)
+        .eq("id", desiredConversationId || conversationId)
         .eq("user_id", user.id)
         .single();
 
@@ -165,23 +195,7 @@ serve(async (req) => {
       conversationData = existingConv;
       finalTitle = conversationData.title;
       openAIConversationId = existingConv.openai_conversation_id ?? null;
-    } else if (!isDemo && user) {
-      finalTitle = (title && title.trim()) ||
-        deriveTitleFromFirstMessage(sanitizedMessage);
-      const { data: newConv, error: createError } = await supabaseAdmin
-        .from("chat_conversations")
-        .insert({ user_id: user.id, title: finalTitle, tags: [] })
-        .select()
-        .single();
-      if (createError || !newConv) {
-        console.error("Create conversation failed", createError);
-        return createErrorResponse(
-          "Failed to create conversation",
-          HTTP_STATUS.INTERNAL_ERROR,
-          ERROR_CODES.DATABASE_ERROR,
-        );
-      }
-      conversationData = newConv;
+      dbg('Using existing conversation', { id: conversationData.id, clientProvided: clientProvidedConversationId, hasOpenAI: !!openAIConversationId });
     } else {
       conversationData = { id: "demo" };
       finalTitle = "Demo Conversation";
@@ -243,13 +257,39 @@ serve(async (req) => {
       const requested = (activeDocuments as any[])
         .filter((v) => typeof v === "string")
         .slice(0, 3) as string[];
+      dbg('Requested activeDocuments', { requested, conversationId: conversationData.id });
       if (requested.length > 0 && user) {
         try {
+          // If the client provided a conversationId, force-bind all requested docs
+          // to this conversation to avoid cross-chat mismatches.
+          if (clientProvidedConversationId) {
+            try {
+              const { data: mapping } = await supabaseAdmin
+                .from('documents')
+                .select('id, conversation_id')
+                .in('id', requested)
+                .eq('user_id', user.id);
+              const toBind = (mapping || [])
+                .filter((r: any) => r.conversation_id !== conversationData.id)
+                .map((r: any) => r.id);
+              if (toBind.length) {
+                await supabaseAdmin
+                  .from('documents')
+                  .update({ conversation_id: conversationData.id })
+                  .in('id', toBind)
+                  .eq('user_id', user.id);
+                dbg('Rebound docs to client conversationId', { toBind, conversationId: conversationData.id });
+              }
+            } catch (e) {
+              console.warn('[CHAT-WITH-AI] Failed to rebind docs to provided conversation:', e);
+            }
+          }
           const { data: allowed } = await supabaseAdmin
             .from("documents")
-            .select("id,file_name,file_type,file_size,uploaded_at")
+            .select("id,file_name,file_type,file_size,uploaded_at,conversation_id")
             .in("id", requested)
-            .eq("user_id", user.id);
+            .eq("user_id", user.id)
+            .eq("conversation_id", conversationData.id);
           attachedDocIds = (allowed || []).map((r: any) => r.id);
           attachedDocDetails = (allowed || []).map((r: any) => ({
             id: r.id,
@@ -258,6 +298,20 @@ serve(async (req) => {
             size: r.file_size,
             uploaded_at: r.uploaded_at,
           }));
+          if (DEBUG_ATTACH && attachedDocIds.length === 0 && requested.length > 0) {
+            const { data: mapping } = await supabaseAdmin
+              .from('documents')
+              .select('id, conversation_id')
+              .in('id', requested)
+              .eq('user_id', user.id);
+            dbg('Requested docs conversation mapping', { mapping, currentConversationId: conversationData.id });
+          }
+          dbg('Allowed docs', { attachedDocIds, count: attachedDocIds.length });
+          if (requested.length && attachedDocIds.length !== requested.length) {
+            console.warn(
+              "[CHAT-WITH-AI] Some requested activeDocuments are not bound to this conversation; ignoring them",
+            );
+          }
         } catch (e) {
           console.warn(
             "Document ownership validation failed; proceeding with empty list",
@@ -514,6 +568,7 @@ serve(async (req) => {
               imageSignedUrls.push(rewriteBase(signed.signedUrl));
             }
           }
+          dbg('Image signed urls count', { count: imageSignedUrls.length });
         }
       } catch (e) {
         console.warn(
@@ -523,11 +578,50 @@ serve(async (req) => {
       }
     }
 
-    // RAG: retrieve relevant context chunks (skip if no active docs OR using inline-docs OR analyzing images)
+    // Prepare short-lived signed URLs for attached PDFs/documents (if provided)
+    let docSignedUrls: string[] = [];
+    if (!isDemo && user && hasActiveDocs) {
+      try {
+        const { data: docs } = await supabaseAdmin
+          .from('documents')
+          .select('id, user_id, file_path')
+          .in('id', attachedDocIds.slice(0, 3));
+        const ownedDocs = (docs || []).filter((d: any) => d.user_id === user.id);
+        const BUCKET_DOCS = 'user-documents';
+        const PUBLIC_BASE_DOCS = Deno.env.get('PUBLIC_STORAGE_BASE_URL') || '';
+        const rewriteDocsBase = (url: string) => {
+          if (!PUBLIC_BASE_DOCS) return url;
+          try {
+            const original = new URL(url);
+            const base = new URL(PUBLIC_BASE_DOCS);
+            original.protocol = base.protocol;
+            original.hostname = base.hostname;
+            original.port = base.port || '';
+            const basePath = base.pathname && base.pathname !== '/' ? base.pathname.replace(/\/$/, '') : '';
+            if (basePath) original.pathname = `${basePath}${original.pathname}`;
+            return original.toString();
+          } catch {
+            return url;
+          }
+        };
+        const TTL_SECONDS_DOCS = 600; // 10 minutes
+        for (const d of ownedDocs) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from(BUCKET_DOCS)
+            .createSignedUrl(d.file_path, TTL_SECONDS_DOCS, { download: false });
+          if (signed?.signedUrl) docSignedUrls.push(rewriteDocsBase(signed.signedUrl));
+        }
+        dbg('Doc signed urls count', { count: docSignedUrls.length, docIds: attachedDocIds });
+      } catch (e) {
+        console.warn('[CHAT-WITH-AI] Failed to create signed URLs for docs:', e);
+      }
+    }
+
+    // RAG: retrieve relevant context chunks (skip if no active docs OR using inline-docs OR analyzing images/files)
     let citations: RetrievedChunk[] = [];
     if (
       !isDemo && user && hasActiveDocs && retrievalMode && !useInline &&
-      imageSignedUrls.length === 0
+      imageSignedUrls.length === 0 && docSignedUrls.length === 0
     ) {
       citations = await retrieveContext(supabaseAdmin, {
         userId: user.id,
@@ -638,8 +732,12 @@ serve(async (req) => {
     // Compose instructions depending on intent and whether we have context
     const hasContext =
       (ragContext.trim().length > 0 || inlineDocContext.trim().length > 0) &&
-      imageSignedUrls.length === 0;
+      imageSignedUrls.length === 0 && docSignedUrls.length === 0;
     let instructions = `${systemPrompt()}`;
+    // If we are analyzing attachments (images/PDFs), add a focusing directive
+    if ((imageSignedUrls && imageSignedUrls.length) || (docSignedUrls && docSignedUrls.length)) {
+      instructions += `\n\nAttachment Focus: The user attached files for this turn. Base your answer only on the attached items provided in this message. Do NOT use or assume context from earlier documents unless explicitly restated in this turn.`;
+    }
     if (intent === "doc_summary") {
       instructions +=
         `\n\nTask: Summarize the attached document for a CISO.\n- Provide a concise, structured summary with sections: Executive summary, Key policies/controls, Requirements, Risks/Gaps, Next actions.\n- Format each section title in bold (Markdown) and include 2-3 sentences or bullet points that expand on the details.\n- Use only the provided context chunks. Cite sources like [file:chunk].`;
@@ -682,6 +780,7 @@ serve(async (req) => {
       );
     } catch {}
 
+    dbg('Pre-model call', { hasActiveDocs, attachedDocIds, imageCount: imageSignedUrls.length, docCount: docSignedUrls.length, useInline });
     const oaRes = await callModelStream(
       OPENAI_API_KEY,
       model,
@@ -689,6 +788,7 @@ serve(async (req) => {
       composedUserText,
       instructions,
       imageSignedUrls.length ? imageSignedUrls : undefined,
+      docSignedUrls.length ? docSignedUrls : undefined,
     );
     if (!oaRes.ok) {
       const errText = await oaRes.text();
@@ -930,6 +1030,7 @@ serve(async (req) => {
                             type: "chunk",
                             content: piece,
                             conversation_id: conversationData.id,
+                            client_provided_conversation_id: clientProvidedConversationId,
                           })
                         }\n\n`,
                       ),
@@ -974,6 +1075,7 @@ serve(async (req) => {
                             type: "chunk",
                             content: piece,
                             conversation_id: conversationData.id,
+                            client_provided_conversation_id: clientProvidedConversationId,
                           })
                         }\n\n`,
                       ),
@@ -1087,6 +1189,7 @@ serve(async (req) => {
                 JSON.stringify({
                   type: "complete",
                   conversation_id: conversationData.id,
+                  client_provided_conversation_id: clientProvidedConversationId,
                   title: finalTitle,
                   citations,
                   indexing: attachedDocIds.length

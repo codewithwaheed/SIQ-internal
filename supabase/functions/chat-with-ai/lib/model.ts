@@ -49,6 +49,7 @@ export async function callModelStream(
   userText: string,
   instructions?: string,
   imageUrls?: string[],
+  fileUrls?: string[],
 ): Promise<Response> {
   console.log('[MODEL] Attempting Responses API call with model:', model);
 
@@ -68,6 +69,7 @@ export async function callModelStream(
         content: [
           { type: 'input_text', text: userText },
           ...((imageUrls || []).map((u) => ({ type: 'input_image', image_url: u }))),
+          ...((fileUrls || []).map((u) => ({ type: 'input_file', file_url: u }))),
         ],
       },
     ],
@@ -115,10 +117,15 @@ export async function callModelStream(
   } catch (err) {
     console.log('[MODEL] Error calling Responses API, falling back to Chat Completions');
     console.log('[MODEL] Error details:', err);
-    // Fallback: if images provided, include URLs inline as text for minimal context
-    const fallbackText = (imageUrls && imageUrls.length)
-      ? `${userText}\n\nAttached images (temporary URLs):\n${imageUrls.join('\n')}`
-      : userText;
+    // Fallback: include URLs inline as text for minimal context
+    const parts: string[] = [userText];
+    if (imageUrls && imageUrls.length) {
+      parts.push(`\n\nAttached images (temporary URLs):\n${imageUrls.join('\n')}`);
+    }
+    if (fileUrls && fileUrls.length) {
+      parts.push(`\n\nAttached files (temporary URLs):\n${fileUrls.join('\n')}`);
+    }
+    const fallbackText = parts.join('');
     return callChatCompletions(apiKey, model, fallbackText, instructions);
   }
 }
