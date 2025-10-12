@@ -43,6 +43,7 @@ export default function useAiChatController(isDemo: boolean) {
   const composerRef = useRef<HTMLDivElement>(null);
 
   const suppressNextRouteLoadRef = useRef(false);
+  const suppressAutoScrollNextRef = useRef(false);
   const lastLoadedConvRef = useRef<string | null>(null);
   const lastCreatedConvRef = useRef<string | null>(null);
   const hasAnchoredBottomRef = useRef(false);
@@ -138,6 +139,10 @@ export default function useAiChatController(isDemo: boolean) {
   // Auto scroll when near bottom; only show pill for appends
   useEffect(() => {
     if (loading) return;
+    if (suppressAutoScrollNextRef.current) {
+      suppressAutoScrollNextRef.current = false;
+      return;
+    }
     if (isNearBottom) {
       scrollToBottom();
       setShowNewMessageIndicator(false);
@@ -973,6 +978,7 @@ export default function useAiChatController(isDemo: boolean) {
 
       // 2) Replace thinking with AI guidance once available; attach metadata so UI can embed the form immediately
       if (schemaResp?.guidance_text) {
+        suppressAutoScrollNextRef.current = true;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === thinkingId
@@ -1013,6 +1019,7 @@ export default function useAiChatController(isDemo: boolean) {
               .select('id')
               .single();
             if (ins2?.id) {
+              suppressAutoScrollNextRef.current = true;
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === thinkingId
@@ -1142,6 +1149,7 @@ export default function useAiChatController(isDemo: boolean) {
             metadata: { ...(ins3?.metadata || {}), type: 'policy_draft' },
           };
           mutationKindRef.current = 'append';
+          suppressAutoScrollNextRef.current = true;
           setMessages((prev) => [...prev, newMsg]);
         }
       } catch (e) {
@@ -1155,6 +1163,7 @@ export default function useAiChatController(isDemo: boolean) {
           metadata: { type: 'policy_draft' },
         };
         mutationKindRef.current = 'append';
+        suppressAutoScrollNextRef.current = true;
         setMessages((prev) => [...prev, newMsg]);
       }
       setPolicyGenerationState((prev) => ({
