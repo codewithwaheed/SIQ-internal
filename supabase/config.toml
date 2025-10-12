@@ -12,6 +12,15 @@ verify_jwt = false
 [functions.export-policy]
 verify_jwt = true
 
+[functions.policy-schema]
+verify_jwt = true
+
+[functions.policy-generate]
+verify_jwt = true
+
+[functions.policy-intent]
+verify_jwt = true
+
 [functions.submit-ai-feedback]
 verify_jwt = true
 

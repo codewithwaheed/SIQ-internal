@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Copy, Check, Target, Shield, Crown, UserCheck, File as FileIcon } from 'lucide-react';
 import { renderSafeMarkdown, createSafeHtml } from '@/lib/sanitization';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ interface ChatMessageProps {
   onCopyMessage: (content: string) => void;
   onMessageReaction: (messageId: string, reaction: 'up' | 'down') => void;
   onSuggestionClick: (suggestion: string) => void;
+  afterContent?: React.ReactNode;
 }
 
 export const ChatMessage = ({
@@ -50,8 +51,29 @@ export const ChatMessage = ({
   onCopyMessage,
   onMessageReaction,
   onSuggestionClick,
+  afterContent,
 }: ChatMessageProps) => {
   const [isCopied, setIsCopied] = useState(false);
+
+  // Stabilize partial markdown during streaming to reduce flicker
+  const stabilizePartialMarkdown = (md: string): string => {
+    try {
+      let out = (md || '').replace(/\u0000/g, '').trimEnd();
+      // Ensure '#Heading' becomes '# Heading'
+      out = out
+        .split('\n')
+        .map((line) => (/^#{1,6}[^#\s]/.test(line) ? line.replace(/^(#{1,6})(.*)$/, (_, h, t) => `${h} ${String(t).trim()}`) : line))
+        .join('\n');
+      // Collapse >2 blank lines
+      out = out.replace(/\n{3,}/g, '\n\n');
+      // Balance triple backticks so renderer doesn't break layout
+      const fences = (out.match(/```/g) || []).length;
+      if (fences % 2 === 1) out += '\n```';
+      return out;
+    } catch {
+      return md;
+    }
+  };
 
   const handleCopyMessage = async (content: string) => {
     try {
@@ -200,7 +222,12 @@ export const ChatMessage = ({
                   <span className="text-sm">vCISO is thinking…</span>
                 </div>
               ) : (
-                <div dangerouslySetInnerHTML={createSafeHtml(message.content, 'markdown')} />
+                <div
+                  dangerouslySetInnerHTML={createSafeHtml(
+                    message.isStreaming ? stabilizePartialMarkdown(message.content) : message.content,
+                    'markdown',
+                  )}
+                />
               )}
 
               {message.isStreaming && message.content && (
@@ -208,6 +235,9 @@ export const ChatMessage = ({
                   <div className="h-3 w-1 animate-pulse bg-foreground/50" />
                 </div>
               )}
+
+              {/* Optional slot to render extra UI inside the same bubble */}
+              {afterContent}
             </div>
 
             {/* Metadata */}

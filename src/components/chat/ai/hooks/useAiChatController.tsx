@@ -12,12 +12,11 @@ import { bindComposerHeight } from '@/lib/composer-sizing';
 import {
   detectPolicyIntent,
   loadPolicyTemplate,
-  analyzePolicyRequirements,
-  generatePolicy,
   getPolicyTypeFromInput,
   POLICY_TEMPLATES,
   type PolicyType,
 } from '@/lib/policyGenerator';
+import { getPolicyFormSchema } from '@/lib/policySchema';
 import { callFn, callFnStream } from '@/lib/call-fn';
 import type { Message, Conversation, CurrentConversation, PolicyGenerationState } from '../types';
 
@@ -45,6 +44,7 @@ export default function useAiChatController(isDemo: boolean) {
 
   const suppressNextRouteLoadRef = useRef(false);
   const lastLoadedConvRef = useRef<string | null>(null);
+  const lastCreatedConvRef = useRef<string | null>(null);
   const hasAnchoredBottomRef = useRef(false);
   const reachedTopRef = useRef(false);
   const mutationKindRef = useRef<'prepend' | 'append' | null>(null);
@@ -105,6 +105,8 @@ export default function useAiChatController(isDemo: boolean) {
     userAnswers: {},
     generatedPolicy: null,
     isGenerating: false,
+    formSchema: undefined,
+    lastPdfUrl: null,
   });
 
   // ----- layout bindings -----
@@ -404,7 +406,8 @@ export default function useAiChatController(isDemo: boolean) {
         page?: { next_before: string | null; has_more: boolean };
       }>(`chat-api/conversations/${conversationId}/messages?limit=20`, { method: 'GET' });
 
-      const loaded = (data?.messages || []).map((m: any) => ({
+      const rawMessages = data?.messages || [];
+      const loaded = rawMessages.map((m: any) => ({
         role: (m.role === 'consultant' ? 'assistant' : m.role) as 'user' | 'assistant',
         content: m.content,
         timestamp: new Date(m.timestamp).toLocaleTimeString([], {
@@ -416,6 +419,46 @@ export default function useAiChatController(isDemo: boolean) {
         metadata: m.metadata || undefined,
       })) as Message[];
 
+      // Do not hydrate a global draft UI; drafts will be embedded in their own messages.
+
+      // Hydrate policy schema UI from persisted schema message
+      // Find the latest policy_schema message from the end to start
+      let schemaRow: any | null = null;
+      let isLastMessage = false;
+      for (let i = rawMessages.length - 1; i >= 0; i--) {
+        const m = rawMessages[i];
+        if (m.role === 'assistant' && m.metadata?.type === 'policy_schema') {
+          schemaRow = m;
+          isLastMessage = i === rawMessages.length - 1;
+          break;
+        }
+      }
+      if (schemaRow) {
+        const rawType = (schemaRow.metadata?.policy_type as string) || '';
+        const isKnownType =
+          rawType && Object.prototype.hasOwnProperty.call(POLICY_TEMPLATES, rawType);
+        const effectiveType = (isKnownType ? (rawType as PolicyType) : prev.policyType) || null;
+        const metaTitle = (schemaRow.metadata?.title as string) || '';
+        const fallbackTitle = effectiveType
+          ? POLICY_TEMPLATES[effectiveType].title
+          : prev.schemaTitle || '';
+        setPolicyGenerationState((prev) => ({
+          ...prev,
+          isActive: true,
+          generatedPolicy: prev.generatedPolicy || null, // don't override existing draft hydration
+          isGenerating: false,
+          policyType: effectiveType || null,
+          formSchema: (schemaRow.metadata?.schema as any) || prev.formSchema,
+          schemaTitle: metaTitle || fallbackTitle,
+          schemaGuidance:
+            (schemaRow.metadata?.guidance_text as string) ||
+            schemaRow.content ||
+            prev.schemaGuidance,
+          schemaCanContinue: isLastMessage,
+        }));
+      }
+
+      // Keep all messages including policy_draft so we can embed UI under that bubble
       setMessages(loaded);
       setBeforeCursor(data?.page?.next_before ?? null);
       setHasMoreOlder(!!data?.page?.has_more);
@@ -787,6 +830,32 @@ export default function useAiChatController(isDemo: boolean) {
     intent: 'unspecified' | 'specified',
     userMessage: string,
   ) => {
+    // Ensure a conversation exists and route is set for policy flows
+    if (!currentConversationId && user && !isDemo) {
+      try {
+        const title =
+          userMessage && userMessage.length > 0 ? userMessage.slice(0, 60) : 'New Conversation';
+        const { data: newConv, error: convErr } = await supabase
+          .from('chat_conversations')
+          .insert({ user_id: user.id, title, tags: [] })
+          .select()
+          .single();
+        if (!convErr && newConv) {
+          // Prevent route-load effect from reloading while mid-flow
+          suppressNextRouteLoadRef.current = true;
+          lastCreatedConvRef.current = newConv.id;
+          setCurrentConversationId(newConv.id);
+          setCurrentConversation({
+            id: newConv.id,
+            title: newConv.title,
+            tags: newConv.tags || [],
+          });
+          navigate(`/dashboard/chat/c/${newConv.id}`, { replace: true });
+        }
+      } catch (e) {
+        console.warn('Failed to create conversation for policy flow:', e);
+      }
+    }
     const userChatMessage: Message = {
       role: 'user',
       content: userMessage,
@@ -796,6 +865,33 @@ export default function useAiChatController(isDemo: boolean) {
     setMessages((prev) => [...prev, userChatMessage]);
     setInput('');
     setMessageToSend('');
+
+    // Persist user message to this conversation
+    try {
+      const convId = currentConversationId || lastCreatedConvRef.current;
+      if (convId) {
+        const { data: inserted, error: insErr } = await supabase
+          .from('chat_messages')
+          .insert({ conversation_id: convId, role: 'user', content: userMessage })
+          .select('id')
+          .single();
+        if (!insErr && inserted?.id) {
+          setMessages((prev) => {
+            const next = [...prev];
+            // attach id to the last appended user message
+            for (let i = next.length - 1; i >= 0; i--) {
+              if (next[i].role === 'user' && !next[i].id) {
+                next[i] = { ...next[i], id: inserted.id };
+                break;
+              }
+            }
+            return next;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to persist user policy message:', e);
+    }
 
     if (intent === 'unspecified') {
       const policySelectionMessage: Message = {
@@ -840,30 +936,126 @@ export default function useAiChatController(isDemo: boolean) {
     customTitle?: string,
   ) => {
     try {
-      const template = await loadPolicyTemplate(policyType);
-      const userProfile = user
-        ? {
-            business_name: user.user_metadata?.company_name || 'Your Organization',
-            policy_title: customTitle || POLICY_TEMPLATES[policyType].title,
-          }
-        : { policy_title: customTitle || POLICY_TEMPLATES[policyType].title };
+      // Show a thinking placeholder until schema arrives
+      const thinkingId = `streaming_schema_${Date.now()}`;
+      const thinkingMsg: Message = {
+        id: thinkingId,
+        role: 'assistant',
+        content: '',
+        isStreaming: true,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      mutationKindRef.current = 'append';
+      setMessages((prev) => [...prev, thinkingMsg]);
 
-      const requirements = await analyzePolicyRequirements(template, userProfile);
+      // 1) Ask backend AI for a schema + guidance
+      const { data: schemaResp, error: schemaErr } = await supabase.functions.invoke(
+        'policy-schema',
+        {
+          body: {
+            message: _userMessage,
+          },
+        },
+      );
+      if (schemaErr) throw schemaErr;
+
+      const aiPolicyType: any = schemaResp?.policy_type || policyType;
+      const effectiveType =
+        aiPolicyType && POLICY_TEMPLATES[aiPolicyType as PolicyType]
+          ? (aiPolicyType as PolicyType)
+          : policyType;
+
+      const template = await loadPolicyTemplate(effectiveType);
+      const formSchema =
+        Array.isArray(schemaResp?.schema) && schemaResp.schema.length
+          ? schemaResp.schema
+          : getPolicyFormSchema(effectiveType);
+
+      // 2) Replace thinking with AI guidance once available; attach metadata so UI can embed the form immediately
+      if (schemaResp?.guidance_text) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === thinkingId
+              ? {
+                  ...m,
+                  isStreaming: false,
+                  content: String(schemaResp.guidance_text),
+                  metadata: {
+                    ...(m.metadata || {}),
+                    type: 'policy_schema',
+                    policy_type: effectiveType,
+                    title: String(schemaResp?.title || ''),
+                    schema: formSchema,
+                    guidance_text: String(schemaResp.guidance_text || ''),
+                  },
+                }
+              : m,
+          ),
+        );
+        // Persist schema+guidance as assistant message with schema metadata
+        try {
+          const convId = currentConversationId || lastCreatedConvRef.current;
+          if (convId) {
+            const { data: ins2 } = await supabase
+              .from('chat_messages')
+              .insert({
+                conversation_id: convId,
+                role: 'assistant',
+                content: String(schemaResp.guidance_text),
+                metadata: {
+                  type: 'policy_schema',
+                  policy_type: effectiveType,
+                  title: String(schemaResp?.title || ''),
+                  schema: formSchema,
+                  guidance_text: String(schemaResp.guidance_text || ''),
+                },
+              })
+              .select('id')
+              .single();
+            if (ins2?.id) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === thinkingId
+                    ? {
+                        ...m,
+                        id: ins2.id,
+                        metadata: {
+                          ...(m.metadata || {}),
+                          type: 'policy_schema',
+                          policy_type: effectiveType,
+                          title: String(schemaResp?.title || ''),
+                          schema: formSchema,
+                          guidance_text: String(schemaResp.guidance_text || ''),
+                        },
+                      }
+                    : m,
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to persist guidance message:', e);
+        }
+      } else {
+        // No guidance returned; remove the thinking message
+        setMessages((prev) => prev.filter((m) => m.id !== thinkingId));
+      }
 
       setPolicyGenerationState({
         isActive: true,
-        policyType,
+        policyType: effectiveType,
         template,
-        missingFields: requirements.missingFields,
+        missingFields: [],
         currentFieldGroup: 0,
         userAnswers: {},
         generatedPolicy: null,
         isGenerating: false,
+        formSchema,
+        lastPdfUrl: null,
+        schemaTitle: String(schemaResp?.title || ''),
+        schemaGuidance: String(schemaResp?.guidance_text || ''),
+        schemaCanContinue: true,
       });
-
-      if (requirements.missingFields.length === 0) {
-        await generatePolicyDocument(template, userProfile, {});
-      }
     } catch (error) {
       console.error('Error initiating policy generation:', error);
       toast({
@@ -876,67 +1068,100 @@ export default function useAiChatController(isDemo: boolean) {
 
   const handlePolicyFieldsSubmit = async (answers: Record<string, string>) => {
     const updatedAnswers = { ...policyGenerationState.userAnswers, ...answers };
-    const userProfile = user
-      ? { business_name: user.user_metadata?.company_name || 'Your Organization' }
-      : {};
-    setPolicyGenerationState((prev) => ({ ...prev, userAnswers: updatedAnswers }));
+    setPolicyGenerationState((prev) => ({
+      ...prev,
+      userAnswers: updatedAnswers,
+      isGenerating: true,
+    }));
 
     try {
-      if (policyGenerationState.template) {
-        const requirements = await analyzePolicyRequirements(
-          policyGenerationState.template,
-          userProfile,
-          updatedAnswers,
-        );
-        if (requirements.missingFields.length === 0) {
-          await generatePolicyDocument(policyGenerationState.template, userProfile, updatedAnswers);
-        } else {
-          setPolicyGenerationState((prev) => ({
-            ...prev,
-            missingFields: requirements.missingFields,
-          }));
-        }
-      }
+      // 3) Generate the policy via backend AI using answers and type
+      const { data: genResp, error: genErr } = await supabase.functions.invoke('policy-generate', {
+        body: {
+          message: messages[messages.length - 1]?.content || '',
+          policy_type: policyGenerationState.policyType || 'generic_template',
+          title:
+            policyGenerationState.schemaTitle && policyGenerationState.schemaTitle.trim()
+              ? policyGenerationState.schemaTitle.trim()
+              : policyGenerationState.policyType
+                ? POLICY_TEMPLATES[policyGenerationState.policyType].title
+                : 'Policy',
+          frameworks: [],
+          answers: updatedAnswers,
+        },
+      });
+      if (genErr) throw genErr;
+      const md = String(genResp?.policy_markdown || '').trim();
+      if (!md) throw new Error('Empty draft');
+
+      await generatePolicyDocument(policyGenerationState.template || '', {}, updatedAnswers, md);
     } catch (err) {
-      console.error('Error analyzing policy requirements:', err);
+      console.error('Error generating policy draft:', err);
       toast({
         title: 'Error',
-        description: 'Unable to process your answers. Try again.',
+        description: 'Failed to generate policy draft.',
         variant: 'destructive',
       });
+      setPolicyGenerationState((prev) => ({ ...prev, isGenerating: false }));
     }
   };
 
   const handlePolicyUseDefaults = async () => {
-    const userProfile = user
-      ? { business_name: user.user_metadata?.company_name || 'Your Organization' }
-      : {};
-    if (policyGenerationState.template) {
-      await generatePolicyDocument(policyGenerationState.template, userProfile, {});
-    }
+    await handlePolicyFieldsSubmit({});
   };
 
   const generatePolicyDocument = async (
-    template: string,
-    userProfile: Record<string, any>,
-    answers: Record<string, string>,
+    _template: string,
+    _userProfile: Record<string, any>,
+    _answers: Record<string, string>,
+    policyMarkdown?: string,
   ) => {
     setPolicyGenerationState((prev) => ({ ...prev, isGenerating: true }));
     try {
-      const result = generatePolicy(template, userProfile, answers);
-      const policyMessage: Message = {
-        role: 'assistant',
-        content: result.policy,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        metadata: { risk_level: 'low', framework_tags: ['policy', 'governance'], confidence: 0.95 },
-      };
-      mutationKindRef.current = 'append';
-      setMessages((prev) => [...prev, policyMessage]);
+      const resultPolicy = (policyMarkdown && policyMarkdown.trim()) || undefined;
+      const policyText = resultPolicy ?? 'Policy draft is unavailable.';
+      // Persist assistant draft to conversation and append a corresponding chat bubble
+      try {
+        const convId = currentConversationId || lastCreatedConvRef.current;
+        if (convId) {
+          const { data: ins3 } = await supabase
+            .from('chat_messages')
+            .insert({
+              conversation_id: convId,
+              role: 'assistant',
+              content: policyText,
+              metadata: { type: 'policy_draft' },
+            })
+            .select('id, metadata, content, created_at')
+            .single();
+          const newMsg: Message = {
+            id: ins3?.id || `draft_${Date.now()}`,
+            role: 'assistant',
+            content: policyText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            metadata: { ...(ins3?.metadata || {}), type: 'policy_draft' },
+          };
+          mutationKindRef.current = 'append';
+          setMessages((prev) => [...prev, newMsg]);
+        }
+      } catch (e) {
+        console.warn('Failed to persist policy draft:', e);
+        // Still show locally
+        const newMsg: Message = {
+          id: `draft_${Date.now()}`,
+          role: 'assistant',
+          content: policyText,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          metadata: { type: 'policy_draft' },
+        };
+        mutationKindRef.current = 'append';
+        setMessages((prev) => [...prev, newMsg]);
+      }
       setPolicyGenerationState((prev) => ({
         ...prev,
-        generatedPolicy: result.policy,
+        generatedPolicy: null,
         isGenerating: false,
-        isActive: true,
+        isActive: false,
       }));
       toast({
         title: 'Policy Generated',
@@ -981,9 +1206,10 @@ export default function useAiChatController(isDemo: boolean) {
     if (loading) return;
 
     // Block sending if attached docs haven't produced initial chunks yet
-    const idsToCheck = (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length)
-      ? opts.activeDocumentsOverride
-      : activeDocuments;
+    const idsToCheck =
+      opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
+        ? opts.activeDocumentsOverride
+        : activeDocuments;
     if (idsToCheck && idsToCheck.length > 0) {
       const byId = new Map(uploadedDocuments.map((d: any) => [d.id, d]));
       let anyFailed = false;
@@ -994,7 +1220,11 @@ export default function useAiChatController(isDemo: boolean) {
         if (status === 'failed') anyFailed = true;
       }
       if (anyFailed) {
-        toast({ title: 'Document indexing failed', description: 'Please re-upload and try again.', variant: 'destructive' });
+        toast({
+          title: 'Document indexing failed',
+          description: 'Please re-upload and try again.',
+          variant: 'destructive',
+        });
         return;
       }
     }
@@ -1039,10 +1269,179 @@ export default function useAiChatController(isDemo: boolean) {
       return;
     }
 
-    const policyIntent = detectPolicyIntent(sanitizedMessage);
-    if (policyIntent !== 'none') {
-      await handlePolicyGenerationFlow(policyIntent, sanitizedMessage);
+    // ---------- Hybrid policy router (Phase 1: heuristic, Phase 2: AI classifier) ----------
+    // Expanded verbs/nouns to catch more natural phrasing
+    const isLikelyPolicyRequestHeuristic = (text: string) => {
+      const t = text.toLowerCase();
+      const verbs = [
+        'create',
+        'draft',
+        'generate',
+        'write',
+        'produce',
+        'develop',
+        'compose',
+        'prepare',
+        'formulate',
+        'build',
+        'make',
+        'make me',
+        'make a',
+        'need',
+        'need a',
+        'want',
+        'want a',
+        'help',
+        'help me',
+        'spin up',
+        'come up with',
+      ];
+      const nouns = [
+        'policy',
+        'policy template',
+        'template',
+        'standard',
+        'guideline',
+        'procedure',
+        'plan',
+        'information security policy',
+        'infosec policy',
+        'security policy',
+        'iam policy',
+        'access control policy',
+      ];
+      const hasVerb = verbs.some((v) => t.includes(v));
+      const hasNoun = nouns.some((n) => t.includes(n));
+      // Also catch patterns like "<X> policy using <framework>"
+      const pattern =
+        /(policy|template)\s+(using|for|aligned to|aligned with)\s+(soc\s*2|iso\s*27001|nist|hipaa|gdpr|pci\s*dss|fedramp|cmmc)/i;
+      const matchesPattern = pattern.test(text);
+      const containsPolicyWord = /\bpolicy\b|\bpolicy template\b/i.test(text);
+      return (hasVerb && hasNoun) || matchesPattern || containsPolicyWord;
+    };
+
+    const extractFrameworks = (text: string): string[] => {
+      const t = text.toLowerCase();
+      const fws: string[] = [];
+      const add = (x: string) => {
+        if (!fws.includes(x)) fws.push(x);
+      };
+      if (/soc\s*-?\s*2|soc2/.test(t)) add('SOC 2');
+      if (/iso\s*-?\s*27001/.test(t)) add('ISO 27001');
+      if (/nist\s*csf/.test(t)) add('NIST CSF');
+      if (/nist\s*800-?171/.test(t)) add('NIST 800-171');
+      if (/hipaa/.test(t)) add('HIPAA');
+      if (/gdpr/.test(t)) add('GDPR');
+      if (/pci\s*dss/.test(t)) add('PCI DSS');
+      if (/fedramp/.test(t)) add('FedRAMP');
+      if (/cmmc/.test(t)) add('CMMC');
+      return fws;
+    };
+
+    const extractRoughTitle = (text: string): string | null => {
+      const t = text.trim();
+      // Simple grab: anything before "policy" becomes the stem
+      const m = t.match(/(.+?)\s*(policy|policy template)/i);
+      if (m && m[1]) {
+        const words = m[1]
+          .replace(/using .+$/i, '')
+          .replace(/aligned.*$/i, '')
+          .trim();
+        if (words)
+          return (
+            words
+              .replace(/\s+/g, ' ')
+              .split(' ')
+              .map((w) => w[0]?.toUpperCase() + w.slice(1))
+              .join(' ') + ' Policy'
+          );
+      }
+      return null;
+    };
+
+    // Phase 1: heuristic route to policy flow
+    if (isLikelyPolicyRequestHeuristic(sanitizedMessage)) {
+      const frameworks = extractFrameworks(sanitizedMessage);
+      const roughTitle = extractRoughTitle(sanitizedMessage);
+      const guess = getPolicyTypeFromInput(sanitizedMessage);
+      // If we have any signal, go straight to policy flow
+      await handlePolicyGenerationFlow(guess?.type ? 'specified' : 'unspecified', sanitizedMessage);
       return;
+    }
+
+    // Phase 2: fast AI classifier only if it contains "policy" and the heuristic wasn't decisive
+    if (/\bpolicy\b|\btemplate\b/i.test(sanitizedMessage)) {
+      try {
+        const { data: intentResp } = await supabase.functions.invoke('policy-intent', {
+          body: { message: sanitizedMessage },
+        });
+        if (intentResp && intentResp.is_policy && (Number(intentResp.confidence) || 0) >= 0.6) {
+          const clsType: any = intentResp.policy_type || null;
+          const titleStr: string | undefined = intentResp.title || undefined;
+          const derived =
+            clsType && POLICY_TEMPLATES[clsType as PolicyType]
+              ? (clsType as PolicyType)
+              : getPolicyTypeFromInput(sanitizedMessage).type;
+          await initiatePolicyGeneration(derived, sanitizedMessage, titleStr);
+          return;
+        }
+      } catch (e) {
+        // Swallow classification failures; fall through to normal chat
+      }
+    }
+
+    // Intercept policy confirmation / changes intents before AI send
+    if (
+      policyGenerationState.isActive &&
+      policyGenerationState.generatedPolicy &&
+      /^\s*(proceed|proceed with this draft|looks good|save policy)\b/i.test(sanitizedMessage)
+    ) {
+      await confirmAndPersistPolicy();
+      return;
+    }
+    if (
+      policyGenerationState.isActive &&
+      /^\s*(make changes|edit|change answers|adjust)\b/i.test(sanitizedMessage)
+    ) {
+      // Re-open the dynamic form with the last schema
+      setPolicyGenerationState((prev) => ({
+        ...prev,
+        generatedPolicy: null,
+        isGenerating: false,
+      }));
+      const msg: Message = {
+        role: 'assistant',
+        content: 'Sure — update the fields and continue when ready.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      mutationKindRef.current = 'append';
+      setMessages((prev) => [...prev, msg]);
+      return;
+    }
+
+    const policyIntent = detectPolicyIntent(sanitizedMessage);
+    // Only intercept when the user's request clearly specifies a policy type
+    if (policyIntent === 'specified') {
+      await handlePolicyGenerationFlow('specified', sanitizedMessage);
+      return;
+    }
+
+    // Not a policy message: clear any stale policy UI state
+    if (policyGenerationState.isActive) {
+      setPolicyGenerationState({
+        isActive: false,
+        policyType: null,
+        template: null,
+        missingFields: [],
+        currentFieldGroup: 0,
+        userAnswers: {},
+        generatedPolicy: null,
+        isGenerating: false,
+        formSchema: undefined,
+        lastPdfUrl: null,
+        schemaTitle: undefined,
+        schemaGuidance: undefined,
+      });
     }
 
     if (isEscalated) {
@@ -1069,26 +1468,34 @@ export default function useAiChatController(isDemo: boolean) {
     let attachedDetails:
       | Array<{ id: string; name: string; type?: string; size?: number }>
       | undefined;
-    const usedDocIds = (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length)
-      ? opts.activeDocumentsOverride
-      : activeDocuments;
+    const usedDocIds =
+      opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
+        ? opts.activeDocumentsOverride
+        : activeDocuments;
 
     // Ensure a conversation exists BEFORE sending, so routing and attachments stay consistent
     let convIdForSend: string | null = currentConversationId;
     if (!convIdForSend && user && !isDemo) {
       try {
-        const title = sanitizedMessage && sanitizedMessage.length > 0
-          ? sanitizedMessage.slice(0, 60)
-          : 'New Conversation';
+        const title =
+          sanitizedMessage && sanitizedMessage.length > 0
+            ? sanitizedMessage.slice(0, 60)
+            : 'New Conversation';
         const { data: newConv, error: convErr } = await supabase
           .from('chat_conversations')
           .insert({ user_id: user.id, title, tags: [] })
           .select()
           .single();
         if (!convErr && newConv) {
+          // Prevent route-load effect from reloading while mid-send
+          suppressNextRouteLoadRef.current = true;
           convIdForSend = newConv.id;
           setCurrentConversationId(newConv.id);
-          setCurrentConversation({ id: newConv.id, title: newConv.title, tags: newConv.tags || [] });
+          setCurrentConversation({
+            id: newConv.id,
+            title: newConv.title,
+            tags: newConv.tags || [],
+          });
           // Route immediately so uploads (if any) can include conversation_id
           navigate(`/dashboard/chat/c/${newConv.id}`, { replace: true });
         }
@@ -1131,7 +1538,7 @@ export default function useAiChatController(isDemo: boolean) {
           .invoke('qdrant-index', {
             body: {
               docId,
-              conversationId: (convIdForSend || currentConversationId) || undefined,
+              conversationId: convIdForSend || currentConversationId || undefined,
             },
           })
           .catch((err) => console.warn('qdrant-index invoke failed:', err));
@@ -1238,7 +1645,7 @@ export default function useAiChatController(isDemo: boolean) {
         body: {
           content: sanitizedMessage,
           message: sanitizedMessage,
-          conversationId: (convIdForSend || currentConversationId) || undefined,
+          conversationId: convIdForSend || currentConversationId || undefined,
           activeDocuments: (opts?.activeDocumentsOverride && opts.activeDocumentsOverride.length
             ? opts.activeDocumentsOverride
             : activeDocuments
@@ -1464,6 +1871,106 @@ export default function useAiChatController(isDemo: boolean) {
     }
   };
 
+  // Save policy via edge function, then generate PDF via export-policy and post a link
+  const confirmAndPersistPolicy = async () => {
+    const pg = policyGenerationState;
+    if (!pg.generatedPolicy || !pg.policyType) return;
+    try {
+      // Persist user's confirmation as a message
+      try {
+        const convId = currentConversationId || lastCreatedConvRef.current;
+        if (convId) {
+          await supabase
+            .from('chat_messages')
+            .insert({ conversation_id: convId, role: 'user', content: 'Proceed with this draft' });
+        }
+      } catch {}
+
+      // Save to DB
+      const title =
+        pg.schemaTitle && pg.schemaTitle.trim()
+          ? pg.schemaTitle.trim()
+          : pg.policyType
+            ? POLICY_TEMPLATES[pg.policyType].title
+            : 'Policy';
+      const { data: saved, error } = await supabase.functions.invoke('save-policy', {
+        body: {
+          title,
+          content: pg.generatedPolicy,
+          policyType: pg.policyType,
+          templateUsed: pg.policyType,
+        },
+      });
+      if (error) throw error;
+
+      // Export PDF (server function returns a file response; fetch and create blob URL)
+      const res = await fetch('/functions/v1/export-policy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(supabase.auth.getSession ? {} : {}),
+          Authorization: (await supabase.auth.getSession()).data.session?.access_token
+            ? `Bearer ${(await supabase.auth.getSession()).data.session!.access_token}`
+            : '',
+        },
+        body: JSON.stringify({ messageId: 'unused', format: 'pdf', policyType: pg.policyType }),
+      });
+      if (!res.ok) throw new Error('Failed to export policy');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      setPolicyGenerationState((prev) => ({ ...prev, lastPdfUrl: url }));
+
+      const doneMsg: Message = {
+        role: 'assistant',
+        content:
+          'Saved your policy. Download the PDF below. You can also export Word from the toolbar.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      mutationKindRef.current = 'append';
+      setMessages((prev) => [
+        ...prev,
+        doneMsg,
+        {
+          role: 'assistant',
+          content: `[Download PDF](${url})`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+      // Persist assistant confirmation and link
+      try {
+        const convId = currentConversationId || lastCreatedConvRef.current;
+        if (convId) {
+          await supabase.from('chat_messages').insert([
+            {
+              conversation_id: convId,
+              role: 'assistant',
+              content: doneMsg.content,
+              metadata: { type: 'policy_saved' },
+            },
+            {
+              conversation_id: convId,
+              role: 'assistant',
+              content: `[Download PDF](${url})`,
+              metadata: { type: 'policy_pdf_link' },
+            },
+          ]);
+        }
+      } catch {}
+      toast({
+        title: 'Policy saved',
+        description: 'View it in Policies. A PDF download is ready.',
+      });
+    } catch (e) {
+      console.error('Persist/export failed:', e);
+      toast({
+        title: 'Action failed',
+        description: 'Could not save or export policy',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -1503,7 +2010,7 @@ export default function useAiChatController(isDemo: boolean) {
 
   const suggestedPrompts = [
     'Create a HIPAA compliance checklist for our practice',
-    'Generate an incident response plan',
+    'Generate a Password Management Policy aligned with SOC 2.',
     'Help me understand SOC 2 requirements',
     'Review our password policy for compliance',
   ];

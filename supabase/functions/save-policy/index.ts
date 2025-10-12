@@ -38,7 +38,7 @@ serve(async (req) => {
         );
       }
 
-      const { title, content, framework, type } = requestData;
+      const { title, content, policyType, templateUsed, metadata } = requestData;
 
       // Enhanced input validation
       if (!title || typeof title !== 'string') {
@@ -59,9 +59,10 @@ serve(async (req) => {
 
       // Sanitize inputs
       const sanitizedTitle = InputSanitizer.sanitizeString(title, 200);
-      const sanitizedContent = InputSanitizer.sanitizeString(content, 100000); // 100k char limit
-      const sanitizedFramework = framework ? InputSanitizer.sanitizeString(framework, 50) : null;
-      const sanitizedType = type ? InputSanitizer.sanitizeString(type, 50) : 'custom';
+      // Preserve newlines/markdown for policy body while sanitizing dangerous content
+      const sanitizedContent = InputSanitizer.sanitizePolicyContent(content, 200000);
+      const sanitizedPolicyType = policyType ? InputSanitizer.sanitizeString(policyType, 60) : 'custom';
+      const sanitizedTemplateUsed = templateUsed ? InputSanitizer.sanitizeString(templateUsed, 120) : null;
 
       if (sanitizedTitle.length < 3) {
         return createErrorResponse(
@@ -79,55 +80,46 @@ serve(async (req) => {
         );
       }
 
-      // Validate framework if provided
-      const validFrameworks = [
-        'SOC2',
-        'ISO27001',
-        'NIST',
-        'HIPAA',
-        'GDPR',
-        'CCPA',
-        'CMMC',
-        'FedRAMP',
-      ];
-      if (sanitizedFramework && !validFrameworks.includes(sanitizedFramework)) {
-        return createErrorResponse(
-          'Invalid framework specified',
-          HTTP_STATUS.BAD_REQUEST,
-          ERROR_CODES.INVALID_INPUT,
-        );
-      }
-
-      // Check for duplicate policy titles for this user
-      const { data: existingPolicy } = await supabaseClient
-        .from('user_policies')
-        .select('id')
-        .eq('user_id', context.userId)
-        .eq('title', sanitizedTitle)
-        .maybeSingle();
-
-      if (existingPolicy) {
-        return createErrorResponse(
-          'A policy with this title already exists',
-          HTTP_STATUS.CONFLICT,
-          ERROR_CODES.DUPLICATE_REQUEST,
-        );
+      // Ensure unique title per user by auto-suffixing duplicates instead of failing
+      let finalTitle = sanitizedTitle;
+      try {
+        const { data: duplicates } = await supabaseClient
+          .from('policies')
+          .select('title')
+          .eq('user_id', context.userId)
+          .ilike('title', `${sanitizedTitle}%`);
+        if (duplicates && duplicates.length > 0) {
+          // Gather existing suffix numbers
+          let maxN = 1;
+          for (const row of duplicates) {
+            const t = String(row.title);
+            if (t === sanitizedTitle) {
+              maxN = Math.max(maxN, 2);
+            } else {
+              const m = t.match(new RegExp(`^${sanitizedTitle.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*\\((\\d+)\\)$`));
+              if (m) {
+                const n = parseInt(m[1], 10);
+                if (!Number.isNaN(n)) maxN = Math.max(maxN, n + 1);
+              }
+            }
+          }
+          if (maxN > 1) finalTitle = `${sanitizedTitle} (${maxN})`;
+        }
+      } catch (_) {
+        // If we can't check duplicates, proceed with original title
       }
 
       // Save the policy with enhanced metadata
       const { data: savedPolicy, error: saveError } = await supabaseClient
-        .from('user_policies')
+        .from('policies')
         .insert({
           user_id: context.userId,
           org_id: context.orgId,
-          title: sanitizedTitle,
+          title: finalTitle,
+          policy_type: sanitizedPolicyType,
           content: sanitizedContent,
-          framework: sanitizedFramework,
-          type: sanitizedType,
-          status: 'draft',
-          version: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          template_used: sanitizedTemplateUsed,
+          metadata: metadata && typeof metadata === 'object' ? metadata : null,
         })
         .select()
         .single();
@@ -152,13 +144,12 @@ serve(async (req) => {
       // Log policy creation for audit trail
       await supabaseClient.from('audit_logs').insert({
         action: 'POLICY_SAVED',
-        description: `Policy saved: ${sanitizedTitle}`,
+        description: `Policy saved: ${finalTitle}`,
         user_id: context.userId,
         metadata: {
           policy_id: savedPolicy.id,
-          policy_title: sanitizedTitle,
-          framework: sanitizedFramework,
-          type: sanitizedType,
+          policy_title: finalTitle,
+          policy_type: sanitizedPolicyType,
           content_length: sanitizedContent.length,
           security_level: 'MEDIUM',
         },
@@ -178,9 +169,7 @@ serve(async (req) => {
           policy: {
             id: savedPolicy.id,
             title: savedPolicy.title,
-            framework: savedPolicy.framework,
-            type: savedPolicy.type,
-            status: savedPolicy.status,
+            type: savedPolicy.policy_type,
             created_at: savedPolicy.created_at,
           },
           message: 'Policy saved successfully',

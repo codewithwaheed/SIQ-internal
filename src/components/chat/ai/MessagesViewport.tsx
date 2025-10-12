@@ -1,6 +1,8 @@
 import { ContextManager } from '@/components/chat/ContextManager';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { PolicyGenerationInterface } from '@/components/chat/PolicyGenerationInterface';
+import { PolicyDraftActionsInline } from '@/components/chat/PolicyDraftActionsInline';
+import { PolicyFormDynamic } from '@/components/chat/PolicyFormDynamic';
 import { ContextualEscalationCard } from '@/components/chat/ContextualEscalationCard';
 import { SmartEscalationTriggers } from '@/components/chat/SmartEscalationTriggers';
 import { POLICY_TEMPLATES } from '@/lib/policyGenerator';
@@ -104,48 +106,78 @@ export function MessagesViewport({
           </div>
         ) : (
           <>
-            {messages.map((message, index) => (
-              <ChatMessage
-                key={message.id || index}
-                message={message}
-                conversationId={conversationId ?? currentConversation?.id}
-                isLatest={index === messages.length - 1}
-                isDemo={isDemo}
-                user={user}
-                messages={messages}
-                onCopyMessage={onCopyMessage}
-                onMessageReaction={onMessageReaction}
-                onSuggestionClick={onSuggestionClick}
-              />
-            ))}
+            {messages.map((message, index) => {
+              const isLatest = index === messages.length - 1;
+              const isPolicySchemaMsg = message.metadata?.type === 'policy_schema';
+              const isPolicyDraftMsg = message.metadata?.type === 'policy_draft';
+              const showEmbeddedSchema =
+                isPolicySchemaMsg &&
+                policyGenerationState.isActive &&
+                !policyGenerationState.generatedPolicy &&
+                policyGenerationState.formSchema &&
+                Array.isArray(policyGenerationState.formSchema) &&
+                policyGenerationState.formSchema.length > 0;
 
-            {policyGenerationState.isActive && (
-              <div className="my-6">
-                <PolicyGenerationInterface
-                  policyType={policyGenerationState.policyType || ''}
-                  policyTitle={
-                    policyGenerationState.policyType
-                      ? POLICY_TEMPLATES[policyGenerationState.policyType].title
-                      : ''
-                  }
-                  missingFields={policyGenerationState.missingFields}
-                  completionPercentage={Math.round(
-                    ((10 - policyGenerationState.missingFields.length) / 10) * 100,
+              const afterContent = showEmbeddedSchema ? (
+                <div className="mt-4">
+                  {policyGenerationState.isGenerating ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current" />
+                      Generating policy…
+                    </div>
+                  ) : (
+                    <PolicyFormDynamic
+                      embedded
+                      title={
+                        policyGenerationState.schemaTitle ||
+                        (policyGenerationState.policyType
+                          ? POLICY_TEMPLATES[policyGenerationState.policyType].title
+                          : 'Policy')
+                      }
+                      subtitle={policyGenerationState.schemaGuidance || undefined}
+                      schema={policyGenerationState.formSchema!}
+                      onSubmit={onPolicyFieldsSubmit}
+                      onUseDefaults={onPolicyUseDefaults}
+                      disabled={
+                        policyGenerationState.isGenerating ||
+                        policyGenerationState.schemaCanContinue === false
+                      }
+                    />
                   )}
-                  onFieldsSubmit={onPolicyFieldsSubmit}
-                  onUseDefaults={onPolicyUseDefaults}
-                  isGenerating={policyGenerationState.isGenerating}
-                  generatedPolicy={policyGenerationState.generatedPolicy}
-                  templateUsed={policyGenerationState.policyType || undefined}
-                  messageId={
-                    policyGenerationState.generatedPolicy
-                      ? messages.find((m) => m.content === policyGenerationState.generatedPolicy)
-                          ?.id
-                      : undefined
-                  }
+                </div>
+              ) : isPolicyDraftMsg ? (
+                <div className="mt-4">
+                  <PolicyDraftActionsInline
+                    policyTitle={
+                      (policyGenerationState.schemaTitle && policyGenerationState.schemaTitle.trim())
+                        ? policyGenerationState.schemaTitle.trim()
+                        : (message.content.match(/^#\s+(.+)$/m)?.[1] || 'Policy')
+                    }
+                    policyType={policyGenerationState.policyType || undefined}
+                    content={message.content}
+                    messageId={message.id}
+                  />
+                </div>
+              ) : undefined;
+
+              return (
+                <ChatMessage
+                  key={message.id || index}
+                  message={message}
+                  conversationId={conversationId ?? currentConversation?.id}
+                  isLatest={isLatest}
+                  isDemo={isDemo}
+                  user={user}
+                  messages={messages}
+                  onCopyMessage={onCopyMessage}
+                  onMessageReaction={onMessageReaction}
+                  onSuggestionClick={onSuggestionClick}
+                  afterContent={afterContent}
                 />
-              </div>
-            )}
+              );
+            })}
+
+            {/* No global draft UI; drafts are embedded under their respective assistant messages */}
 
             {!isDemo && user && showContextualEscalation && escalationRationale && (
               <ContextualEscalationCard

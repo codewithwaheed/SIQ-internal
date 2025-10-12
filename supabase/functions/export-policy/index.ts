@@ -99,36 +99,30 @@ Violations may result in disciplinary action up to and including termination.
 | 1.0 | ${new Date().toISOString().split('T')[0]} | SentrIQ AI | Initial |`;
 
     if (format === 'pdf') {
-      // For PDF generation, we'll use a simple HTML to PDF approach
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            h2 { color: #666; margin-top: 30px; }
-            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            strong { font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          ${samplePolicyContent
+      // Render markdown to HTML (client will convert to PDF if needed)
+      const markedRes = await fetch('https://cdn.skypack.dev/marked@12?min');
+      const markedCode = await markedRes.text();
+      // Lightweight inline renderer: avoid eval; fallback to simple replacement if blocked
+      const htmlBody = (() => {
+        try {
+          // eslint-disable-next-line no-new-func
+          const f = new Function(`${markedCode}; return marked.parse(arguments[0]);`);
+          return String(f(samplePolicyContent));
+        } catch {
+          return samplePolicyContent
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/^# (.*$)/gim, '<h1>$1</h1>')
             .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^\| (.*$)/gim, '<tr><td>$1</td></tr>')
-            .replace(/^\|------/gim, '')
-            .replace(/^(\d+\. .*$)/gim, '<li>$1</li>')
-            .replace(/^- (.*$)/gim, '<li>$1</li>')
-            .split('\n')
-            .join('<br>')}
-        </body>
-        </html>
-      `;
+            .replace(/\n/g, '<br>');
+        }
+      })();
+      const htmlContent = `<!doctype html><html><head><meta charset="utf-8" />
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+          h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #ddd; padding: 6px; }
+        </style></head><body>${htmlBody}</body></html>`;
 
       // Generate filename
       const date = new Date().toISOString().split('T')[0];
@@ -143,7 +137,7 @@ Violations may result in disciplinary action up to and including termination.
         },
       });
     } else if (format === 'docx') {
-      // For DOCX generation, we'll return a simple Word document
+      // For DOCX generation, we'll return a simple Word document (placeholder)
       const date = new Date().toISOString().split('T')[0];
       const filename = `${policyType}_${date}.docx`;
 

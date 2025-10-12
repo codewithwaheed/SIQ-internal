@@ -29,11 +29,24 @@ serve(async (req) => {
   }
 
   try {
-    const DEBUG_ATTACH = (Deno.env.get("DEBUG_ATTACHMENTS") || "").toLowerCase() === "1";
+    const t0 = Date.now();
+    const PERF_LOG = (Deno.env.get("CHAT_AI_PERF_LOG") || "1").toLowerCase() === "1";
+    const perf = (label: string, extra?: Record<string, unknown>) => {
+      if (!PERF_LOG) return;
+      const ms = Date.now() - t0;
+      try {
+        console.log(`[PERF][CHAT-AI] ${label} +${ms}ms`, extra ? JSON.stringify(extra) : "");
+      } catch {}
+    };
+    const DEBUG_ATTACH =
+      (Deno.env.get("DEBUG_ATTACHMENTS") || "").toLowerCase() === "1";
     const dbg = (label: string, obj?: unknown) => {
       if (!DEBUG_ATTACH) return;
       try {
-        console.log(`[ATTACH-DEBUG] ${label}`, obj !== undefined ? JSON.stringify(obj) : "");
+        console.log(
+          `[ATTACH-DEBUG] ${label}`,
+          obj !== undefined ? JSON.stringify(obj) : "",
+        );
       } catch (_) {
         console.log(`[ATTACH-DEBUG] ${label}`);
       }
@@ -55,6 +68,31 @@ serve(async (req) => {
       );
     }
 
+    // Normalize and stabilize markdown content for better FE rendering
+    function stabilizeMarkdown(md: string): string {
+      try {
+        let out = (md || "").replace(/\u0000/g, "").trimEnd();
+        // Ensure headings have a space after '#'
+        out = out.split("\n").map((line) => {
+          if (/^#{1,6}[^#\s]/.test(line)) {
+            const m = line.match(/^(#{1,6})(.*)$/);
+            if (m) return `${m[1]} ${m[2].trim()}`;
+          }
+          return line;
+        }).join("\n");
+        // Collapse 3+ blank lines to at most 2
+        out = out.replace(/\n{3,}/g, "\n\n");
+        // Close unbalanced triple backtick code fences
+        const fenceCount = (out.match(/```/g) || []).length;
+        if (fenceCount % 2 === 1) out += "\n```";
+        // Ensure final trailing newline
+        if (!out.endsWith("\n")) out += "\n";
+        return out;
+      } catch {
+        return md;
+      }
+    }
+
     // Parse body
     let body: any = {};
     try {
@@ -66,6 +104,7 @@ serve(async (req) => {
         ERROR_CODES.INVALID_INPUT,
       );
     }
+    perf('body_parsed');
 
     const {
       content,
@@ -77,11 +116,14 @@ serve(async (req) => {
       preferInlineDocs,
       imageAssetIds,
     } = body as any;
-    const clientProvidedConversationId = !!conversationId && typeof conversationId === 'string' && conversationId.trim() !== '';
+    const clientProvidedConversationId = !!conversationId &&
+      typeof conversationId === "string" && conversationId.trim() !== "";
 
-    dbg('Incoming body', {
+    dbg("Incoming body", {
       conversationId,
-      activeDocsCount: Array.isArray(activeDocuments) ? activeDocuments.length : 0,
+      activeDocsCount: Array.isArray(activeDocuments)
+        ? activeDocuments.length
+        : 0,
       imageCount: Array.isArray(imageAssetIds) ? imageAssetIds.length : 0,
     });
 
@@ -125,6 +167,7 @@ serve(async (req) => {
       orgId,
       isAuthenticated,
     } = await getClientsAndUser(req);
+    perf('auth_ready', { isDemo: !!(body as any)?.isDemo, hasUser: !!user });
 
     if (!isDemo && !isAuthenticated) {
       return new Response(
@@ -142,10 +185,20 @@ serve(async (req) => {
 
     // Enforce: client must provide conversationId for non-demo requests.
     // Prevent server from creating/switching conversations implicitly.
-    if (!isDemo && (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '')) {
+    if (
+      !isDemo &&
+      (!conversationId || typeof conversationId !== "string" ||
+        conversationId.trim() === "")
+    ) {
       return new Response(
-        JSON.stringify({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({
+          error: "conversationId is required",
+          code: "MISSING_CONVERSATION_ID",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -195,17 +248,23 @@ serve(async (req) => {
       conversationData = existingConv;
       finalTitle = conversationData.title;
       openAIConversationId = existingConv.openai_conversation_id ?? null;
-      dbg('Using existing conversation', { id: conversationData.id, clientProvided: clientProvidedConversationId, hasOpenAI: !!openAIConversationId });
+      dbg("Using existing conversation", {
+        id: conversationData.id,
+        clientProvided: clientProvidedConversationId,
+        hasOpenAI: !!openAIConversationId,
+      });
     } else {
       conversationData = { id: "demo" };
       finalTitle = "Demo Conversation";
     }
+    perf('conversation_bootstrap', { conversationId: conversationData?.id });
 
     // Ensure an OpenAI Conversation exists for non-demo
     async function ensureOpenAIConversation(): Promise<string | null> {
       if (isDemo) return null;
       if (openAIConversationId) return openAIConversationId;
       try {
+        const tStart = Date.now();
         const createRes = await fetch(
           "https://api.openai.com/v1/conversations",
           {
@@ -235,6 +294,7 @@ serve(async (req) => {
               updated_at: new Date().toISOString(),
             })
             .eq("id", conversationData.id);
+          perf('openai_conversation_created', { took_ms: Date.now() - tStart });
           return convId;
         }
       } catch (e) {
@@ -243,6 +303,7 @@ serve(async (req) => {
       return null;
     }
     openAIConversationId = await ensureOpenAIConversation();
+    perf('openai_conversation_ready', { hasOpenAI: !!openAIConversationId });
 
     // Validate and normalize attached documents (ids), cap to 3, and enforce ownership
     let attachedDocIds: string[] = [];
@@ -257,7 +318,10 @@ serve(async (req) => {
       const requested = (activeDocuments as any[])
         .filter((v) => typeof v === "string")
         .slice(0, 3) as string[];
-      dbg('Requested activeDocuments', { requested, conversationId: conversationData.id });
+      dbg("Requested activeDocuments", {
+        requested,
+        conversationId: conversationData.id,
+      });
       if (requested.length > 0 && user) {
         try {
           // If the client provided a conversationId, force-bind all requested docs
@@ -265,28 +329,36 @@ serve(async (req) => {
           if (clientProvidedConversationId) {
             try {
               const { data: mapping } = await supabaseAdmin
-                .from('documents')
-                .select('id, conversation_id')
-                .in('id', requested)
-                .eq('user_id', user.id);
+                .from("documents")
+                .select("id, conversation_id")
+                .in("id", requested)
+                .eq("user_id", user.id);
               const toBind = (mapping || [])
                 .filter((r: any) => r.conversation_id !== conversationData.id)
                 .map((r: any) => r.id);
               if (toBind.length) {
                 await supabaseAdmin
-                  .from('documents')
+                  .from("documents")
                   .update({ conversation_id: conversationData.id })
-                  .in('id', toBind)
-                  .eq('user_id', user.id);
-                dbg('Rebound docs to client conversationId', { toBind, conversationId: conversationData.id });
+                  .in("id", toBind)
+                  .eq("user_id", user.id);
+                dbg("Rebound docs to client conversationId", {
+                  toBind,
+                  conversationId: conversationData.id,
+                });
               }
             } catch (e) {
-              console.warn('[CHAT-WITH-AI] Failed to rebind docs to provided conversation:', e);
+              console.warn(
+                "[CHAT-WITH-AI] Failed to rebind docs to provided conversation:",
+                e,
+              );
             }
           }
           const { data: allowed } = await supabaseAdmin
             .from("documents")
-            .select("id,file_name,file_type,file_size,uploaded_at,conversation_id")
+            .select(
+              "id,file_name,file_type,file_size,uploaded_at,conversation_id",
+            )
             .in("id", requested)
             .eq("user_id", user.id)
             .eq("conversation_id", conversationData.id);
@@ -298,15 +370,20 @@ serve(async (req) => {
             size: r.file_size,
             uploaded_at: r.uploaded_at,
           }));
-          if (DEBUG_ATTACH && attachedDocIds.length === 0 && requested.length > 0) {
+          if (
+            DEBUG_ATTACH && attachedDocIds.length === 0 && requested.length > 0
+          ) {
             const { data: mapping } = await supabaseAdmin
-              .from('documents')
-              .select('id, conversation_id')
-              .in('id', requested)
-              .eq('user_id', user.id);
-            dbg('Requested docs conversation mapping', { mapping, currentConversationId: conversationData.id });
+              .from("documents")
+              .select("id, conversation_id")
+              .in("id", requested)
+              .eq("user_id", user.id);
+            dbg("Requested docs conversation mapping", {
+              mapping,
+              currentConversationId: conversationData.id,
+            });
           }
-          dbg('Allowed docs', { attachedDocIds, count: attachedDocIds.length });
+          dbg("Allowed docs", { attachedDocIds, count: attachedDocIds.length });
           if (requested.length && attachedDocIds.length !== requested.length) {
             console.warn(
               "[CHAT-WITH-AI] Some requested activeDocuments are not bound to this conversation; ignoring them",
@@ -319,6 +396,8 @@ serve(async (req) => {
         }
       }
     }
+
+    perf('docs_validated', { attachedDocCount: attachedDocIds.length });
 
     // Persist user message (non-demo)
     if (!isDemo && user) {
@@ -342,12 +421,16 @@ serve(async (req) => {
         .eq("id", conversationData.id);
     }
 
+    perf('user_msg_persisted');
+
     // Optionally attach selected docs to this conversation in Qdrant (so future turns can use conversation scope)
     if (!isDemo && user && attachedDocIds.length > 0) {
       try {
+        const tStart = Date.now();
         await supabaseAdmin.functions.invoke("qdrant-attach", {
           body: { conversationId: conversationData.id, docIds: attachedDocIds },
         });
+        perf('qdrant_attach', { took_ms: Date.now() - tStart, docCount: attachedDocIds.length });
       } catch (e) {
         console.warn("qdrant-attach failed (non-fatal):", e);
       }
@@ -394,6 +477,7 @@ serve(async (req) => {
         if (anyReady) break;
         await new Promise((r) => setTimeout(r, 400));
       }
+      perf('indexing_wait_done', { waited_ms: Date.now() - start });
     }
 
     // Decide retrieval mode based on user intent
@@ -417,6 +501,7 @@ serve(async (req) => {
         );
       }
     } catch {}
+    perf('intent_classified', { intent, retrievalMode, topK });
     logStep("Classified intent", {
       intent,
       retrievalMode,
@@ -513,6 +598,7 @@ serve(async (req) => {
         }),
       );
     } catch {}
+    perf('retrieval_decided', { useInline, hasActiveDocs, attachedDocIds: attachedDocIds.length });
 
     // Prepare short-lived signed URLs for image attachments (if provided)
     let imageSignedUrls: string[] = [];
@@ -560,15 +646,17 @@ serve(async (req) => {
 
           // Give OpenAI more time to fetch: 10 minutes TTL
           const TTL_SECONDS = 600;
-          for (const a of owned) {
-            const { data: signed } = await supabaseAdmin.storage
-              .from(BUCKET)
-              .createSignedUrl(a.file_path, TTL_SECONDS, { download: false });
-            if (signed?.signedUrl) {
-              imageSignedUrls.push(rewriteBase(signed.signedUrl));
-            }
-          }
-          dbg('Image signed urls count', { count: imageSignedUrls.length });
+          await Promise.all(
+            owned.map(async (a: any) => {
+              const { data: signed } = await supabaseAdmin.storage
+                .from(BUCKET)
+                .createSignedUrl(a.file_path, TTL_SECONDS, { download: false });
+              if (signed?.signedUrl) {
+                imageSignedUrls.push(rewriteBase(signed.signedUrl));
+              }
+            }),
+          );
+          dbg("Image signed urls count", { count: imageSignedUrls.length });
         }
       } catch (e) {
         console.warn(
@@ -577,18 +665,21 @@ serve(async (req) => {
         );
       }
     }
+    perf('image_urls_ready', { count: imageSignedUrls.length });
 
     // Prepare short-lived signed URLs for attached PDFs/documents (if provided)
     let docSignedUrls: string[] = [];
     if (!isDemo && user && hasActiveDocs) {
       try {
         const { data: docs } = await supabaseAdmin
-          .from('documents')
-          .select('id, user_id, file_path')
-          .in('id', attachedDocIds.slice(0, 3));
-        const ownedDocs = (docs || []).filter((d: any) => d.user_id === user.id);
-        const BUCKET_DOCS = 'user-documents';
-        const PUBLIC_BASE_DOCS = Deno.env.get('PUBLIC_STORAGE_BASE_URL') || '';
+          .from("documents")
+          .select("id, user_id, file_path")
+          .in("id", attachedDocIds.slice(0, 3));
+        const ownedDocs = (docs || []).filter((d: any) =>
+          d.user_id === user.id
+        );
+        const BUCKET_DOCS = "user-documents";
+        const PUBLIC_BASE_DOCS = Deno.env.get("PUBLIC_STORAGE_BASE_URL") || "";
         const rewriteDocsBase = (url: string) => {
           if (!PUBLIC_BASE_DOCS) return url;
           try {
@@ -596,8 +687,10 @@ serve(async (req) => {
             const base = new URL(PUBLIC_BASE_DOCS);
             original.protocol = base.protocol;
             original.hostname = base.hostname;
-            original.port = base.port || '';
-            const basePath = base.pathname && base.pathname !== '/' ? base.pathname.replace(/\/$/, '') : '';
+            original.port = base.port || "";
+            const basePath = base.pathname && base.pathname !== "/"
+              ? base.pathname.replace(/\/$/, "")
+              : "";
             if (basePath) original.pathname = `${basePath}${original.pathname}`;
             return original.toString();
           } catch {
@@ -605,15 +698,25 @@ serve(async (req) => {
           }
         };
         const TTL_SECONDS_DOCS = 600; // 10 minutes
-        for (const d of ownedDocs) {
-          const { data: signed } = await supabaseAdmin.storage
-            .from(BUCKET_DOCS)
-            .createSignedUrl(d.file_path, TTL_SECONDS_DOCS, { download: false });
-          if (signed?.signedUrl) docSignedUrls.push(rewriteDocsBase(signed.signedUrl));
-        }
-        dbg('Doc signed urls count', { count: docSignedUrls.length, docIds: attachedDocIds });
+        await Promise.all(
+          ownedDocs.map(async (d: any) => {
+            const { data: signed } = await supabaseAdmin.storage
+              .from(BUCKET_DOCS)
+              .createSignedUrl(d.file_path, TTL_SECONDS_DOCS, { download: false });
+            if (signed?.signedUrl) {
+              docSignedUrls.push(rewriteDocsBase(signed.signedUrl));
+            }
+          }),
+        );
+        dbg("Doc signed urls count", {
+          count: docSignedUrls.length,
+          docIds: attachedDocIds,
+        });
       } catch (e) {
-        console.warn('[CHAT-WITH-AI] Failed to create signed URLs for docs:', e);
+        console.warn(
+          "[CHAT-WITH-AI] Failed to create signed URLs for docs:",
+          e,
+        );
       }
     }
 
@@ -623,6 +726,7 @@ serve(async (req) => {
       !isDemo && user && hasActiveDocs && retrievalMode && !useInline &&
       imageSignedUrls.length === 0 && docSignedUrls.length === 0
     ) {
+      const ragStart = Date.now();
       citations = await retrieveContext(supabaseAdmin, {
         userId: user.id,
         conversationId: conversationData.id,
@@ -631,6 +735,7 @@ serve(async (req) => {
         topK,
         mode: retrievalMode as any,
       });
+      perf('rag_done', { took_ms: Date.now() - ragStart, snippets: citations.length });
       try {
         console.log(
           "[CHAT-WITH-AI] RAG path used",
@@ -729,24 +834,53 @@ serve(async (req) => {
 
     // --- LIVE PATH: stream OpenAI to client, aggregate full text, then emit complete with followups ---
     logStep("Calling OpenAI", { model });
+    perf('prompt_ready', { hasContext: !!(ragContext || inlineDocContext) });
+    // Optionally include the most recent policy draft from this conversation for transform requests
+    let policySourceMd = "";
+    try {
+      const looksLikeTransform = /\b(convert|change|adapt|map|align|translate|migrate)\b/i.test(
+        sanitizedMessage,
+      ) && /\b(policy|framework|standard|above|this\s+policy)\b/i.test(sanitizedMessage);
+      if (looksLikeTransform && !isDemo && user) {
+        const { data: drafts } = await supabaseAdmin
+          .from('chat_messages')
+          .select('content, metadata')
+          .eq('conversation_id', conversationData.id)
+          .eq('role', 'assistant')
+          .contains('metadata', { type: 'policy_draft' })
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const draft = (drafts || [])[0];
+        if (draft && typeof draft.content === 'string' && draft.content.trim().length > 0) {
+          policySourceMd = stabilizeMarkdown(draft.content);
+        }
+      }
+    } catch (e) {
+      console.warn('Policy draft lookup failed (non-fatal):', e);
+    }
+
     // Compose instructions depending on intent and whether we have context
     const hasContext =
-      (ragContext.trim().length > 0 || inlineDocContext.trim().length > 0) &&
+      (ragContext.trim().length > 0 || inlineDocContext.trim().length > 0 || policySourceMd.trim().length > 0) &&
       imageSignedUrls.length === 0 && docSignedUrls.length === 0;
     let instructions = `${systemPrompt()}`;
     // If we are analyzing attachments (images/PDFs), add a focusing directive
-    if ((imageSignedUrls && imageSignedUrls.length) || (docSignedUrls && docSignedUrls.length)) {
-      instructions += `\n\nAttachment Focus: The user attached files for this turn. Base your answer only on the attached items provided in this message. Do NOT use or assume context from earlier documents unless explicitly restated in this turn.`;
+    if (
+      (imageSignedUrls && imageSignedUrls.length) ||
+      (docSignedUrls && docSignedUrls.length)
+    ) {
+      instructions +=
+        `\n\nAttachment Focus: The user attached files for this turn. Base your answer only on the attached items provided in this message. Do NOT use or assume context from earlier documents unless explicitly restated in this turn.`;
     }
     if (intent === "doc_summary") {
       instructions +=
         `\n\nTask: Summarize the attached document for a CISO.\n- Provide a concise, structured summary with sections: Executive summary, Key policies/controls, Requirements, Risks/Gaps, Next actions.\n- Format each section title in bold (Markdown) and include 2-3 sentences or bullet points that expand on the details.\n- Use only the provided context chunks. Cite sources like [file:chunk].`;
     } else if (intent === "compare") {
       instructions +=
-        `\n\nTask: Compare attached documents.\n- Summarize similarities and differences, highlight conflicting requirements, and note risks.\n- Use only the provided context chunks. Cite sources like [file:chunk].`;
+        `\n\nTask: Compare attached documents.\n- Summarize similarities and differences, highlight conflicting requirements, and note risks.\n- Use only the provided context chunks.`;
     } else if (hasContext) {
       instructions +=
-        `\n\nGrounding: Answer only using the provided context.\n- If the answer is not in context, say you don't know.\n- Cite sources inline like [file:chunk].\n- Be concise and accurate.`;
+        `\n\nGrounding: Answer only using the provided context.\n- If the answer is not in context, say you don't know.\n- Be concise and accurate.`;
     } else {
       // No context available; general helpful assistant without strict grounding
       instructions +=
@@ -754,10 +888,21 @@ serve(async (req) => {
     }
 
     instructions +=
-      `\n\nFormatting: Use bold Markdown headings for major sections and favor short paragraphs or bullet lists for implementation steps.`;
+      `\n\nFormatting: Begin with a single-sentence takeaway (no label). Use bold Markdown headings that fit the user's request — do not reuse a fixed template and avoid boilerplate titles like "Overview" or "Key Actions" unless they are truly the best fit. Prefer short paragraphs and bullet points. Only add sections that add value (typically 2–4).`;
+
+    // Clarify vague policy-generation requests
+    instructions += `\n\nIf the user asks to generate a policy but the type/framework is unclear or generic (e.g., "generate me policy"), respond with 1–2 concise clarifying questions to identify the policy type and target framework (e.g., SOC 2, ISO 27001, HIPAA). Do not generate the policy until the user confirms these details.`;
+
+    if (policySourceMd.trim().length > 0) {
+      instructions += `\n\nWhen a source policy is provided, treat it as the baseline. If the user asks to convert/adapt it to another framework, map controls and requirements, adjust terminology and structure to the target, carry over relevant constraints (scope, responsibilities, exceptions), and call out any missing information with a brief clarifying question before finalizing.`;
+    }
 
     const composedUserText = hasContext
       ? `${
+        policySourceMd
+          ? `Source policy (markdown):\n${policySourceMd}\n\n`
+          : ""
+      }${
         inlineDocContext
           ? `Inline document content:\n${inlineDocContext}\n\n`
           : ""
@@ -780,7 +925,14 @@ serve(async (req) => {
       );
     } catch {}
 
-    dbg('Pre-model call', { hasActiveDocs, attachedDocIds, imageCount: imageSignedUrls.length, docCount: docSignedUrls.length, useInline });
+    dbg("Pre-model call", {
+      hasActiveDocs,
+      attachedDocIds,
+      imageCount: imageSignedUrls.length,
+      docCount: docSignedUrls.length,
+      useInline,
+    });
+    const oaiStart = Date.now();
     const oaRes = await callModelStream(
       OPENAI_API_KEY,
       model,
@@ -790,6 +942,7 @@ serve(async (req) => {
       imageSignedUrls.length ? imageSignedUrls : undefined,
       docSignedUrls.length ? docSignedUrls : undefined,
     );
+    perf('openai_connected', { took_ms: Date.now() - oaiStart, status: oaRes.status });
     if (!oaRes.ok) {
       const errText = await oaRes.text();
       return new Response(
@@ -810,6 +963,7 @@ serve(async (req) => {
     let buffer = "";
     let fullContent = "";
 
+    let firstChunkAt: number | null = null;
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
@@ -896,6 +1050,10 @@ serve(async (req) => {
               const parsed = JSON.parse(payload) as Record<string, unknown>;
               piece = extractDeltaText(parsed);
               if (piece) {
+                if (!firstChunkAt) {
+                  firstChunkAt = Date.now();
+                  perf('openai_first_chunk', { ttfb_ms: firstChunkAt - oaiStart, since_request_ms: firstChunkAt - t0 });
+                }
                 fullContent += piece;
                 controller.enqueue(
                   encoder.encode(
@@ -1030,7 +1188,8 @@ serve(async (req) => {
                             type: "chunk",
                             content: piece,
                             conversation_id: conversationData.id,
-                            client_provided_conversation_id: clientProvidedConversationId,
+                            client_provided_conversation_id:
+                              clientProvidedConversationId,
                           })
                         }\n\n`,
                       ),
@@ -1075,7 +1234,8 @@ serve(async (req) => {
                             type: "chunk",
                             content: piece,
                             conversation_id: conversationData.id,
-                            client_provided_conversation_id: clientProvidedConversationId,
+                            client_provided_conversation_id:
+                              clientProvidedConversationId,
                           })
                         }\n\n`,
                       ),
@@ -1120,6 +1280,8 @@ serve(async (req) => {
 
           // Save assistant message & cache if any content
           if (fullContent.trim()) {
+            // Final pass: stabilize markdown for consistent rendering on FE
+            fullContent = stabilizeMarkdown(fullContent);
             responseCache.set(cacheKey, fullContent);
 
             // Insert assistant message now to get an id; enrich metadata after followups
@@ -1206,6 +1368,7 @@ serve(async (req) => {
             ),
           );
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          perf('stream_done', { total_ms: Date.now() - t0, content_len: fullContent.length });
           controller.close();
         } catch (e) {
           controller.enqueue(

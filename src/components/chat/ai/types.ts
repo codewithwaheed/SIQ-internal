@@ -54,4 +54,17 @@ export interface PolicyGenerationState {
   userAnswers: Record<string, string>;
   generatedPolicy: string | null;
   isGenerating: boolean;
+  formSchema?: Array<{
+    key: string;
+    label: string;
+    type: 'text' | 'number' | 'boolean' | 'select';
+    help?: string;
+    options?: Array<{ label: string; value: string }> | string[];
+    placeholder?: string;
+    default?: string | number | boolean;
+  }>;
+  lastPdfUrl?: string | null;
+  schemaTitle?: string;
+  schemaGuidance?: string;
+  schemaCanContinue?: boolean;
 }

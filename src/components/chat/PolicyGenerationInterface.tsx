@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MissingFieldCard, getFieldPlaceholder } from './MissingFieldCard';
 import { Document, Packer, Paragraph } from 'docx';
 import { sanitizePolicyContent, createSafeHtml } from '@/lib/sanitization';
+import { exportPolicyToPDF, exportPolicyToDocx } from '@/lib/policyExport';
 
 type MissingField = { key: string; label: string; placeholder?: string };
 
@@ -135,57 +136,12 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
     if (!generatedPolicy) return;
 
     try {
-      // Remove HTML tags and create clean content
-      const cleanContent = generatedPolicy
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/\*\*(.*?)\*\*/g, '$1')
-        .trim();
-
-      const formattedContent = `${policyTitle}\n\n${cleanContent}`;
-
-      let blob: Blob;
-      let extension: 'pdf' | 'docx';
-      const mimeType =
-        format === 'pdf'
-          ? 'application/pdf'
-          : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-      if (format === 'pdf') {
-        const { jsPDF } = await import('jspdf');
-        const pdf = new jsPDF();
-        const lines = pdf.splitTextToSize(formattedContent, 180);
-        pdf.text(lines, 10, 10);
-        const arrayBuffer = pdf.output('arraybuffer');
-        blob = new Blob([arrayBuffer], { type: mimeType });
-        extension = 'pdf';
-      } else {
-        const doc = new Document({
-          sections: [
-            {
-              properties: {},
-              children: formattedContent.split('\n').map((line) => new Paragraph(line)),
-            },
-          ],
-        });
-        blob = await Packer.toBlob(doc);
-        extension = 'docx';
-      }
-
-      const element = document.createElement('a');
-      element.href = URL.createObjectURL(blob);
-      element.download = `${policyType.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.${extension}`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-      URL.revokeObjectURL(element.href);
+      if (format === 'pdf') await exportPolicyToPDF(policyTitle, generatedPolicy);
+      else await exportPolicyToDocx(policyTitle, generatedPolicy);
 
       toast({
         title: 'Export successful',
-        description: `Policy exported as ${extension.toUpperCase()} document`,
+        description: `Policy exported as ${format.toUpperCase()} document`,
       });
     } catch (error) {
       toast({
@@ -223,8 +179,8 @@ export const PolicyGenerationInterface: React.FC<PolicyGenerationInterfaceProps>
             <div className="policy-body prose max-w-none text-sm">
               <div
                 dangerouslySetInnerHTML={createSafeHtml(
-                  sanitizePolicyContent(generatedPolicy),
-                  'html',
+                  generatedPolicy,
+                  'markdown',
                 )}
               />
             </div>

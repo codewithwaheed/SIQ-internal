@@ -10,12 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FileText, Search, Download, Calendar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { FileText, Search, Download, Calendar, Eye } from 'lucide-react';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { sanitizePolicyContent, createSafeHtml } from '@/lib/sanitization';
+import { createSafeHtml } from '@/lib/sanitization';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { exportPolicyToPDF, exportPolicyToDocx } from '@/lib/policyExport';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Policy {
   id: string;
@@ -35,6 +43,10 @@ export default function PolicyLibrary() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [viewOpen, setViewOpen] = useState(false);
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [twoColumn, setTwoColumn] = useState(false);
+  const [fullScreen, setFullScreen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -52,17 +64,28 @@ export default function PolicyLibrary() {
     try {
       setLoading(true);
       const token = (await supabase.auth.getSession()).data.session?.access_token;
-      const url = new URL(
-        'https://xfdqnmtzuuphxivsgmua.functions.supabase.co/functions/v1/get-policies',
-      );
+      // Build functions base from current SUPABASE_URL (respects local dev)
+      const base = (() => {
+        try {
+          const u = new URL(SUPABASE_URL);
+          const isCloud = u.hostname.endsWith('.supabase.co');
+          if (isCloud) {
+            return `${u.protocol}//${u.hostname.replace('.supabase.co', '.functions.supabase.co')}`;
+          }
+          // Local/dev: functions are served under the same base URL
+          return SUPABASE_URL.replace(/\/+$/, '');
+        } catch {
+          return SUPABASE_URL.replace(/\/+$/, '');
+        }
+      })();
+      const url = new URL(`${base}/functions/v1/get-policies`);
       if (selectedType !== 'all') url.searchParams.set('policy_type', selectedType);
 
       const response = await fetch(url.toString(), {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          apikey:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHFubXR6dXVwaHhpdnNnbXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjE2MDksImV4cCI6MjA2OTQ5NzYwOX0.op82w015Am91OghHdNauFrQbajQzeu4E0VKY_mqt5M0',
+          apikey: SUPABASE_ANON_KEY,
         },
       });
 
@@ -81,45 +104,13 @@ export default function PolicyLibrary() {
     }
   }
 
-  async function handleExportPolicy(policy: Policy, _format: 'pdf' | 'docx') {
+  async function handleExportPolicy(policy: Policy, format: 'pdf' | 'docx') {
     try {
-      const htmlContent = `
-        <html>
-          <head>
-            <title>${policy.title}</title>
-            <meta charset="utf-8" />
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
-              h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-              .meta { background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; }
-              .content { margin: 20px 0; }
-            </style>
-          </head>
-          <body>
-            <h1>${policy.title}</h1>
-            <div class="meta">
-              <p><strong>Policy Type:</strong> ${policy.policy_type}</p>
-              <p><strong>Version:</strong> ${policy.version}</p>
-              <p><strong>Created:</strong> ${new Date(policy.created_at).toLocaleDateString()}</p>
-            </div>
-            <div class="content">
-              ${policy.content}
-            </div>
-          </body>
-        </html>
-      `;
-
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${policy.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      toast({ title: 'Export successful', description: 'Policy exported as HTML file' });
-    } catch {
+      if (format === 'pdf') await exportPolicyToPDF(policy.title, policy.content);
+      else await exportPolicyToDocx(policy.title, policy.content);
+      toast({ title: 'Export successful', description: `Policy exported as ${format.toUpperCase()}` });
+    } catch (e) {
+      console.error('Export failed', e);
       toast({
         title: 'Export failed',
         description: 'Could not export policy',
@@ -187,8 +178,8 @@ export default function PolicyLibrary() {
             </div>
           </div>
 
-          {/* Grid */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          {/* Grid: force two columns on large screens */}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-2">
             {filteredPolicies.length === 0 ? (
               <div className="col-span-full py-12 text-center">
                 <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -219,29 +210,119 @@ export default function PolicyLibrary() {
 
                   <ScrollArea className="mb-4 h-24">
                     <div
-                      className="prose prose-sm max-w-none text-sm text-muted-foreground"
-                      dangerouslySetInnerHTML={createSafeHtml(
-                        sanitizePolicyContent(policy.content.substring(0, 200) + '...'),
-                        'html',
-                      )}
+                      className="prose prose-sm max-w-none text-sm text-muted-foreground sm:prose-base prose-headings:mb-2 prose-headings:mt-4 prose-p:mb-2 prose-p:leading-relaxed prose-strong:font-semibold prose-em:italic prose-ol:mb-2 prose-ul:mb-2"
+                      dangerouslySetInnerHTML={createSafeHtml(normalizePolicyMarkdown(policy.content), 'markdown')}
                     />
                   </ScrollArea>
 
-                  <Button
-                    onClick={() => handleExportPolicy(policy, 'pdf')}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setSelectedPolicy(policy);
+                        setViewOpen(true);
+                      }}
+                      variant="secondary"
+                      size="sm"
+                      className="w-1/2"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-1/2">
+                          <Download className="mr-2 h-4 w-4" />
+                          Export
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => handleExportPolicy(policy, 'pdf')}>
+                          Download PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportPolicy(policy, 'docx')}>
+                          Download Word
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
       )}
+
+      {/* View Policy Dialog */}
+      <Dialog open={viewOpen} onOpenChange={(o) => { setViewOpen(o); if (!o) { setTwoColumn(false); setFullScreen(false); } }}>
+        <DialogContent className={`${fullScreen ? 'h-[92vh] max-w-[96vw]' : 'max-h-[85vh] max-w-3xl'} overflow-y-auto`}>
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {selectedPolicy?.title}
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant={twoColumn ? 'secondary' : 'outline'} onClick={() => setTwoColumn(false)}>1 Col</Button>
+                <Button size="sm" variant={twoColumn ? 'default' : 'outline'} onClick={() => setTwoColumn(true)}>2 Col</Button>
+                <Button size="sm" variant={fullScreen ? 'default' : 'outline'} onClick={() => setFullScreen((v) => !v)}>{fullScreen ? 'Exit Fullscreen' : 'Fullscreen'}</Button>
+              </div>
+            </div>
+          </DialogHeader>
+          {selectedPolicy && (
+            <div>
+              <div className="mb-4 grid grid-cols-1 gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+                <div><span className="font-medium text-foreground">Type:</span> {selectedPolicy.policy_type.replace(/_/g, ' ')}</div>
+                <div><span className="font-medium text-foreground">Version:</span> v{selectedPolicy.version}</div>
+                <div><span className="font-medium text-foreground">Created:</span> {new Date(selectedPolicy.created_at).toLocaleDateString()}</div>
+              </div>
+              <div className={`prose max-w-none ${twoColumn ? 'columns-2 gap-10' : ''} sm:prose-base prose-headings:mb-2 prose-headings:mt-4 prose-p:mb-2 prose-p:leading-relaxed prose-strong:font-semibold prose-em:italic prose-ol:mb-2 prose-ul:mb-2`}>
+                <div dangerouslySetInnerHTML={createSafeHtml(normalizePolicyMarkdown(selectedPolicy.content), 'markdown')} />
+              </div>
+              <div className="mt-6 flex gap-3 max-sm:flex-col">
+                <Button onClick={() => handleExportPolicy(selectedPolicy, 'pdf')} variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" /> Download PDF
+                </Button>
+                <Button onClick={() => handleExportPolicy(selectedPolicy, 'docx')} variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" /> Download Word
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// Normalize policy markdown to improve formatting parity with chat
+function normalizePolicyMarkdown(md: string): string {
+  if (!md) return '';
+  try {
+    let out = md.replace(/\u0000/g, '').replace(/\r\n?/g, '\n').trim();
+    // Ensure '#Heading' becomes '# Heading'
+    out = out
+      .split('\n')
+      .map((line) => (/^#{1,6}[^#\s]/.test(line) ? line.replace(/^(#{1,6})(.*)$/, (_, h, t) => `${h} ${String(t).trim()}`) : line))
+      .join('\n');
+    // Ensure headings start on a new line if they were jammed inline (e.g., ".)## Heading")
+    out = out.replace(/([^\n])\s*(#{1,6}\s+)/g, '$1\n\n$2');
+    // Add a blank line after common heading tokens if the body starts immediately
+    const headingTokens = '(Introduction|Purpose|Scope|Definitions(?:\s*\([^\)]*\))?|Policy\s+Statement|Procedures|Responsibilities|Consequences\s+of\s+Non-Compliance|References|Revision\s+History)';
+    const reAfter = new RegExp(`^(#{1,6}\\s+${headingTokens})(?=\\S)`, 'gmi');
+    out = out.replace(reAfter, '$1\n\n');
+    // Convert lines that are only bold text to headings
+    out = out
+      .split('\n')
+      .map((line) => {
+        const m = line.match(/^\s*\*\*(.+?)\*\*\s*$/);
+        return m ? `## ${m[1].trim()}` : line;
+      })
+      .join('\n');
+    // Collapse 3+ newlines
+    out = out.replace(/\n{3,}/g, '\n\n');
+    return out;
+  } catch {
+    return md;
+  }
 }

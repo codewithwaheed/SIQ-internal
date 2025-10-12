@@ -44,6 +44,14 @@ export type PolicyType = keyof typeof POLICY_TEMPLATES;
 export function detectPolicyIntent(text: string): 'none' | 'unspecified' | 'specified' {
   const normalizedText = text.toLowerCase().trim();
 
+  // If the user is asking to convert/translate/adapt an existing policy to another framework,
+  // let the general LLM path handle it so we can leverage conversation/context rather than
+  // forcing a fresh template selection here.
+  const looksLikeTransform = /\b(convert|change|adapt|map|align|translate|migrate)\b/.test(
+    normalizedText,
+  ) && /\b(policy|framework|standard|above|this\s+policy)\b/.test(normalizedText);
+  if (looksLikeTransform) return 'none';
+
   // Must contain a policy-related word AND a creation verb
   const hasPolicyWord = /\b(policy|procedure|standard|guideline|document)\b/i.test(normalizedText);
   const hasCreationVerb = /\b(create|draft|generate|make|build|write|produce|develop)\b/i.test(

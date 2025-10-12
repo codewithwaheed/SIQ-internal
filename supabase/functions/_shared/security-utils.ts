@@ -366,6 +366,31 @@ export class InputSanitizer {
   }
 
   /**
+   * Sanitize multiline policy content while preserving markdown and newlines
+   * - Keeps \n, \r, and \t
+   * - Strips scripts/iframes and dangerous protocols/handlers
+   * - Allows normal punctuation and markdown symbols (#, *, -, _, etc.)
+   */
+  static sanitizePolicyContent(content: string, maxLength: number = 200000): string {
+    if (typeof content !== 'string') return '';
+
+    const sanitized = content
+      // Remove script/iframe tags completely
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      // Remove potentially dangerous event handlers and protocols
+      .replace(/on\w+\s*=\s*(["']).*?\1/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:(?!image\/(?:png|jpg|jpeg|gif|webp|svg\+xml))/gi, '')
+      // Remove control chars except tab/newline/carriage return
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+      .substring(0, maxLength);
+
+    return sanitized.trim();
+  }
+
+  /**
    * Validate message against security patterns
    */
   static validateMessageSecurity(content: string): {
